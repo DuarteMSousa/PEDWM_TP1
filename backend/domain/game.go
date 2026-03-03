@@ -8,9 +8,9 @@ import (
 type GameStatus string
 
 const (
-    Aguardando GameStatus = "AGUARDANDO"
-    EmJogo    GameStatus = "EM_JOGO"
-    FimDeJogo GameStatus = "FIM_DE_JOGO"
+	Aguardando GameStatus = "AGUARDANDO"
+	EmJogo     GameStatus = "EM_JOGO"
+	FimDeJogo  GameStatus = "FIM_DE_JOGO"
 )
 
 var (
@@ -21,8 +21,11 @@ var (
 	ErrInvalidPlayerOrder  = errors.New("invalid player order")
 	ErrStrategyNotSet      = errors.New("strategy not set")
 	ErrEventBusNotSet      = errors.New("event bus not set")
+	ErrRoundNotConfigured  = errors.New("round not configured")
+	ErrTrickNotConfigured  = errors.New("current trick not configured")
 )
 
+// Play mantém-se como antes
 type Play struct {
 	PlayerID string
 	Card     Card
@@ -34,15 +37,16 @@ type Game struct {
 	Players map[string]*Player
 	Teams   map[string]*Team
 
-	// PlayerOrder define a ordem fixa e determinística dos turnos (tamanho esperado: 4).
-	// IMPORTANTÍSSIMO: não uses iteração sobre map para isto.
-	PlayerOrder []string
+	// Ordem determinística (em vez de []string solta)
+	Order TurnOrder
 
-	TurnPlayer   string
-	TrumpSuit    Naipe
-	CurrentTrick []Play
-	TricksPlayed int
-	Status       GameStatus
+	// Estado corrente (turno atual)
+	TurnPlayer string
+
+	// Mão (10 vazas): trunfo + vaza atual + contador
+	Round *Round
+
+	Status GameStatus
 
 	RuleStrategy    TrickRuleStrategy
 	ScoringStrategy ScoringStrategy
@@ -51,13 +55,28 @@ type Game struct {
 	EventBus *EventBus
 }
 
+// Start coloca o jogo em EM_JOGO (assumindo que Round já foi criado).
+func (g *Game) Start() error {
+	if g.Round == nil {
+		return ErrRoundNotConfigured
+	}
+	g.Status = EmJogo
+	return nil
+}
+
 // PlayCard executa uma jogada: valida estado, valida turno, remove carta da mão e adiciona à vaza.
 func (g *Game) PlayCard(playerID, cardID string) error {
 	if g == nil {
 		return errors.New("game is nil")
 	}
-	if g.Status != Playing {
+	if g.Status != EmJogo {
 		return ErrGameNotPlaying
+	}
+	if g.Round == nil {
+		return ErrRoundNotConfigured
+	}
+	if g.Round.CurrentTrick == nil {
+		return ErrTrickNotConfigured
 	}
 	if g.TurnPlayer != playerID {
 		return ErrNotYourTurn
@@ -73,47 +92,60 @@ func (g *Game) PlayCard(playerID, cardID string) error {
 		return ErrCardNotFound
 	}
 
-	g.CurrentTrick = append(g.CurrentTrick, Play{
-		PlayerID: playerID,
-		Card:     card,
-	})
+	// Se a tua interface TrickRuleStrategy tiver ValidatePlay, valida aqui.
+	// (Se não tiveres isso implementado ainda, podes comentar este bloco.)
+	if g.RuleStrategy != nil && g.Round.CurrentTrick.LeadSuit != nil {
+		// leadSuit := *g.Round.CurrentTrick.LeadSuit
+		// if err := g.RuleStrategy.ValidatePlay(player.Hand, leadSuit, card); err != nil {
+		//     // repõe carta (opcional) ou trata erro como preferires
+		//     return err
+		// }
+	}
 
-	// EventBus é opcional, mas se queres obrigar, troca para: if g.EventBus == nil { return ErrEventBusNotSet }
+	play := Play{PlayerID: playerID, Card: card}
+	if err := g.Round.CurrentTrick.AddPlay(play); err != nil {
+		return err
+	}
+
 	if g.EventBus != nil {
 		g.EventBus.Publish(NewCardPlayedEvent(g.ID, playerID, card))
 	}
 
 	// Se 4 cartas jogadas → fechar vaza
-	if len(g.CurrentTrick) == 4 {
+	if g.Round.CurrentTrick.IsComplete() {
 		g.endTrick()
 		return nil
 	}
 
-	g.advanceTurn()
+	// avançar turno usando TurnOrder
+	next, err := g.Order.Next(g.TurnPlayer)
+	if err != nil {
+		return err
+	}
+	g.TurnPlayer = next
+
 	return nil
 }
 
 func (g *Game) endTrick() {
-	// Estratégias são essenciais. Aqui opto por falhar “silenciosamente” com panic evitado,
-	// mas podes trocar para retornar error se preferires.
+	if g.Round == nil || g.Round.CurrentTrick == nil {
+		return
+	}
 	if g.RuleStrategy == nil || g.ScoringStrategy == nil {
-		// Se queres comportamento estrito:
-		// panic(ErrStrategyNotSet)
 		return
 	}
 
-	winnerID := g.RuleStrategy.Winner(g.TrumpSuit, g.CurrentTrick)
-	points := g.ScoringStrategy.TrickPoints(g.CurrentTrick)
+	plays := g.Round.CurrentTrick.Plays
+	winnerID := g.RuleStrategy.Winner(g.Round.TrumpSuit, plays)
+	points := g.ScoringStrategy.TrickPoints(plays)
 
 	winner, ok := g.Players[winnerID]
 	if !ok || winner == nil {
-		// Estado inconsistente
 		return
 	}
 
 	team, ok := g.Teams[winner.TeamID]
 	if !ok || team == nil {
-		// Estado inconsistente
 		return
 	}
 
@@ -123,35 +155,20 @@ func (g *Game) endTrick() {
 		g.EventBus.Publish(NewTrickEndedEvent(g.ID, winnerID, points))
 	}
 
-	g.TricksPlayed++
-	g.CurrentTrick = g.CurrentTrick[:0]
+	// incrementa contador de vazas
+	g.Round.IncrementTrick()
+
+	// nova vaza começa com o vencedor
+	g.Round.StartNewTrick(winnerID)
 	g.TurnPlayer = winnerID
 
-	// 10 vazas é típico para baralho de 40 cartas (4 jogadores -> 10 trick).
-	if g.TricksPlayed == 10 {
-		g.Status = Ended
+	// fim após 10 vazas
+	if g.Round.IsFinished() {
+		g.Status = FimDeJogo
 		if g.EventBus != nil {
 			g.EventBus.Publish(NewGameEndedEvent(g.ID))
 		}
 	}
-}
-
-func (g *Game) advanceTurn() {
-	order := g.PlayerOrder
-	if len(order) != 4 {
-		// Se preferires: panic / error. Aqui só não avança.
-		return
-	}
-
-	for i, id := range order {
-		if id == g.TurnPlayer {
-			g.TurnPlayer = order[(i+1)%4]
-			return
-		}
-	}
-
-	// Se o TurnPlayer atual não existe na ordem, tenta recuperar para o primeiro.
-	g.TurnPlayer = order[0]
 }
 
 // Validate valida consistência estrutural mínima do jogo (útil ao iniciar).
@@ -165,11 +182,14 @@ func (g *Game) Validate() error {
 	if len(g.Teams) == 0 {
 		return errors.New("no teams configured")
 	}
-	if len(g.PlayerOrder) != 4 {
+	if !g.Order.Contains(g.TurnPlayer) {
 		return ErrInvalidPlayerOrder
 	}
-	if !g.TrumpSuit.Valid() {
-		return fmt.Errorf("%w: %q", ErrInvalidNaipe, g.TrumpSuit)
+	if g.Round == nil {
+		return ErrRoundNotConfigured
+	}
+	if !g.Round.TrumpSuit.Valid() {
+		return fmt.Errorf("%w: %q", ErrInvalidNaipe, g.Round.TrumpSuit)
 	}
 	if g.RuleStrategy == nil || g.ScoringStrategy == nil {
 		return ErrStrategyNotSet
