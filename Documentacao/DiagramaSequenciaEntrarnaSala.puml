@@ -1,0 +1,39 @@
+@startuml
+title Sueca - Sequência: Join Room + Start Game
+
+actor "Player" as P
+boundary "GraphQL API" as GQL
+control "RoomService" as RS
+entity "Room (Domain)" as Room
+control "GameFactory" as GF
+entity "Game (Domain)" as Game
+control "EventBus" as Bus
+boundary "WebSocket Gateway" as WS
+database "EventStore" as ES
+
+P -> GQL : mutation joinRoom(roomId)
+GQL -> RS : JoinRoom(roomId, playerId)
+RS -> Room : AddPlayer(player)
+Room --> RS : ok
+RS -> Bus : Publish(PlayerJoined)
+Bus -> WS : notify(PlayerJoined)
+Bus -> ES : Append(PlayerJoined)
+GQL --> P : ok
+
+P -> GQL : mutation startGame(roomId)
+GQL -> RS : StartGame(roomId)
+
+RS -> Room : CanStartGame()
+Room --> RS : true (4 players)
+
+RS -> GF : CreateGameFromRoom(room)
+GF --> RS : game
+
+RS -> Room : StartGame(game.ID)
+RS -> Bus : Publish(GameStarted)\nPublish(CardsDealt)\nPublish(TrumpRevealed)
+Bus -> WS : notify(...)
+Bus -> ES : Append(...)
+
+GQL --> P : ok
+
+@enduml

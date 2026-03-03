@@ -1,0 +1,200 @@
+@startuml
+title Sueca - Diagrama de Classes (Domain + Patterns)
+
+skinparam classAttributeIconSize 0
+
+'========================
+' Enums / Value Objects
+'========================
+enum Suit {
+  HEARTS
+  SPADES
+  DIAMONDS
+  CLUBS
+}
+
+enum Rank {
+  A
+  SEVEN
+  K
+  J
+  Q
+  SIX
+  FIVE
+  FOUR
+  THREE
+  TWO
+}
+
+enum PlayerType {
+  HUMAN
+  BOT
+}
+
+enum GameStatus {
+  WAITING
+  PLAYING
+  ENDED
+}
+
+enum RoomStatus {
+  OPEN
+  IN_GAME
+  CLOSED
+}
+
+'========================
+' Core Domain
+'========================
+class Card {
+  +ID: string
+  +Suit: Suit
+  +Rank: Rank
+  +IsTrump(trump: Suit): bool
+}
+
+class Player {
+  +ID: string
+  +Name: string
+  +Type: PlayerType
+  +TeamID: string
+  +Hand: Card[*]
+  +RemoveCard(cardID: string): (Card, bool)
+}
+
+class Team {
+  +ID: string
+  +Players: string[2]
+  +Score: int
+  +AddPoints(points: int)
+}
+
+class Play {
+  +PlayerID: string
+  +Card: Card
+}
+
+class Trick {
+  +LeaderPlayerID: string
+  +LeadSuit: Suit
+  +Plays: Play[*]
+}
+
+class Game {
+  +ID: string
+  +Players: map<string, Player>
+  +Teams: map<string, Team>
+  +TurnPlayer: string
+  +TrumpSuit: Suit
+  +CurrentTrick: Play[*]
+  +TricksPlayed: int
+  +Status: GameStatus
+
+  +RuleStrategy: TrickRuleStrategy
+  +ScoringStrategy: ScoringStrategy
+  +BotStrategy: BotPlayStrategy
+  +EventBus: EventBus
+
+  +PlayCard(playerID: string, cardID: string): error
+  +Start(): void
+}
+
+class Room {
+  +ID: string
+  +HostID: string
+  +Players: map<string, Player>
+  +Status: RoomStatus
+  +GameID: string
+  +CreatedAt: datetime
+
+  +AddPlayer(p: Player): error
+  +RemovePlayer(playerID: string): error
+  +CanStartGame(): bool
+  +StartGame(gameID: string): error
+  +Close(): void
+}
+
+'========================
+' Strategy Pattern
+'========================
+interface TrickRuleStrategy {
+  +Winner(trump: Suit, plays: Play[*]): string
+  +ValidatePlay(hand: Card[*], leadSuit: Suit, card: Card): error
+}
+
+interface ScoringStrategy {
+  +CardPoints(card: Card): int
+  +TrickPoints(plays: Play[*]): int
+}
+
+interface BotPlayStrategy {
+  +ChooseCard(hand: Card[*], leadSuit: Suit, trump: Suit): Card
+}
+
+class SuecaTrickRules
+class SuecaScoring
+class SimpleBotStrategy
+
+TrickRuleStrategy <|.. SuecaTrickRules
+ScoringStrategy  <|.. SuecaScoring
+BotPlayStrategy  <|.. SimpleBotStrategy
+
+'========================
+' Observer Pattern
+'========================
+enum EventType {
+  GAME_CREATED
+  PLAYER_JOINED
+  GAME_STARTED
+  CARDS_DEALT
+  TRUMP_REVEALED
+  TURN_CHANGED
+  CARD_PLAYED
+  TRICK_ENDED
+  SCORE_UPDATED
+  ROUND_ENDED
+  GAME_ENDED
+  ERROR
+}
+
+class Event {
+  +Type: EventType
+  +GameID: string
+  +Timestamp: datetime
+  +Payload: any
+}
+
+interface Observer {
+  +OnEvent(e: Event): void
+}
+
+class EventBus {
+  +Subscribe(o: Observer): void
+  +Publish(e: Event): void
+}
+
+class WebSocketObserver
+class LoggerObserver
+
+Observer <|.. WebSocketObserver
+Observer <|.. LoggerObserver
+
+EventBus o-- Observer : notifies >
+Game o-- EventBus
+
+'========================
+' Associations
+'========================
+Player "1" o-- "*" Card : hand
+Game "1" o-- "*" Player
+Game "1" o-- "*" Team
+Game "1" o-- "*" Play : currentTrick
+Play "*" --> "1" Card
+Room "1" o-- "*" Player
+Room "1" --> "0..1" Game : gameId
+
+Game --> TrickRuleStrategy
+Game --> ScoringStrategy
+Game --> BotPlayStrategy
+
+@enduml

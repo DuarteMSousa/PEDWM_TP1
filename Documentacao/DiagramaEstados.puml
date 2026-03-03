@@ -1,0 +1,59 @@
+@startuml
+title Sueca - Diagrama de Estados (State Pattern) - Fases do Jogo
+
+hide empty description
+skinparam shadowing false
+
+[*] --> WaitingForPlayers : createRoom()
+
+state WaitingForPlayers {
+  [*] --> Open
+  Open : room.status = OPEN\nplayers < 4
+  Open --> Open : joinPlayer()
+  Open --> Open : leavePlayer()
+}
+
+WaitingForPlayers --> ReadyToStart : players == 4
+ReadyToStart : room.status = OPEN\nplayers == 4
+
+ReadyToStart --> WaitingForPlayers : leavePlayer()\nplayers < 4
+
+ReadyToStart --> Dealing : startGame()\n(host only)
+
+state Dealing {
+  [*] --> ShuffleDeck
+  ShuffleDeck : DeckFactory.create()\nshuffle()
+  ShuffleDeck --> DealCards : deal 10 cards/player
+  DealCards --> SetTrump : reveal trump
+  SetTrump --> InitTrick : set first leader/turn
+  InitTrick --> [*]
+}
+
+Dealing --> TrickInProgress : game.status = PLAYING
+
+state TrickInProgress {
+  [*] --> AwaitPlay
+  AwaitPlay : waiting for current player
+
+  AwaitPlay --> AwaitPlay : playCard()\n[valid]\n(emit CardPlayed)
+  AwaitPlay --> AwaitPlay : playCard()\n[invalid]\n(emit InvalidMove)
+
+  AwaitPlay --> ResolveTrick : plays == 4
+  ResolveTrick : RuleStrategy.Winner()\nScoringStrategy.TrickPoints()\nupdate team score\nemit TrickEnded/ScoreUpdated
+  ResolveTrick --> NextTrick : tricksPlayed < 10
+  NextTrick : clear trick\nturn = winner\nemit TurnChanged
+  NextTrick --> AwaitPlay
+
+  ResolveTrick --> GameEnded : tricksPlayed == 10
+}
+
+TrickInProgress --> GameEnded : tricksPlayed == 10
+
+state GameEnded {
+  [*] --> Finished
+  Finished : game.status = ENDED\nemit GameEnded\n(optional) close room
+}
+
+GameEnded --> [*]
+
+@enduml
