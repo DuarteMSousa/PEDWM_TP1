@@ -113,7 +113,7 @@ class Game {
   +ScoringStrategy: ScoringStrategy
   +BotStrategy: BotPlayStrategy
   +EventBus: EventBus
-
+  +Events: Event[*]
   +Start(): error
   +PlayCard(playerID: string, cardID: string): error
   +Validate(): error
@@ -214,6 +214,7 @@ Game "1" o-- "*" Player
 Game "1" o-- "*" Team
 Game "1" o-- "1" TurnOrder
 Game "1" o-- "1" Round
+Game "1" o-- "*" Event : events
 Room "1" o-- "*" Player
 Room "1" --> "0..1" Game : gameId
 
