@@ -1,5 +1,5 @@
 @startuml
-title Sueca - Diagrama de Classes (Domain + Patterns)
+title Sueca - Diagrama de Classes Atualizado (Domain + Patterns)
 
 skinparam classAttributeIconSize 0
 
@@ -75,19 +75,38 @@ class Play {
 }
 
 class Trick {
-  +LeaderPlayerID: string
+  +LeaderID: string
   +LeadSuit: Suit
   +Plays: Play[*]
+  +AddPlay(play: Play): error
+  +IsEmpty(): bool
+  +IsComplete(): bool
+  +HasPlayed(playerID: string): bool
+  +Reset(newLeaderID: string): void
+}
+
+class TurnOrder {
+  +Players(): string[*]
+  +Contains(playerID: string): bool
+  +Next(currentPlayerID: string): string
+}
+
+class Round {
+  +TrumpSuit: Suit
+  +TricksPlayed: int
+  +CurrentTrick: Trick
+  +IsFinished(): bool
+  +StartNewTrick(leaderID: string): void
+  +IncrementTrick(): void
 }
 
 class Game {
   +ID: string
   +Players: map<string, Player>
   +Teams: map<string, Team>
+  +Order: TurnOrder
   +TurnPlayer: string
-  +TrumpSuit: Suit
-  +CurrentTrick: Play[*]
-  +TricksPlayed: int
+  +Round: Round
   +Status: GameStatus
 
   +RuleStrategy: TrickRuleStrategy
@@ -95,8 +114,9 @@ class Game {
   +BotStrategy: BotPlayStrategy
   +EventBus: EventBus
 
+  +Start(): error
   +PlayCard(playerID: string, cardID: string): error
-  +Start(): void
+  +Validate(): error
 }
 
 class Room {
@@ -186,10 +206,14 @@ Game o-- EventBus
 ' Associations
 '========================
 Player "1" o-- "*" Card : hand
+Team "1" -- "2" Player : players
+Play "*" --> "1" Card
+Trick "1" o-- "*" Play
+Round "1" o-- "1" Trick : currentTrick
 Game "1" o-- "*" Player
 Game "1" o-- "*" Team
-Game "1" o-- "*" Play : currentTrick
-Play "*" --> "1" Card
+Game "1" o-- "1" TurnOrder
+Game "1" o-- "1" Round
 Room "1" o-- "*" Player
 Room "1" --> "0..1" Game : gameId
 
