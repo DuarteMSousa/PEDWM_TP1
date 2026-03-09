@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/shared_widgets/motion.dart';
 import '../../../../core/shared_widgets/section_card.dart';
@@ -25,7 +27,17 @@ class GamePage extends StatefulWidget {
 }
 
 class _GamePageState extends State<GamePage> {
+  static const List<String> _cardBackCandidates = <String>[
+    'assets/cards/back/back.svg',
+    'assets/cards/back/back_blue.svg',
+    'assets/cards/back/back_red.svg',
+    'assets/cards/back/back.png',
+    'assets/cards/back/back_blue.png',
+    'assets/cards/back/back_red.png',
+  ];
+
   late final GameController _controller;
+  String? _cardBackAssetPath;
 
   @override
   void initState() {
@@ -35,6 +47,22 @@ class _GamePageState extends State<GamePage> {
       roomId: widget.room.id,
     );
     _controller.initialize();
+    _resolveCardBackAsset();
+  }
+
+  Future<void> _resolveCardBackAsset() async {
+    for (final candidate in _cardBackCandidates) {
+      try {
+        await rootBundle.load(candidate);
+        if (!mounted) {
+          return;
+        }
+        setState(() => _cardBackAssetPath = candidate);
+        return;
+      } catch (_) {
+        // Continue searching for an existing back asset.
+      }
+    }
   }
 
   @override
@@ -130,6 +158,7 @@ class _GamePageState extends State<GamePage> {
                                         left: left,
                                         right: right,
                                         me: me,
+                                        cardBackAssetPath: _cardBackAssetPath,
                                       ),
                                     ),
                                   ),
@@ -293,6 +322,7 @@ class _WoodenTable extends StatelessWidget {
     required this.left,
     required this.right,
     required this.me,
+    required this.cardBackAssetPath,
   });
 
   final SuecaGameState state;
@@ -300,6 +330,7 @@ class _WoodenTable extends StatelessWidget {
   final Player? left;
   final Player? right;
   final Player? me;
+  final String? cardBackAssetPath;
 
   @override
   Widget build(BuildContext context) {
@@ -358,6 +389,7 @@ class _WoodenTable extends StatelessWidget {
                     seat: _Seat.top,
                     isCurrent: top!.id == state.currentPlayerId,
                     cardCount: opponentCards,
+                    cardBackAssetPath: cardBackAssetPath,
                   ),
                 ),
               if (left != null)
@@ -368,6 +400,7 @@ class _WoodenTable extends StatelessWidget {
                     seat: _Seat.left,
                     isCurrent: left!.id == state.currentPlayerId,
                     cardCount: opponentCards,
+                    cardBackAssetPath: cardBackAssetPath,
                   ),
                 ),
               if (right != null)
@@ -378,6 +411,7 @@ class _WoodenTable extends StatelessWidget {
                     seat: _Seat.right,
                     isCurrent: right!.id == state.currentPlayerId,
                     cardCount: opponentCards,
+                    cardBackAssetPath: cardBackAssetPath,
                   ),
                 ),
               Center(
@@ -413,12 +447,14 @@ class _OpponentSeat extends StatelessWidget {
     required this.seat,
     required this.isCurrent,
     required this.cardCount,
+    required this.cardBackAssetPath,
   });
 
   final Player player;
   final _Seat seat;
   final bool isCurrent;
   final int cardCount;
+  final String? cardBackAssetPath;
 
   @override
   Widget build(BuildContext context) {
@@ -427,6 +463,7 @@ class _OpponentSeat extends StatelessWidget {
       count: cardCount,
       vertical: seat == _Seat.left || seat == _Seat.right,
       reverse: seat == _Seat.right,
+      cardBackAssetPath: cardBackAssetPath,
     );
 
     switch (seat) {
@@ -517,12 +554,14 @@ class _CardBackFan extends StatelessWidget {
   const _CardBackFan({
     required this.count,
     required this.vertical,
+    required this.cardBackAssetPath,
     this.reverse = false,
   });
 
   final int count;
   final bool vertical;
   final bool reverse;
+  final String? cardBackAssetPath;
 
   @override
   Widget build(BuildContext context) {
@@ -547,7 +586,7 @@ class _CardBackFan extends StatelessWidget {
             top: distance.abs() * 0.7,
             child: Transform.rotate(
               angle: distance * 0.06,
-              child: const _CardBack(),
+              child: _CardBack(cardBackAssetPath: cardBackAssetPath),
             ),
           );
         }),
@@ -562,10 +601,26 @@ class _CardBackFan extends StatelessWidget {
 }
 
 class _CardBack extends StatelessWidget {
-  const _CardBack();
+  const _CardBack({required this.cardBackAssetPath});
+
+  final String? cardBackAssetPath;
 
   @override
   Widget build(BuildContext context) {
+    if (cardBackAssetPath != null) {
+      final isSvg = cardBackAssetPath!.toLowerCase().endsWith('.svg');
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(7),
+        child: SizedBox(
+          width: 32,
+          height: 46,
+          child: isSvg
+              ? SvgPicture.asset(cardBackAssetPath!, fit: BoxFit.cover)
+              : Image.asset(cardBackAssetPath!, fit: BoxFit.cover),
+        ),
+      );
+    }
+
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(7),
@@ -750,30 +805,12 @@ class _TablePlayedCard extends StatelessWidget {
                 child: ScaleTransition(scale: animation, child: child),
               );
             },
-            child: Padding(
+            child: ClipRRect(
               key: ValueKey<String>('${seatTag}_${card.compactLabel}'),
-              padding: const EdgeInsets.fromLTRB(8, 6, 8, 7),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    card.rankLabel,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: _suitColor(card.suit),
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    _suitLabel(card.suit),
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: _suitColor(card.suit),
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
+              borderRadius: BorderRadius.circular(9),
+              child: SvgPicture.asset(
+                _cardFrontAssetPath(card),
+                fit: BoxFit.cover,
               ),
             ),
           ),
@@ -965,7 +1002,6 @@ class _HandCardState extends State<_HandCard> {
 
   @override
   Widget build(BuildContext context) {
-    final suitColor = _suitColor(widget.card.suit);
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -993,32 +1029,11 @@ class _HandCardState extends State<_HandCard> {
                   ),
                 ],
               ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(9, 7, 9, 7),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.card.rankLabel,
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        color: suitColor,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      _suitLabel(widget.card.suit),
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: suitColor,
-                      ),
-                    ),
-                    Text(
-                      '${widget.card.points} pts',
-                      style: Theme.of(context).textTheme.labelMedium,
-                    ),
-                  ],
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(11.8),
+                child: SvgPicture.asset(
+                  _cardFrontAssetPath(widget.card),
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
@@ -1074,15 +1089,15 @@ String _suitLabel(Suit suit) {
   }
 }
 
-Color _suitColor(Suit suit) {
-  switch (suit) {
-    case Suit.diamonds:
-    case Suit.hearts:
-      return const Color(0xFFAA2E1F);
-    case Suit.clubs:
-    case Suit.spades:
-      return const Color(0xFF2A241A);
-  }
+String _cardFrontAssetPath(SuecaCard card) {
+  final rankToken = switch (card.rank) {
+    1 => 'ace',
+    11 => 'jack',
+    12 => 'queen',
+    13 => 'king',
+    _ => '${card.rank}',
+  };
+  return 'assets/cards/svg-cards/${rankToken}_of_${card.suit.name}.svg';
 }
 
 String _initials(String nickname) {
