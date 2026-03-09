@@ -610,14 +610,55 @@ class _TrickCenter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasCards = state.tableCards.isNotEmpty;
+    final pile = <_PileCard>[
+      if (top != null && state.tableCards[top!.id] != null)
+        _PileCard(
+          seatTag: 'top',
+          card: state.tableCards[top!.id]!,
+          offset: const Offset(-6, -18),
+          angle: -0.11,
+        ),
+      if (left != null && state.tableCards[left!.id] != null)
+        _PileCard(
+          seatTag: 'left',
+          card: state.tableCards[left!.id]!,
+          offset: const Offset(-20, -2),
+          angle: -0.22,
+        ),
+      if (right != null && state.tableCards[right!.id] != null)
+        _PileCard(
+          seatTag: 'right',
+          card: state.tableCards[right!.id]!,
+          offset: const Offset(16, 6),
+          angle: 0.19,
+        ),
+      if (me != null && state.tableCards[me!.id] != null)
+        _PileCard(
+          seatTag: 'me',
+          card: state.tableCards[me!.id]!,
+          offset: const Offset(4, 20),
+          angle: 0.06,
+        ),
+    ];
 
     return SizedBox(
       width: 230,
       height: 230,
       child: Stack(
         children: [
-          if (!hasCards)
+          Align(
+            alignment: Alignment.center,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [const Color(0x4AF8F0DB), const Color(0x0DFFFFFF)],
+                ),
+              ),
+              child: const SizedBox(width: 128, height: 128),
+            ),
+          ),
+          if (pile.isEmpty)
             Center(
               child: Text(
                 'Aguardando cartas da vaza',
@@ -626,46 +667,46 @@ class _TrickCenter extends StatelessWidget {
                 ),
               ),
             ),
-          if (top != null)
-            Align(
-              alignment: const Alignment(0, -0.62),
-              child: _TablePlayedCard(
-                card: state.tableCards[top!.id],
-                angle: 0.02,
-                seatTag: 'top',
+          ...pile.asMap().entries.map((entry) {
+            final i = entry.key;
+            final item = entry.value;
+            return Align(
+              alignment: Alignment.center,
+              child: Transform.translate(
+                offset: item.offset,
+                child: RevealSlideFade(
+                  key: ValueKey<String>(
+                    'pile_${item.seatTag}_${item.card.compactLabel}',
+                  ),
+                  delay: Duration(milliseconds: 40 + (i * 65)),
+                  beginOffset: const Offset(0, 0.06),
+                  child: _TablePlayedCard(
+                    card: item.card,
+                    angle: item.angle,
+                    seatTag: item.seatTag,
+                  ),
+                ),
               ),
-            ),
-          if (left != null)
-            Align(
-              alignment: const Alignment(-0.62, 0),
-              child: _TablePlayedCard(
-                card: state.tableCards[left!.id],
-                angle: -math.pi / 2,
-                seatTag: 'left',
-              ),
-            ),
-          if (right != null)
-            Align(
-              alignment: const Alignment(0.62, 0),
-              child: _TablePlayedCard(
-                card: state.tableCards[right!.id],
-                angle: math.pi / 2,
-                seatTag: 'right',
-              ),
-            ),
-          if (me != null)
-            Align(
-              alignment: const Alignment(0, 0.62),
-              child: _TablePlayedCard(
-                card: state.tableCards[me!.id],
-                angle: -0.02,
-                seatTag: 'me',
-              ),
-            ),
+            );
+          }),
         ],
       ),
     );
   }
+}
+
+class _PileCard {
+  const _PileCard({
+    required this.seatTag,
+    required this.card,
+    required this.offset,
+    required this.angle,
+  });
+
+  final String seatTag;
+  final SuecaCard card;
+  final Offset offset;
+  final double angle;
 }
 
 class _TablePlayedCard extends StatelessWidget {
@@ -675,7 +716,7 @@ class _TablePlayedCard extends StatelessWidget {
     required this.seatTag,
   });
 
-  final SuecaCard? card;
+  final SuecaCard card;
   final double angle;
   final String seatTag;
 
@@ -709,40 +750,32 @@ class _TablePlayedCard extends StatelessWidget {
                 child: ScaleTransition(scale: animation, child: child),
               );
             },
-            child: card == null
-                ? Center(
-                    key: ValueKey<String>('empty_$seatTag'),
-                    child: const Text(
-                      '--',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  )
-                : Padding(
-                    key: ValueKey<String>('${seatTag}_${card!.compactLabel}'),
-                    padding: const EdgeInsets.fromLTRB(8, 6, 8, 7),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          card!.rankLabel,
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: _suitColor(card!.suit),
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          _suitLabel(card!.suit),
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: _suitColor(card!.suit),
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
+            child: Padding(
+              key: ValueKey<String>('${seatTag}_${card.compactLabel}'),
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 7),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    card.rankLabel,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: _suitColor(card.suit),
                     ),
                   ),
+                  const Spacer(),
+                  Text(
+                    _suitLabel(card.suit),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: _suitColor(card.suit),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
