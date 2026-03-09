@@ -1,0 +1,72 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+
+import '../../domain/entities/card.dart';
+import '../../domain/entities/sueca_game_state.dart';
+import '../../domain/repositories/game_repository.dart';
+
+class GameController extends ChangeNotifier {
+  GameController({required GameRepository gameRepository, required this.roomId})
+    : _gameRepository = gameRepository;
+
+  final GameRepository _gameRepository;
+  final String roomId;
+
+  bool isLoading = false;
+  String? errorMessage;
+  SuecaGameState? gameState;
+  StreamSubscription<SuecaGameState>? _subscription;
+
+  Future<void> initialize() async {
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      gameState = await _gameRepository.loadGame(roomId);
+      _subscription = _gameRepository
+          .watchGame(roomId)
+          .listen(
+            (nextState) {
+              gameState = nextState;
+              notifyListeners();
+            },
+            onError: (Object error) {
+              errorMessage = error.toString();
+              notifyListeners();
+            },
+          );
+    } catch (error) {
+      errorMessage = error.toString();
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> playCard(SuecaCard card) async {
+    if (isLoading) {
+      return;
+    }
+
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      gameState = await _gameRepository.playCard(roomId: roomId, card: card);
+    } catch (error) {
+      errorMessage = error.toString();
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+}
