@@ -31,11 +31,92 @@ enum PlayerType {
   BOT
 }
 
-enum GameStatus {
-  WAITING
-  PLAYING
-  ENDED
+interface ICommand {
+  void Execute(Game game);
 }
+
+interface EnterGameCommand implements ICommand {
+  PlayerID: string
+
+  void Execute(Game game);
+}
+
+' enum TrumpCardOption{
+'   FIRST
+'   LAST
+' }
+
+' interface ChooseTrumpCardCommand implements ICommand {
+'   PlayerID: string
+'   StartingPoint: TrumpCardOption
+
+'   void Execute(Game game);
+' }
+
+interface PlayCardCommand implements ICommand {
+  PlayerID: string
+  CardID: string
+
+  void Execute(Game game);
+}
+
+interface LeaveGameCommand implements ICommand {
+  PlayerID: string
+
+  void Execute(Game game);
+}
+
+interface IGameState{
+  void Enter(Game game);
+  void Update(Game game);
+}
+
+class ShuffleCardsState implements IGameState {
+  +Enter(game: Game): void
+  +Update(game: Game): void
+}
+
+' class ChooseTrumpCardState implements IGameState {
+'   +Enter(game: Game): void
+'   +Update(game: Game): void
+' }
+
+class RevealTrumpState implements IGameState {
+  +Enter(game: Game): void
+  +Update(game: Game): void
+}
+
+class DealCardsState implements IGameState {
+  +Enter(game: Game): void
+  +Update(game: Game): void
+}
+
+class PlayTricksState implements IGameState {
+  +Enter(game: Game): void
+  +Update(game: Game): void
+}
+
+class EndTrickState implements IGameState {
+  +Enter(game: Game): void
+  +Update(game: Game): void
+}
+
+class EndGameState implements IGameState {
+  +Enter(game: Game): void
+  +Update(game: Game): void
+}
+
+class DeckFactory {
+  +CreateDeck(): Card[*]
+}
+
+
+class GameFactory {
+  +CreateGame(room: Room): Game
+}
+
+
+
 
 enum RoomStatus {
   OPEN
@@ -62,10 +143,16 @@ class Player {
   +RemoveCard(cardID: string): (Card, bool)
 }
 
+class Bot extends Player {
+  +BotStrategy: BotPlayStrategy
+  +ChooseCard(leadSuit: Suit, trump: Suit): Card
+}
+
 class Team {
   +ID: string
   +Players: string[2]
-  +Score: int
+  +GameScore: int
+  +RoundScore: int
   +AddPoints(points: int)
 }
 
@@ -107,11 +194,11 @@ class Game {
   +Order: TurnOrder
   +TurnPlayer: string
   +Round: Round
-  +Status: GameStatus
+  +State: GameState
 
+  +DeckFactory: DeckFactory
   +RuleStrategy: TrickRuleStrategy
   +ScoringStrategy: ScoringStrategy
-  +BotStrategy: BotPlayStrategy
   +EventBus: EventBus
   +Events: Event[*]
   +Start(): error
@@ -147,7 +234,7 @@ interface ScoringStrategy {
   +TrickPoints(plays: Play[*]): int
 }
 
-interface BotPlayStrategy {
+interface BotStrategy {
   +ChooseCard(hand: Card[*], leadSuit: Suit, trump: Suit): Card
 }
 
@@ -157,7 +244,8 @@ class SimpleBotStrategy
 
 TrickRuleStrategy <|.. SuecaTrickRules
 ScoringStrategy  <|.. SuecaScoring
-BotPlayStrategy  <|.. SimpleBotStrategy
+BotStrategy  <|.. SimpleBotStrategy
+BotStrategy <|.. Bot
 
 '========================
 ' Observer Pattern
@@ -185,12 +273,19 @@ class Event {
 }
 
 interface Observer {
-  +OnEvent(e: Event): void
+  +Update(e: Event): void
 }
 
-class EventBus {
+interface Subject {
   +Subscribe(o: Observer): void
-  +Publish(e: Event): void
+  +Unsubscribe(o: Observer): void
+  +Notify(e: Event): void
+}
+
+class EventBus implements Subject {
+  +Subscribe(o: Observer): void
+  +Unsubscribe(o: Observer): void
+  +Notify(e: Event): void
 }
 
 class WebSocketObserver
@@ -220,6 +315,16 @@ Room "1" --> "0..1" Game : gameId
 
 Game --> TrickRuleStrategy
 Game --> ScoringStrategy
-Game --> BotPlayStrategy
+Game --> IGameState
 
+Suit <|-- Card
+Rank <|-- Card
+
+RoomStatus <|-- Room
+
+EventType <|-- Event
+
+' TrumpCardOption <|-- ChooseTrumpCardCommand
+
+PlayerType <|-- Player
 @enduml
