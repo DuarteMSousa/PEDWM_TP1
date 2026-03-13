@@ -4,7 +4,7 @@ import 'package:sueca_pedwm/app/app.dart';
 import 'package:sueca_pedwm/app/app_dependencies.dart';
 
 void main() {
-  testWidgets('login page loads', (WidgetTester tester) async {
+  testWidgets('nickname page loads', (WidgetTester tester) async {
     await tester.pumpWidget(SuecaApp(dependencies: AppDependencies.create()));
     await tester.pumpAndSettle();
 

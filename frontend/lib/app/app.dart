@@ -34,7 +34,7 @@ class _SuecaAppState extends State<SuecaApp> {
       title: 'Sueca Online',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      initialRoute: AppRoutes.login,
+      initialRoute: AppRoutes.nickname,
       onGenerateRoute: _router.onGenerateRoute,
     );
   }

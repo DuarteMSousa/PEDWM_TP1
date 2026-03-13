@@ -9,7 +9,7 @@ class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remoteDataSource;
 
   @override
-  Future<User> login(String nickname) {
-    return _remoteDataSource.login(nickname);
+  Future<User> enterWithNickname(String nickname) {
+    return _remoteDataSource.enterWithNickname(nickname);
   }
 }
