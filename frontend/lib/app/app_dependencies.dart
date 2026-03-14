@@ -42,7 +42,7 @@ class AppDependencies {
     );
 
     final authRepository = AuthRepositoryImpl(
-      remoteDataSource: AuthRemoteDataSource(graphqlService: graphqlService),
+      remoteDataSource: AuthRemoteDataSource(),
     );
 
     final lobbyRepository = LobbyRepositoryImpl(

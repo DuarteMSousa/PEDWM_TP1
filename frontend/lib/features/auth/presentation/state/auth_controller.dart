@@ -13,13 +13,13 @@ class AuthController extends ChangeNotifier {
   String? errorMessage;
   User? currentUser;
 
-  Future<void> login(String nickname) async {
+  Future<void> enterWithNickname(String nickname) async {
     isLoading = true;
     errorMessage = null;
     notifyListeners();
 
     try {
-      currentUser = await _authRepository.login(nickname);
+      currentUser = await _authRepository.enterWithNickname(nickname);
     } catch (error) {
       errorMessage = error.toString();
     } finally {

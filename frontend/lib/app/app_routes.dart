@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../features/auth/domain/entities/user.dart';
-import '../features/auth/presentation/pages/login_page.dart';
+import '../features/auth/presentation/pages/nickname_page.dart';
 import '../features/game/presentation/pages/game_page.dart';
 import '../features/lobby/domain/entities/room.dart';
 import '../features/lobby/presentation/pages/lobby_page.dart';
@@ -11,7 +11,7 @@ import 'app_dependencies.dart';
 class AppRoutes {
   AppRoutes._();
 
-  static const login = '/';
+  static const nickname = '/';
   static const lobby = '/lobby';
   static const game = '/game';
   static const profile = '/profile';
@@ -24,12 +24,12 @@ class AppRouter {
 
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
-      case AppRoutes.login:
+      case AppRoutes.nickname:
         return _buildAnimatedRoute(
           settings: settings,
           beginOffset: const Offset(-0.03, 0),
           builder: (_) =>
-              LoginPage(authRepository: _dependencies.authRepository),
+              NicknamePage(authRepository: _dependencies.authRepository),
         );
       case AppRoutes.lobby:
         final user = settings.arguments is User

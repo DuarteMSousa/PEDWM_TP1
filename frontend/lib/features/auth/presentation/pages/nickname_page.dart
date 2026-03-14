@@ -7,16 +7,16 @@ import '../../../../core/shared_widgets/table_background.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../state/auth_controller.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, required this.authRepository});
+class NicknamePage extends StatefulWidget {
+  const NicknamePage({super.key, required this.authRepository});
 
   final AuthRepository authRepository;
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<NicknamePage> createState() => _NicknamePageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _NicknamePageState extends State<NicknamePage> {
   late final AuthController _controller;
   final TextEditingController _nicknameController = TextEditingController();
 
@@ -34,7 +34,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _submit() async {
-    await _controller.login(_nicknameController.text);
+    await _controller.enterWithNickname(_nicknameController.text);
     if (!mounted) {
       return;
     }
@@ -57,7 +57,7 @@ class _LoginPageState extends State<LoginPage> {
     final theme = Theme.of(context);
     const ivory = Color(0xFFF8F0DB);
 
-    final loginCard = SectionCard(
+    final nicknameCard = SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -84,11 +84,11 @@ class _LoginPageState extends State<LoginPage> {
             height: 48,
             child: ElevatedButton.icon(
               onPressed: _controller.isLoading ? null : _submit,
-              icon: const Icon(Icons.login_rounded),
+              icon: const Icon(Icons.play_arrow_rounded),
               label: Text(_controller.isLoading ? 'A entrar...' : 'Entrar'),
             ),
           ),
-          const SizedBox(height: 8),
+          /* const SizedBox(height: 8),
           TextButton(
             onPressed: _controller.isLoading
                 ? null
@@ -97,7 +97,7 @@ class _LoginPageState extends State<LoginPage> {
                     _submit();
                   },
             child: const Text('Entrar como convidado'),
-          ),
+          ), */
         ],
       ),
     );
@@ -137,7 +137,7 @@ class _LoginPageState extends State<LoginPage> {
                                 child: RevealSlideFade(
                                   delay: const Duration(milliseconds: 180),
                                   beginOffset: const Offset(0.04, 0),
-                                  child: loginCard,
+                                  child: nicknameCard,
                                 ),
                               ),
                             ],
@@ -159,7 +159,7 @@ class _LoginPageState extends State<LoginPage> {
                             RevealSlideFade(
                               delay: const Duration(milliseconds: 180),
                               beginOffset: const Offset(0, 0.04),
-                              child: loginCard,
+                              child: nicknameCard,
                             ),
                           ],
                         );
