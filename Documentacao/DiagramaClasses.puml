@@ -3,6 +3,78 @@ title Sueca - Diagrama de Classes Atualizado (Domain + Patterns)
 
 skinparam classAttributeIconSize 0
 
+interface Event {
+  +id:ID
+  +gameId: string
+  +timestamp: datetime
+  +type: EventType
+}
+
+class GameCreatedEvent implements Event {
+  +type: GAME_CREATED
+  +creatorId: string
+  +settings: GameSettings
+}
+
+class PlayerJoinedEvent implements Event {
+  +type: PLAYER_JOINED
+  +playerId: string
+  +name: string
+  +slot: int
+}
+
+class PlayerLeftEvent implements Event {
+  +type: PLAYER_LEFT
+  +playerId: string
+}
+
+class GameStartedEvent implements Event {
+  +type: GAME_STARTED
+}
+
+class RoundStartedEvent implements Event {
+  +type: ROUND_STARTED
+  +roundNumber: int
+  +dealerId: string
+}
+
+class TrumpRevealedEvent implements Event {
+  +type: TRUMP_REVEALED
+  +card: Card
+  +suit: Suit
+}
+
+class CardDealtEvent implements Event {
+  +type: CARD_DEALT
+  +playerId: string
+  +cards: Card[]
+}
+
+class CardPlayedEvent implements Event {
+  +type: CARD_PLAYED
+  +playerId: string
+  +card: Card
+}
+
+class TrickEndedEvent implements Event {
+  +type: TRICK_ENDED
+  +winnerId: string
+  +points: int
+}
+
+class RoundEndedEvent implements Event {
+  +type: ROUND_ENDED
+  +teamAScore: int
+  +teamBScore: int
+  +winnerTeam: string
+}
+
+class GameEndedEvent implements Event {
+  +type: GAME_ENDED
+  +finalScores: Map<string, int>
+  +winnerTeam: string
+}
+
 '========================
 ' Enums / Value Objects
 '========================
@@ -41,17 +113,6 @@ interface EnterGameCommand implements ICommand {
   void Execute(Game game);
 }
 
-' enum TrumpCardOption{
-'   FIRST
-'   LAST
-' }
-
-' interface ChooseTrumpCardCommand implements ICommand {
-'   PlayerID: string
-'   StartingPoint: TrumpCardOption
-
-'   void Execute(Game game);
-' }
 
 interface PlayCardCommand implements ICommand {
   PlayerID: string
@@ -71,51 +132,64 @@ interface IGameState{
   void Update(Game game);
 }
 
-class ShuffleCardsState implements IGameState {
+class GameStartingState implements IGameState {
   +Enter(game: Game): void
   +Update(game: Game): void
 }
 
-' class ChooseTrumpCardState implements IGameState {
-'   +Enter(game: Game): void
-'   +Update(game: Game): void
-' }
-
-class RevealTrumpState implements IGameState {
+class GamePlayingState implements IGameState {
   +Enter(game: Game): void
   +Update(game: Game): void
 }
 
-class DealCardsState implements IGameState {
+class GameEndedState implements IGameState {
   +Enter(game: Game): void
   +Update(game: Game): void
 }
 
-class PlayTricksState implements IGameState {
-  +Enter(game: Game): void
-  +Update(game: Game): void
+interface IRoundState{
+  void Enter(Round Round);
+  void Update(Round Round);
 }
 
-class EndTrickState implements IGameState {
-  +Enter(game: Game): void
-  +Update(game: Game): void
+class RoundSetupState implements IRoundState {
+  +Enter(Round Round): void
+  +Update(Round Round): void
 }
 
-class EndGameState implements IGameState {
-  +Enter(game: Game): void
-  +Update(game: Game): void
+class RoundPlayingState implements IRoundState {
+  +Enter(Round Round): void
+  +Update(Round Round): void
+}
+
+class RoundScoringState implements IRoundState {
+  +Enter(Round Round): void
+  +Update(Round Round): void
 }
 
 class DeckFactory {
-  +CreateDeck(): Card[*]
+  +CreateSuecaDeck(): Card[*]
 }
 
+class Deck {
+  +Cards: Card[*]
+  +Shuffle(): void
+  +Draw(): (Card, error)
+  + Remaining() int
+  + IsEmpty()
+}
+
+class Hand{
+  - Cards: Card[]
+  + AddCard(card)
+  + RemoveCard(card)
+  + HasSuit(suit)
+  + PlayableCards()
+}
 
 class GameFactory {
   +CreateGame(room: Room): Game
 }
-
-
 
 
 enum RoomStatus {
@@ -128,32 +202,26 @@ enum RoomStatus {
 ' Core Domain
 '========================
 class Card {
-  +ID: string
   +Suit: Suit
   +Rank: Rank
-  +IsTrump(trump: Suit): bool
 }
 
 class Player {
   +ID: string
   +Name: string
   +Type: PlayerType
-  +TeamID: string
-  +Hand: Card[*]
-  +RemoveCard(cardID: string): (Card, bool)
 }
 
 class Bot extends Player {
   +BotStrategy: BotPlayStrategy
-  +ChooseCard(leadSuit: Suit, trump: Suit): Card
+  +ChooseCard(Hand hand,leadSuit: Suit, trump: Suit): Card
 }
 
 class Team {
   +ID: string
   +Players: string[2]
   +GameScore: int
-  +RoundScore: int
-  +AddPoints(points: int)
+  +AddGamePoints(points: int)
 }
 
 class Play {
@@ -173,32 +241,29 @@ class Trick {
 }
 
 class TurnOrder {
-  +Players(): string[*]
+  +Players(): string[*] ou queue
   +Contains(playerID: string): bool
   +Next(currentPlayerID: string): string
+  +HasNext(): bool
 }
 
 class Round {
-  +TrumpSuit: Suit
   +TricksPlayed: int
   +CurrentTrick: Trick
+  +Hands: map<string, Hand>
+  +Points: map<string, int>
   +IsFinished(): bool
   +StartNewTrick(leaderID: string): void
-  +IncrementTrick(): void
 }
 
 class Game {
   +ID: string
   +Players: map<string, Player>
   +Teams: map<string, Team>
-  +Order: TurnOrder
-  +TurnPlayer: string
-  +Round: Round
   +State: GameState
+  +Round: Round
 
-  +DeckFactory: DeckFactory
-  +RuleStrategy: TrickRuleStrategy
-  +ScoringStrategy: ScoringStrategy
+  +GameScoringStrategy: IGameScoringStrategy
   +EventBus: EventBus
   +Events: Event[*]
   +Start(): error
@@ -208,7 +273,6 @@ class Game {
 
 class Room {
   +ID: string
-  +HostID: string
   +Players: map<string, Player>
   +Status: RoomStatus
   +GameID: string
@@ -224,12 +288,19 @@ class Room {
 '========================
 ' Strategy Pattern
 '========================
-interface TrickRuleStrategy {
-  +Winner(trump: Suit, plays: Play[*]): string
-  +ValidatePlay(hand: Card[*], leadSuit: Suit, card: Card): error
+interface RoundScoringStrategy {
+  +Winner(Round round): string
+  +HasEnded(Round round): bool
+  +CalculatePoints(Round round): map<string, int>
 }
 
-interface ScoringStrategy {
+interface TrickRuleStrategy {
+  +Winner(Trick trick): string
+  +HasEnded(Round round): bool
+  +ValidatePlay(Trick trick,Play play): error
+}
+
+interface TrickScoringStrategy {
   +CardPoints(card: Card): int
   +TrickPoints(plays: Play[*]): int
 }
@@ -240,11 +311,13 @@ interface BotStrategy {
 
 class SuecaTrickRules
 class SuecaScoring
-class SimpleBotStrategy
+class EasySuecaBotStrategy
+class HardSuecaBotStrategy
 
 TrickRuleStrategy <|.. SuecaTrickRules
-ScoringStrategy  <|.. SuecaScoring
-BotStrategy  <|.. SimpleBotStrategy
+TrickScoringStrategy  <|.. SuecaScoring
+BotStrategy  <|.. EasySuecaBotStrategy
+BotStrategy  <|.. HardSuecaBotStrategy
 BotStrategy <|.. Bot
 
 '========================
@@ -253,23 +326,16 @@ BotStrategy <|.. Bot
 enum EventType {
   GAME_CREATED
   PLAYER_JOINED
+  PLAYER_LEFT
   GAME_STARTED
-  CARDS_DEALT
+  ROUND_STARTED
+  TRICK_STARTED
   TRUMP_REVEALED
-  TURN_CHANGED
+  CARD_DEALT
   CARD_PLAYED
   TRICK_ENDED
-  SCORE_UPDATED
   ROUND_ENDED
   GAME_ENDED
-  ERROR
-}
-
-class Event {
-  +Type: EventType
-  +GameID: string
-  +Timestamp: datetime
-  +Payload: any
 }
 
 interface Observer {
@@ -300,22 +366,26 @@ Game o-- EventBus
 '========================
 ' Associations
 '========================
-Player "1" o-- "*" Card : hand
 Team "1" -- "2" Player : players
-Play "*" --> "1" Card
-Trick "1" o-- "*" Play
-Round "1" o-- "1" Trick : currentTrick
-Game "1" o-- "*" Player
-Game "1" o-- "*" Team
-Game "1" o-- "1" TurnOrder
-Game "1" o-- "1" Round
-Game "1" o-- "*" Event : events
-Room "1" o-- "*" Player
-Room "1" --> "0..1" Game : gameId
-
-Game --> TrickRuleStrategy
-Game --> ScoringStrategy
-Game --> IGameState
+Play "*" -- "1" Card
+Hand "1" -- "*" Card
+Deck "1" -- "*" Card
+Trick "1" -- "*" Play
+Round "1" -- "1" Trick : currentTrick
+Game "1" -- "*" Player
+Game "1" -- "*" Team
+Trick "1" -- "1" TurnOrder
+Game "1" -- "1" Round
+Game "1" -- "*" Event : events
+Room "1" -- "*" Player
+Room "1" -- "0..1" Game : gameId
+Round  -- RoundScoringStrategy
+Trick -- TrickRuleStrategy
+Trick -- TrickScoringStrategy
+Game -- IGameState
+Round -- IRoundState
+Round -- Deck
+Round -- Hand
 
 Suit <|-- Card
 Rank <|-- Card
@@ -323,8 +393,5 @@ Rank <|-- Card
 RoomStatus <|-- Room
 
 EventType <|-- Event
-
-' TrumpCardOption <|-- ChooseTrumpCardCommand
-
 PlayerType <|-- Player
 @enduml
