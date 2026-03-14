@@ -9,9 +9,9 @@ import (
 type RoomStatus string
 
 const (
-    SalaAberta    RoomStatus = "ABERTA"
-    SalaEmJogo    RoomStatus = "EM_PARTIDA"
-    SalaFechada   RoomStatus = "FECHADA"
+	SalaAberta  RoomStatus = "ABERTA"
+	SalaEmJogo  RoomStatus = "EM_PARTIDA"
+	SalaFechada RoomStatus = "FECHADA"
 )
 
 var (
@@ -57,7 +57,7 @@ func NewRoom(roomID string, host *Player) (*Room, error) {
 		ID:        roomID,
 		HostID:    host.ID,
 		Players:   players,
-		Status:    RoomOpen,
+		Status:    SalaAberta,
 		CreatedAt: time.Now(),
 	}, nil
 }
@@ -71,7 +71,7 @@ func (r *Room) AddPlayer(player *Player) error {
 	if r == nil {
 		return errors.New("room is nil")
 	}
-	if r.Status != RoomOpen {
+	if r.Status != SalaAberta {
 		return ErrRoomNotOpen
 	}
 	if player == nil || strings.TrimSpace(player.ID) == "" {
@@ -97,7 +97,7 @@ func (r *Room) RemovePlayer(playerID string) error {
 	if r == nil {
 		return errors.New("room is nil")
 	}
-	if r.Status != RoomOpen {
+	if r.Status != SalaAberta {
 		return ErrRoomNotOpen
 	}
 
@@ -124,7 +124,7 @@ func (r *Room) RemovePlayer(playerID string) error {
 
 	// Se sala ficar vazia, fechar
 	if len(r.Players) == 0 {
-		r.Status = RoomClosed
+		r.Status = SalaFechada
 	}
 
 	return nil
@@ -135,11 +135,11 @@ func (r *Room) CanStartGame() bool {
 	if r == nil {
 		return false
 	}
-	return r.Status == RoomOpen && len(r.Players) == 4
+	return r.Status == SalaAberta && len(r.Players) == 4
 }
 
-// StartGame transita a sala para IN_GAME e associa o GameID.
-// Pré-condição: exatamente 4 jogadores e sala OPEN.
+// StartGame transita a sala para EM_PARTIDA e associa o GameID.
+// Pré-condição: exatamente 4 jogadores e sala ABERTA.
 func (r *Room) StartGame(gameID string) error {
 	if r == nil {
 		return errors.New("room is nil")
@@ -152,7 +152,7 @@ func (r *Room) StartGame(gameID string) error {
 		return ErrInvalidGameID
 	}
 
-	r.Status = RoomInGame
+	r.Status = SalaEmJogo
 	r.GameID = gameID
 	return nil
 }
@@ -162,5 +162,5 @@ func (r *Room) Close() {
 	if r == nil {
 		return
 	}
-	r.Status = RoomClosed
+	r.Status = SalaFechada
 }

@@ -15,10 +15,10 @@ type Naipe string
 type Rank string
 
 const (
-    Copas   Naipe = "COPAS"
-    Espadas Naipe = "ESPADAS"
-    Ouros   Naipe = "OUROS"
-    Paus    Naipe = "PAUS"
+	Copas   Naipe = "COPAS"
+	Espadas Naipe = "ESPADAS"
+	Ouros   Naipe = "OUROS"
+	Paus    Naipe = "PAUS"
 )
 
 const (
@@ -35,15 +35,15 @@ const (
 )
 
 var (
-	ErrInvalidNaipe = errors.New("naipe inválido")
-	ErrInvalidRank  = errors.New("rank inválido")
+	ErrInvalidNaipe  = errors.New("naipe inválido")
+	ErrInvalidRank   = errors.New("rank inválido")
 	ErrInvalidCardID = errors.New("id inválido")
 )
 
 // Valid indica se o naipe pertence ao conjunto permitido.
 func (n Naipe) Valid() bool {
 	switch n {
-	case Hearts, Spades, Diamonds, Clubs:
+	case Copas, Espadas, Ouros, Paus:
 		return true
 	default:
 		return false

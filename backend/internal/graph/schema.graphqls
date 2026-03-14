@@ -1,0 +1,65 @@
+scalar Time
+
+enum RoomStatus {
+  ABERTA
+  EM_PARTIDA
+  FECHADA
+}
+
+enum PlayerType {
+  HUMANO
+  BOT
+}
+
+type Player {
+  id: ID!
+  name: String!
+  type: PlayerType!
+  teamID: String
+}
+
+type Room {
+  id: ID!
+  hostID: ID!
+  status: RoomStatus!
+  gameID: ID
+  players: [Player!]!
+  createdAt: Time!
+}
+
+type Query {
+  rooms: [Room!]!
+  room(id: ID!): Room
+}
+
+input NewRoom {
+  roomID: ID!
+  hostID: ID!
+  hostName: String!
+  hostType: PlayerType!
+  teamID: String
+}
+
+input NewPlayer {
+  playerID: ID!
+  name: String!
+  type: PlayerType!
+  teamID: String
+}
+
+input StartGameInput {
+  roomID: ID!
+  gameID: ID!
+}
+
+type Mutation {
+  createRoom(input: NewRoom!): Room!
+
+  addPlayer(roomID: ID!, input: NewPlayer!): Room!
+
+  removePlayer(roomID: ID!, playerID: ID!): Room!
+
+  startGame(input: StartGameInput!): Room!
+
+  closeRoom(roomID: ID!): Boolean!
+}

@@ -14,15 +14,15 @@ const (
 )
 
 var (
-	ErrGameNotPlaying      = errors.New("game not in playing state")
-	ErrNotYourTurn         = errors.New("not your turn")
-	ErrPlayerNotFound      = errors.New("player not found")
-	ErrTeamNotFound        = errors.New("team not found")
-	ErrInvalidPlayerOrder  = errors.New("invalid player order")
-	ErrStrategyNotSet      = errors.New("strategy not set")
-	ErrEventBusNotSet      = errors.New("event bus not set")
-	ErrRoundNotConfigured  = errors.New("round not configured")
-	ErrTrickNotConfigured  = errors.New("current trick not configured")
+	ErrGameNotPlaying     = errors.New("game not in playing state")
+	ErrNotYourTurn        = errors.New("not your turn")
+	ErrPlayerNotFound     = errors.New("player not found")
+	ErrTeamNotFound       = errors.New("team not found")
+	ErrInvalidPlayerOrder = errors.New("invalid player order")
+	ErrStrategyNotSet     = errors.New("strategy not set")
+	ErrEventBusNotSet     = errors.New("event bus not set")
+	ErrRoundNotConfigured = errors.New("round not configured")
+	ErrTrickNotConfigured = errors.New("current trick not configured")
 )
 
 // Play mantém-se como antes
@@ -48,11 +48,11 @@ type Game struct {
 
 	Status GameStatus
 
-	RuleStrategy    TrickRuleStrategy
-	ScoringStrategy ScoringStrategy
-	BotStrategy     BotPlayStrategy
+	// RuleStrategy    TrickRuleStrategy
+	// ScoringStrategy ScoringStrategy
+	// BotStrategy     BotPlayStrategy
 
-	EventBus *EventBus
+	// EventBus *EventBus
 }
 
 // Start coloca o jogo em EM_JOGO (assumindo que Round já foi criado).
@@ -94,22 +94,22 @@ func (g *Game) PlayCard(playerID, cardID string) error {
 
 	// Se a tua interface TrickRuleStrategy tiver ValidatePlay, valida aqui.
 	// (Se não tiveres isso implementado ainda, podes comentar este bloco.)
-	if g.RuleStrategy != nil && g.Round.CurrentTrick.LeadSuit != nil {
-		// leadSuit := *g.Round.CurrentTrick.LeadSuit
-		// if err := g.RuleStrategy.ValidatePlay(player.Hand, leadSuit, card); err != nil {
-		//     // repõe carta (opcional) ou trata erro como preferires
-		//     return err
-		// }
-	}
+	// if g.RuleStrategy != nil && g.Round.CurrentTrick.LeadSuit != nil {
+	// 	// leadSuit := *g.Round.CurrentTrick.LeadSuit
+	// 	// if err := g.RuleStrategy.ValidatePlay(player.Hand, leadSuit, card); err != nil {
+	// 	//     // repõe carta (opcional) ou trata erro como preferires
+	// 	//     return err
+	// 	// }
+	// }
 
 	play := Play{PlayerID: playerID, Card: card}
 	if err := g.Round.CurrentTrick.AddPlay(play); err != nil {
 		return err
 	}
 
-	if g.EventBus != nil {
-		g.EventBus.Publish(NewCardPlayedEvent(g.ID, playerID, card))
-	}
+	// if g.EventBus != nil {
+	// 	g.EventBus.Publish(NewCardPlayedEvent(g.ID, playerID, card))
+	// }
 
 	// Se 4 cartas jogadas → fechar vaza
 	if g.Round.CurrentTrick.IsComplete() {
@@ -131,13 +131,12 @@ func (g *Game) endTrick() {
 	if g.Round == nil || g.Round.CurrentTrick == nil {
 		return
 	}
-	if g.RuleStrategy == nil || g.ScoringStrategy == nil {
-		return
-	}
+	// if g.RuleStrategy == nil || g.ScoringStrategy == nil {
+	// 	return
+	// }
 
-	plays := g.Round.CurrentTrick.Plays
-	winnerID := g.RuleStrategy.Winner(g.Round.TrumpSuit, plays)
-	points := g.ScoringStrategy.TrickPoints(plays)
+	winnerID := "id"
+	points := 0
 
 	winner, ok := g.Players[winnerID]
 	if !ok || winner == nil {
@@ -151,9 +150,9 @@ func (g *Game) endTrick() {
 
 	_ = team.AddPoints(points)
 
-	if g.EventBus != nil {
-		g.EventBus.Publish(NewTrickEndedEvent(g.ID, winnerID, points))
-	}
+	// if g.EventBus != nil {
+	// 	g.EventBus.Publish(NewTrickEndedEvent(g.ID, winnerID, points))
+	// }
 
 	// incrementa contador de vazas
 	g.Round.IncrementTrick()
@@ -165,9 +164,9 @@ func (g *Game) endTrick() {
 	// fim após 10 vazas
 	if g.Round.IsFinished() {
 		g.Status = FimDeJogo
-		if g.EventBus != nil {
-			g.EventBus.Publish(NewGameEndedEvent(g.ID))
-		}
+		// if g.EventBus != nil {
+		// 	g.EventBus.Publish(NewGameEndedEvent(g.ID))
+		// }
 	}
 }
 
@@ -191,8 +190,8 @@ func (g *Game) Validate() error {
 	if !g.Round.TrumpSuit.Valid() {
 		return fmt.Errorf("%w: %q", ErrInvalidNaipe, g.Round.TrumpSuit)
 	}
-	if g.RuleStrategy == nil || g.ScoringStrategy == nil {
-		return ErrStrategyNotSet
-	}
+	// if g.RuleStrategy == nil || g.ScoringStrategy == nil {
+	// 	return ErrStrategyNotSet
+	// }
 	return nil
 }
