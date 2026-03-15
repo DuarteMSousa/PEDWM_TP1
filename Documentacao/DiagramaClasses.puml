@@ -98,11 +98,6 @@ enum Rank {
   TWO
 }
 
-enum PlayerType {
-  HUMAN
-  BOT
-}
-
 interface ICommand {
   void Execute(Game game);
 }
@@ -168,7 +163,7 @@ class RoundScoringState implements IRoundState {
 }
 
 class DeckFactory {
-  +CreateSuecaDeck(): Card[*]
+  +CreateSuecaDeck(): Deck
 }
 
 class Deck {
@@ -258,10 +253,7 @@ class Round {
 
 class Game {
   +ID: string
-  +Players: map<string, Player>
   +Teams: map<string, Team>
-  +State: GameState
-  +Round: Round
 
   +GameScoringStrategy: IGameScoringStrategy
   +EventBus: EventBus
@@ -273,6 +265,7 @@ class Game {
 
 class Room {
   +ID: string
+  +HostId: string
   +Players: map<string, Player>
   +Status: RoomStatus
   +GameID: string
@@ -288,10 +281,9 @@ class Room {
 '========================
 ' Strategy Pattern
 '========================
-interface RoundScoringStrategy {
+interface RoundRuleStrategy {
   +Winner(Round round): string
   +HasEnded(Round round): bool
-  +CalculatePoints(Round round): map<string, int>
 }
 
 interface TrickRuleStrategy {
@@ -310,12 +302,12 @@ interface BotStrategy {
 }
 
 class SuecaTrickRules
-class SuecaScoring
+class SuecaTrickScoring
 class EasySuecaBotStrategy
 class HardSuecaBotStrategy
 
 TrickRuleStrategy <|.. SuecaTrickRules
-TrickScoringStrategy  <|.. SuecaScoring
+TrickScoringStrategy  <|.. SuecaTrickScoring
 BotStrategy  <|.. EasySuecaBotStrategy
 BotStrategy  <|.. HardSuecaBotStrategy
 BotStrategy <|.. Bot
@@ -372,14 +364,13 @@ Hand "1" -- "*" Card
 Deck "1" -- "*" Card
 Trick "1" -- "*" Play
 Round "1" -- "1" Trick : currentTrick
-Game "1" -- "*" Player
 Game "1" -- "*" Team
 Trick "1" -- "1" TurnOrder
 Game "1" -- "1" Round
 Game "1" -- "*" Event : events
 Room "1" -- "*" Player
 Room "1" -- "0..1" Game : gameId
-Round  -- RoundScoringStrategy
+Round  -- RoundRuleStrategy
 Trick -- TrickRuleStrategy
 Trick -- TrickScoringStrategy
 Game -- IGameState
@@ -393,5 +384,4 @@ Rank <|-- Card
 RoomStatus <|-- Room
 
 EventType <|-- Event
-PlayerType <|-- Player
 @enduml
