@@ -1,0 +1,38 @@
+﻿@startuml
+title Sequência - Broadcast por Sala (estado atual)
+
+actor "Tester / API" as Tester
+participant "HTTP /ws/broadcast" as BroadcastEndpoint
+participant "Hub" as Hub
+participant "RoomHub" as RoomHub
+participant "Client" as Client
+actor "Browser / Navegador" as Browser
+
+Tester -> BroadcastEndpoint : POST {roomId, event}
+BroadcastEndpoint -> Hub : BroadcastToRoom(roomId, payload)
+
+alt sala existe no Hub
+  Hub -> RoomHub : Broadcast(payload)
+
+  loop para cada cliente da sala
+    RoomHub -> Client : Enqueue(payload)
+
+    alt enqueue com sucesso
+      Client -> Browser : enviar mensagem WS
+    else cliente lento
+      RoomHub -> Client : Close()
+    end
+  end
+else sala inexistente
+  Hub -> Hub : no-op (ignorar)
+end
+
+== Arquitetura alvo (quando EventBus estiver ligado) ==
+participant "App/Domínio" as App
+participant "EventBus" as EventBus
+participant "WebSocketObserver" as Observer
+
+App -> EventBus : Publish(event)
+EventBus -> Observer : Update(event)
+Observer -> Hub : BroadcastToRoom(roomID, payload)
+@enduml

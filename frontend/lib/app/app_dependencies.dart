@@ -1,5 +1,6 @@
 import '../core/config/app_env.dart';
 import '../core/network/graphql/graphql_service.dart';
+import '../core/network/http/http_service.dart';
 import '../core/network/websocket/websocket_service.dart';
 import '../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../features/auth/data/repositories/auth_repository_impl.dart';
@@ -17,6 +18,7 @@ import '../features/profile/domain/repositories/profile_repository.dart';
 class AppDependencies {
   AppDependencies._({
     required this.graphqlService,
+    required this.httpService,
     required this.webSocketService,
     required this.authRepository,
     required this.lobbyRepository,
@@ -26,6 +28,7 @@ class AppDependencies {
   }) : _gameRemoteDataSource = gameRemoteDataSource;
 
   final GraphqlService graphqlService;
+  final HttpService httpService;
   final WebSocketService webSocketService;
 
   final AuthRepository authRepository;
@@ -37,6 +40,7 @@ class AppDependencies {
 
   factory AppDependencies.create() {
     final graphqlService = GraphqlService(endpoint: AppEnv.graphqlEndpoint);
+    final httpService = HttpService(baseUrl: AppEnv.apiBaseEndpoint);
     final webSocketService = WebSocketService(
       endpoint: AppEnv.websocketEndpoint,
     );
@@ -47,7 +51,7 @@ class AppDependencies {
 
     final lobbyRepository = LobbyRepositoryImpl(
       remoteDataSource: LobbyRemoteDataSource(
-        graphqlService: graphqlService,
+        httpService: httpService,
         webSocketService: webSocketService,
       ),
     );
@@ -66,6 +70,7 @@ class AppDependencies {
 
     return AppDependencies._(
       graphqlService: graphqlService,
+      httpService: httpService,
       webSocketService: webSocketService,
       authRepository: authRepository,
       lobbyRepository: lobbyRepository,

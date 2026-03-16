@@ -23,7 +23,7 @@ class GameRemoteDataSource {
       <String, StreamController<SuecaGameState>>{};
 
   Future<SuecaGameState> loadGame(String roomId) async {
-    await _webSocketService.connect();
+    await _webSocketService.connect(roomId: roomId, playerId: 'p1');
     await _graphqlService.query(
       document:
           'query Room(\$id: ID!) { room(id: \$id) { id phase trumpSuit } }',

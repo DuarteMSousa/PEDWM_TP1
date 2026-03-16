@@ -31,6 +31,27 @@ class LobbyController extends ChangeNotifier {
     }
   }
 
+  Future<bool> joinRoom({
+    required String roomId,
+    required String playerId,
+  }) async {
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _lobbyRepository.joinRoom(roomId: roomId, playerId: playerId);
+      rooms = await _lobbyRepository.fetchRooms();
+      return true;
+    } catch (error) {
+      errorMessage = error.toString();
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> refreshRooms() => loadRooms();
 
   @override

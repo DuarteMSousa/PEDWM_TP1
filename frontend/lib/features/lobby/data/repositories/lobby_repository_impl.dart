@@ -16,4 +16,9 @@ class LobbyRepositoryImpl implements LobbyRepository {
 
   @override
   Future<List<Room>> fetchRooms() => _remoteDataSource.fetchRooms();
+
+  @override
+  Future<Room> joinRoom({required String roomId, required String playerId}) {
+    return _remoteDataSource.joinRoom(roomId: roomId, playerId: playerId);
+  }
 }

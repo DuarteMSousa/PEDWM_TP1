@@ -1,0 +1,86 @@
+﻿@startuml
+title Diagrama de Classes 
+
+skinparam classAttributeIconSize 0
+
+class Hub {
+  - rooms : map[string]*RoomHub
+  + GetOrCreateRoom(roomID : string) : *RoomHub
+  + AddClient(roomID : string, c : *Client)
+  + RemoveClient(roomID : string, c : *Client)
+  + BroadcastToRoom(roomID : string, payload : []byte)
+}
+
+class RoomHub {
+  - roomID : string
+  - clients : map[*Client]struct{}
+  + AddClient(c : *Client)
+  + RemoveClient(c : *Client) : bool
+  + Broadcast(payload : []byte)
+  + IsEmpty() : bool
+}
+
+class Client {
+  - id : string
+  - roomID : string
+  - hub : *Hub
+  - conn : websocket.Conn
+  - send : chan []byte
+  + Enqueue(payload : []byte) : bool
+  + ReadPump()
+  + WritePump()
+  + Close()
+}
+
+class WebSocketHandler {
+  + ServeHTTP(w, r)
+}
+
+class Event {
+  + type : string
+  + roomID : string
+  + gameID : string
+  + payload : any
+  + timestamp : datetime
+}
+
+interface Observer {
+  + Update(event : Event)
+}
+
+class EventBus <<stub>> {
+  + Subscribe(o : Observer) : int
+  + Unsubscribe(id : int)
+  + Publish(event : Event)
+}
+
+class WebSocketObserver {
+  - hub : *Hub
+  + Update(event : Event)
+}
+
+Hub "1" *-- "0..*" RoomHub : gere
+RoomHub "1" *-- "0..*" Client : contém
+WebSocketHandler ..> Hub : AddClient(roomID, client)
+Client ..> Hub : RemoveClient(roomID, client)
+WebSocketObserver ..> Hub : BroadcastToRoom(roomID, payload)
+EventBus ..> Observer : (futuro) notificar
+Observer <|.. WebSocketObserver
+EventBus ..> Event : publicar
+WebSocketObserver ..> Event : consumir
+
+note right of WebSocketHandler
+Comportamento atual:
+- se roomID não for fornecido => usa "lobby"
+- se playerID não for fornecido => usa remoteAddr
+- cria o cliente e inicia ReadPump/WritePump
+end note
+
+note right of Hub
+Comportamento atual:
+- AddClient cria um RoomHub se necessário
+- BroadcastToRoom NÃO cria sala
+  (se a sala não existir => não faz nada)
+- remove a sala quando o último cliente sai
+end note
+@enduml

@@ -1,0 +1,73 @@
+﻿@startuml
+title Ciclo de Vida WebSocket por Sala (estado atual)
+
+hide empty description
+skinparam shadowing false
+
+[*] --> AwaitingRequest
+
+state AwaitingRequest {
+  AwaitingRequest : GET /ws?roomId&playerId
+}
+
+AwaitingRequest --> ResolveContext : pedido recebido
+
+state ResolveContext {
+  ResolveContext : roomID = query ou "lobby"
+  ResolveContext : playerID = query ou remoteAddr
+}
+
+ResolveContext --> Upgrading : verificar origem + upgrade
+ResolveContext --> Rejected : erro no upgrade
+
+Rejected : ligação rejeitada/fechada
+Rejected --> [*]
+
+state Upgrading {
+  Upgrading : criar Client(conn, roomID, hub)
+  Upgrading : hub.AddClient(roomID, client)
+  Upgrading : iniciar ReadPump + WritePump
+}
+
+Upgrading --> Connected
+
+state Connected {
+  [*] --> Idle
+
+  Idle : cliente subscrito à sala
+
+  Idle --> Delivering : chega payload da sala
+  Delivering : roomHub.Broadcast(payload)
+  Delivering : client.Enqueue(payload)
+  Delivering --> Idle : writePump envia frame
+
+  Idle --> SlowClient : enqueue falha
+  SlowClient : client.Close()
+  SlowClient --> Disconnecting
+
+  Idle --> Disconnecting : falha em readPump/writePump
+}
+
+state Disconnecting {
+  Disconnecting : hub.RemoveClient(roomID, client)
+  Disconnecting : roomHub.RemoveClient(client)
+}
+
+Disconnecting --> RemoveEmptyRoom : sala vazia
+Disconnecting --> AwaitingRequest : sala ainda tem clientes
+
+state RemoveEmptyRoom {
+  RemoveEmptyRoom : hub remove roomID do mapa
+}
+
+RemoveEmptyRoom --> AwaitingRequest
+
+note right of Connected
+Fonte atual de broadcast:
+- endpoint /ws/broadcast -> hub.BroadcastToRoom(...)
+
+Integração alvo:
+- Domínio/App -> EventBus -> WebSocketObserver -> hub.BroadcastToRoom(...)
+end note
+
+@enduml

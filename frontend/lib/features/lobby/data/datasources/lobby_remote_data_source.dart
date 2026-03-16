@@ -1,19 +1,19 @@
-import '../../../../core/network/graphql/graphql_service.dart';
+import '../../../../core/network/http/http_service.dart';
 import '../../../../core/network/websocket/websocket_service.dart';
 import '../../domain/entities/room.dart';
 
 class LobbyRemoteDataSource {
   LobbyRemoteDataSource({
-    required GraphqlService graphqlService,
+    required HttpService httpService,
     required WebSocketService webSocketService,
-  }) : _graphqlService = graphqlService,
+  }) : _httpService = httpService,
        _webSocketService = webSocketService;
 
-  final GraphqlService _graphqlService;
+  final HttpService _httpService;
   final WebSocketService _webSocketService;
 
   Future<void> connect() async {
-    await _webSocketService.connect();
+    await _webSocketService.connect(roomId: 'lobby', playerId: 'lobby_client');
   }
 
   Future<void> disconnect() async {
@@ -21,22 +21,32 @@ class LobbyRemoteDataSource {
   }
 
   Future<List<Room>> fetchRooms() async {
-    await _graphqlService.query(
-      document:
-          'query Rooms { rooms { id name playersCount maxPlayers isPrivate } }',
+    final rawRooms = await _httpService.getList('/rooms');
+    return rawRooms
+        .whereType<Map<String, dynamic>>()
+        .map(_roomFromJson)
+        .toList(growable: false);
+  }
+
+  Future<Room> joinRoom({
+    required String roomId,
+    required String playerId,
+  }) async {
+    final response = await _httpService.post(
+      '/rooms/$roomId/join',
+      body: <String, dynamic>{'playerId': playerId},
     );
 
-    // Mocked lobby while backend is pending.
-    return const [
-      Room(id: 'room_1', name: 'Mesa 1', playersCount: 2, maxPlayers: 4),
-      Room(id: 'room_2', name: 'Mesa 2', playersCount: 4, maxPlayers: 4),
-      Room(
-        id: 'room_3',
-        name: 'Treino',
-        playersCount: 1,
-        maxPlayers: 4,
-        isPrivate: true,
-      ),
-    ];
+    return _roomFromJson(response);
+  }
+
+  Room _roomFromJson(Map<String, dynamic> json) {
+    return Room(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'Sala',
+      playersCount: (json['playersCount'] as num?)?.toInt() ?? 0,
+      maxPlayers: (json['maxPlayers'] as num?)?.toInt() ?? 4,
+      isPrivate: json['isPrivate'] == true,
+    );
   }
 }

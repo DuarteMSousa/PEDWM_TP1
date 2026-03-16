@@ -45,8 +45,25 @@ class _LobbyPageState extends State<LobbyPage> {
     ).pushNamed(AppRoutes.profile, arguments: widget.currentUser.id);
   }
 
-  void _joinRoom(Room room) {
-    Navigator.of(context).pushNamed(AppRoutes.game, arguments: room);
+  Future<void> _joinRoom(Room room) async {
+    final joined = await _controller.joinRoom(
+      roomId: room.id,
+      playerId: widget.currentUser.id,
+    );
+
+    if (!mounted) {
+      return;
+    }
+    if (joined) {
+      Navigator.of(context).pushNamed(AppRoutes.game, arguments: room);
+      return;
+    }
+
+    final message =
+        _controller.errorMessage ?? 'Nao foi possivel entrar na sala.';
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
