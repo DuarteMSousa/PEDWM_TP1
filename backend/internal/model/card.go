@@ -6,19 +6,20 @@ import (
 	"strings"
 )
 
-// Naipe representa o naipe.
-// Invariante: Naipe deve pertencer ao conjunto permitido.
 type Naipe string
 
-// Rank representa o valor/figura.
-// Invariante: Rank deve pertencer ao conjunto permitido.
 type Rank string
 
 const (
-    Copas   Naipe = "COPAS"
-    Espadas Naipe = "ESPADAS"
-    Ouros   Naipe = "OUROS"
-    Paus    Naipe = "PAUS"
+	Hearts   Naipe = "HEARTS"
+	Spades   Naipe = "SPADES"
+	Diamonds Naipe = "DIAMONDS"
+	Clubs    Naipe = "CLUBS"
+
+	Copas   Naipe = Hearts
+	Espadas Naipe = Spades
+	Ouros   Naipe = Diamonds
+	Paus    Naipe = Clubs
 )
 
 const (
@@ -35,12 +36,11 @@ const (
 )
 
 var (
-	ErrInvalidNaipe = errors.New("naipe inválido")
-	ErrInvalidRank  = errors.New("rank inválido")
-	ErrInvalidCardID = errors.New("id inválido")
+	ErrInvalidNaipe  = errors.New("invalid suit")
+	ErrInvalidRank   = errors.New("invalid rank")
+	ErrInvalidCardID = errors.New("invalid card id")
 )
 
-// Valid indica se o naipe pertence ao conjunto permitido.
 func (n Naipe) Valid() bool {
 	switch n {
 	case Hearts, Spades, Diamonds, Clubs:
@@ -50,7 +50,6 @@ func (n Naipe) Valid() bool {
 	}
 }
 
-// Valid indica se o rank pertence ao conjunto permitido.
 func (r Rank) Valid() bool {
 	switch r {
 	case A, K, Q, J, Seven, Six, Five, Four, Three, Two:
@@ -60,17 +59,12 @@ func (r Rank) Valid() bool {
 	}
 }
 
-// Card é uma entidade do domínio que representa uma carta.
-//   - ID não deve ser vazio (se for relevante no teu contexto)
-//   - Naipe deve ser válido
-//   - Rank deve ser válido
 type Card struct {
-	ID    string
-	Naipe Naipe
-	Rank  Rank
+	ID    string `json:"id"`
+	Naipe Naipe  `json:"naipe"`
+	Rank  Rank   `json:"rank"`
 }
 
-// NewCard é o construtor canónico: garante invariantes.
 func NewCard(id string, naipe Naipe, rank Rank) (Card, error) {
 	id = strings.TrimSpace(id)
 	if id == "" {
@@ -85,7 +79,6 @@ func NewCard(id string, naipe Naipe, rank Rank) (Card, error) {
 	return Card{ID: id, Naipe: naipe, Rank: rank}, nil
 }
 
-// Validate valida uma carta já existente (útil para dados vindos de fora).
 func (c Card) Validate() error {
 	if strings.TrimSpace(c.ID) == "" {
 		return ErrInvalidCardID
@@ -99,7 +92,6 @@ func (c Card) Validate() error {
 	return nil
 }
 
-// IsTrump indica se a carta pertence ao naipe de trunfo.
 func (c Card) IsTrump(trump Naipe) bool {
 	return c.Naipe == trump
 }

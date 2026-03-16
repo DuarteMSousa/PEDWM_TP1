@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	ErrInvalidTeamID   = errors.New("invalid team id")
-	ErrNegativePoints  = errors.New("points cannot be negative")
+	ErrInvalidTeamID  = errors.New("invalid team id")
+	ErrNegativePoints = errors.New("points cannot be negative")
 )
 
 // Team representa uma equipa no domínio.

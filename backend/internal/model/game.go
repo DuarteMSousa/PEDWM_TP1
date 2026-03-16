@@ -14,15 +14,15 @@ const (
 )
 
 var (
-	ErrGameNotPlaying      = errors.New("game not in playing state")
-	ErrNotYourTurn         = errors.New("not your turn")
-	ErrPlayerNotFound      = errors.New("player not found")
-	ErrTeamNotFound        = errors.New("team not found")
-	ErrInvalidPlayerOrder  = errors.New("invalid player order")
-	ErrStrategyNotSet      = errors.New("strategy not set")
-	ErrEventBusNotSet      = errors.New("event bus not set")
-	ErrRoundNotConfigured  = errors.New("round not configured")
-	ErrTrickNotConfigured  = errors.New("current trick not configured")
+	ErrGameNotPlaying     = errors.New("game not in playing state")
+	ErrNotYourTurn        = errors.New("not your turn")
+	ErrPlayerNotFound     = errors.New("player not found")
+	ErrTeamNotFound       = errors.New("team not found")
+	ErrInvalidPlayerOrder = errors.New("invalid player order")
+	ErrStrategyNotSet     = errors.New("strategy not set")
+	ErrEventBusNotSet     = errors.New("event bus not set")
+	ErrRoundNotConfigured = errors.New("round not configured")
+	ErrTrickNotConfigured = errors.New("current trick not configured")
 )
 
 // Play mantém-se como antes

@@ -2,6 +2,7 @@ package domain
 
 import (
 	"errors"
+	"sort"
 	"strings"
 	"time"
 )
@@ -9,9 +10,13 @@ import (
 type RoomStatus string
 
 const (
-    SalaAberta    RoomStatus = "ABERTA"
-    SalaEmJogo    RoomStatus = "EM_PARTIDA"
-    SalaFechada   RoomStatus = "FECHADA"
+	RoomOpen   RoomStatus = "OPEN"
+	RoomInGame RoomStatus = "IN_GAME"
+	RoomClosed RoomStatus = "CLOSED"
+
+	SalaAberta  RoomStatus = RoomOpen
+	SalaEmJogo  RoomStatus = RoomInGame
+	SalaFechada RoomStatus = RoomClosed
 )
 
 var (
@@ -25,21 +30,16 @@ var (
 	ErrInvalidGameID          = errors.New("invalid game id")
 )
 
-// Room representa uma sala (lobby) para formar um jogo.
 type Room struct {
-	ID      string
-	HostID  string
-	Players map[string]*Player
-	Status  RoomStatus
-	GameID  string
+	ID      string             `json:"id"`
+	HostID  string             `json:"hostId"`
+	Players map[string]*Player `json:"players"`
+	Status  RoomStatus         `json:"status"`
+	GameID  string             `json:"gameId,omitempty"`
 
-	CreatedAt time.Time
+	CreatedAt time.Time `json:"createdAt"`
 }
 
-// NewRoom cria uma sala nova com um host.
-// Invariantes:
-//   - roomID não vazio
-//   - host não nil e host.ID não vazio
 func NewRoom(roomID string, host *Player) (*Room, error) {
 	roomID = strings.TrimSpace(roomID)
 	if roomID == "" {
@@ -58,15 +58,10 @@ func NewRoom(roomID string, host *Player) (*Room, error) {
 		HostID:    host.ID,
 		Players:   players,
 		Status:    RoomOpen,
-		CreatedAt: time.Now(),
+		CreatedAt: time.Now().UTC(),
 	}, nil
 }
 
-// AddPlayer adiciona um jogador à sala.
-// Regras:
-//   - só é possível entrar se a sala estiver OPEN
-//   - máximo de 4 jogadores
-//   - não permite duplicados por ID
 func (r *Room) AddPlayer(player *Player) error {
 	if r == nil {
 		return errors.New("room is nil")
@@ -88,11 +83,6 @@ func (r *Room) AddPlayer(player *Player) error {
 	return nil
 }
 
-// RemovePlayer remove um jogador da sala.
-// Regras:
-//   - só é possível sair se a sala estiver OPEN
-//   - se o host sair, outro host é promovido de forma determinística
-//   - se a sala ficar vazia, fecha automaticamente
 func (r *Room) RemovePlayer(playerID string) error {
 	if r == nil {
 		return errors.New("room is nil")
@@ -112,17 +102,18 @@ func (r *Room) RemovePlayer(playerID string) error {
 
 	delete(r.Players, playerID)
 
-	// Se host sair, promover outro automaticamente (determinístico: menor ID lexicográfico)
 	if r.HostID == playerID {
 		r.HostID = ""
+		ids := make([]string, 0, len(r.Players))
 		for id := range r.Players {
-			if r.HostID == "" || id < r.HostID {
-				r.HostID = id
-			}
+			ids = append(ids, id)
+		}
+		sort.Strings(ids)
+		if len(ids) > 0 {
+			r.HostID = ids[0]
 		}
 	}
 
-	// Se sala ficar vazia, fechar
 	if len(r.Players) == 0 {
 		r.Status = RoomClosed
 	}
@@ -130,7 +121,6 @@ func (r *Room) RemovePlayer(playerID string) error {
 	return nil
 }
 
-// CanStartGame indica se a sala tem condições para iniciar o jogo.
 func (r *Room) CanStartGame() bool {
 	if r == nil {
 		return false
@@ -138,8 +128,6 @@ func (r *Room) CanStartGame() bool {
 	return r.Status == RoomOpen && len(r.Players) == 4
 }
 
-// StartGame transita a sala para IN_GAME e associa o GameID.
-// Pré-condição: exatamente 4 jogadores e sala OPEN.
 func (r *Room) StartGame(gameID string) error {
 	if r == nil {
 		return errors.New("room is nil")
@@ -157,7 +145,6 @@ func (r *Room) StartGame(gameID string) error {
 	return nil
 }
 
-// Close fecha a sala (não falha).
 func (r *Room) Close() {
 	if r == nil {
 		return
