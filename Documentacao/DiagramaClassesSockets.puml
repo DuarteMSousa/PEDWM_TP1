@@ -1,0 +1,66 @@
+@startuml
+
+' =========================
+' Domain Layer
+' =========================
+class Domain {
+  +emit(event)
+}
+
+' =========================
+' Event Bus
+' =========================
+class EventBus {
+  +publish(event)
+  +subscribe(handler)
+}
+
+' =========================
+' WebSocket Observer
+' =========================
+class WebSocketObserver {
+  +handle(event)
+  -toDTO(event)
+  -extractRoomId(event)
+}
+
+' =========================
+' Hub (gestor de rooms)
+' =========================
+class Hub {
+  -rooms: Map<RoomID, RoomHub>
+  +broadcastToRoom(roomId, payload)
+  +getRoom(roomId): RoomHub
+}
+
+' =========================
+' RoomHub (uma por sala)
+' =========================
+class RoomHub {
+  -roomId: String
+  -clients: List<Client>
+  +broadcast(payload)
+  +addClient(client)
+  +removeClient(client)
+}
+
+' =========================
+' Client (WebSocket)
+' =========================
+class Client {
+  -id: String
+  +send(payload)
+}
+
+' =========================
+' Relationships
+' =========================
+
+Domain --> EventBus : publishes
+EventBus --> WebSocketObserver : notifies
+WebSocketObserver --> Hub : broadcastToRoom()
+
+Hub "1" --> "*" RoomHub : manages
+RoomHub "1" --> "*" Client : connected clients
+
+@enduml
