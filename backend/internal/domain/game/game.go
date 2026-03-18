@@ -1,6 +1,13 @@
-package domain
+package game
 
 import (
+	"backend/internal/domain/card"
+	"backend/internal/domain/events"
+	"backend/internal/domain/player"
+	"backend/internal/domain/round"
+	"backend/internal/domain/strategy"
+	"backend/internal/domain/team"
+	"backend/internal/domain/turnorder"
 	"errors"
 	"fmt"
 )
@@ -28,31 +35,31 @@ var (
 // Play mantém-se como antes
 type Play struct {
 	PlayerID string
-	Card     Card
+	Card     card.Card
 }
 
 type Game struct {
 	ID string
 
-	Players map[string]*Player
-	Teams   map[string]*Team
+	Players map[string]*player.Player
+	Teams   map[string]*team.Team
 
 	// Ordem determinística (em vez de []string solta)
-	Order TurnOrder
+	Order turnorder.TurnOrder
 
 	// Estado corrente (turno atual)
 	TurnPlayer string
 
 	// Mão (10 vazas): trunfo + vaza atual + contador
-	Round *Round
+	Round *round.Round
 
 	Status GameStatus
 
-	RuleStrategy    TrickRuleStrategy
-	ScoringStrategy ScoringStrategy
-	BotStrategy     BotPlayStrategy
+	RuleStrategy    strategy.TrickRuleStrategy
+	ScoringStrategy strategy.ScoringStrategy
+	BotStrategy     strategy.BotPlayStrategy
 
-	EventBus *EventBus
+	EventBus *events.EventBus
 }
 
 // Start coloca o jogo em EM_JOGO (assumindo que Round já foi criado).
@@ -89,7 +96,7 @@ func (g *Game) PlayCard(playerID, cardID string) error {
 
 	card, found := player.RemoveCard(cardID)
 	if !found {
-		return ErrCardNotFound
+		return player.ErrCardNotFound
 	}
 
 	// Se a tua interface TrickRuleStrategy tiver ValidatePlay, valida aqui.
@@ -108,7 +115,7 @@ func (g *Game) PlayCard(playerID, cardID string) error {
 	}
 
 	if g.EventBus != nil {
-		g.EventBus.Publish(NewCardPlayedEvent(g.ID, playerID, card))
+		g.EventBus.Publish(events.NewCardPlayedEvent(g.ID, playerID, card))
 	}
 
 	// Se 4 cartas jogadas → fechar vaza
@@ -152,7 +159,7 @@ func (g *Game) endTrick() {
 	_ = team.AddPoints(points)
 
 	if g.EventBus != nil {
-		g.EventBus.Publish(NewTrickEndedEvent(g.ID, winnerID, points))
+		g.EventBus.Publish(events.NewTrickEndedEvent(g.ID, winnerID, points))
 	}
 
 	// incrementa contador de vazas
@@ -166,7 +173,7 @@ func (g *Game) endTrick() {
 	if g.Round.IsFinished() {
 		g.Status = FimDeJogo
 		if g.EventBus != nil {
-			g.EventBus.Publish(NewGameEndedEvent(g.ID))
+			g.EventBus.Publish(events.NewGameEndedEvent(g.ID))
 		}
 	}
 }
@@ -189,7 +196,7 @@ func (g *Game) Validate() error {
 		return ErrRoundNotConfigured
 	}
 	if !g.Round.TrumpSuit.Valid() {
-		return fmt.Errorf("%w: %q", ErrInvalidNaipe, g.Round.TrumpSuit)
+		return fmt.Errorf("%w: %q", card.ErrInvalidNaipe, g.Round.TrumpSuit)
 	}
 	if g.RuleStrategy == nil || g.ScoringStrategy == nil {
 		return ErrStrategyNotSet

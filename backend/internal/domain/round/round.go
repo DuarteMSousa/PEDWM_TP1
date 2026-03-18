@@ -1,6 +1,10 @@
-package domain
+package round
 
-import "errors"
+import (
+	"backend/internal/domain/card"
+	"backend/internal/domain/trick"
+	"errors"
+)
 
 var (
 	ErrRoundNotStarted = errors.New("round not started")
@@ -9,19 +13,19 @@ var (
 // Round (mão) representa as 10 vazas jogadas com o mesmo baralho (4 jogadores -> 10 vazas).
 // Guarda o trunfo, o contador de vazas e a vaza atual.
 type Round struct {
-	TrumpSuit    Naipe
+	TrumpSuit    card.Naipe
 	TricksPlayed int // 0..10
-	CurrentTrick *Trick
+	CurrentTrick *trick.Trick
 }
 
-func NewRound(trump Naipe, firstLeaderID string) (*Round, error) {
+func NewRound(trump card.Naipe, firstLeaderID string) (*Round, error) {
 	if !trump.Valid() {
-		return nil, ErrInvalidNaipe
+		return nil, card.ErrInvalidNaipe
 	}
 	return &Round{
 		TrumpSuit:    trump,
 		TricksPlayed: 0,
-		CurrentTrick: NewTrick(firstLeaderID),
+		CurrentTrick: trick.NewTrick(firstLeaderID),
 	}, nil
 }
 
@@ -31,7 +35,7 @@ func (r *Round) IsFinished() bool {
 
 func (r *Round) StartNewTrick(leaderID string) {
 	if r.CurrentTrick == nil {
-		r.CurrentTrick = NewTrick(leaderID)
+		r.CurrentTrick = trick.NewTrick(leaderID)
 		return
 	}
 	r.CurrentTrick.Reset(leaderID)

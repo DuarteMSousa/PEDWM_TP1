@@ -1,6 +1,8 @@
-package domain
+package events
 
 import (
+	"backend/internal/domain/card"
+	"backend/internal/domain/player"
 	"fmt"
 	"time"
 )
@@ -46,7 +48,7 @@ func NewRoomCreatedEvent(roomID string, hostID string) Event {
 	return newEvent(EventRoomCreated, roomID, "", map[string]any{"hostId": hostID})
 }
 
-func NewPlayerJoinedEvent(roomID string, player *Player) Event {
+func NewPlayerJoinedEvent(roomID string, player *player.Player) Event {
 	payload := map[string]any{"playerId": "", "name": ""}
 	if player != nil {
 		payload["playerId"] = player.ID
@@ -63,7 +65,7 @@ func NewGameStartedEvent(roomID string, gameID string) Event {
 	return newEvent(EventGameStarted, roomID, gameID, nil)
 }
 
-func NewCardPlayedEvent(gameID string, playerID string, card Card) Event {
+func NewCardPlayedEvent(gameID string, playerID string, card card.Card) Event {
 	return newEvent(EventCardPlayed, "", gameID, map[string]any{"playerId": playerID, "card": card})
 }
 

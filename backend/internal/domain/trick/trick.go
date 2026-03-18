@@ -1,6 +1,9 @@
-package domain
+package trick
 
-import "errors"
+import (
+	"backend/internal/domain/card"
+	"errors"
+)
 
 var (
 	ErrTrickComplete     = errors.New("trick already complete")
@@ -11,7 +14,7 @@ var (
 // Ela guarda as jogadas e o naipe de saída (lead suit).
 type Trick struct {
 	LeaderID string
-	LeadSuit *Naipe
+	LeadSuit *card.Naipe
 	Plays    []Play
 }
 

@@ -1,6 +1,7 @@
-package domain
+package player
 
 import (
+	"backend/internal/domain/card"
 	"errors"
 	"strings"
 )
@@ -19,11 +20,11 @@ var (
 )
 
 type Player struct {
-	ID     string     `json:"id"`
-	Name   string     `json:"name"`
-	Type   PlayerType `json:"type"`
-	TeamID string     `json:"teamId,omitempty"`
-	Hand   []Card     `json:"hand,omitempty"`
+	ID     string      `json:"id"`
+	Name   string      `json:"name"`
+	Type   PlayerType  `json:"type"`
+	TeamID string      `json:"teamId,omitempty"`
+	Hand   []card.Card `json:"hand,omitempty"`
 }
 
 func (p Player) Validate() error {
@@ -36,13 +37,13 @@ func (p Player) Validate() error {
 	return nil
 }
 
-func (p *Player) RemoveCard(cardID string) (Card, bool) {
+func (p *Player) RemoveCard(cardID string) (card.Card, bool) {
 	if p == nil {
-		return Card{}, false
+		return card.Card{}, false
 	}
 	cardID = strings.TrimSpace(cardID)
 	if cardID == "" {
-		return Card{}, false
+		return card.Card{}, false
 	}
 
 	for i, c := range p.Hand {
@@ -51,5 +52,5 @@ func (p *Player) RemoveCard(cardID string) (Card, bool) {
 			return c, true
 		}
 	}
-	return Card{}, false
+	return card.Card{}, false
 }

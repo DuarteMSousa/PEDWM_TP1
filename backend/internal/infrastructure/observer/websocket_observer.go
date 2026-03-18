@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 
+	domain "backend/internal/domain/events"
 	ws "backend/internal/infrastructure/transport/websocket"
-	domain "backend/internal/model"
 )
 
 // Minimal bridge EventBus -> WebSocket room broadcast.

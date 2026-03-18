@@ -1,6 +1,7 @@
-package domain
+package room
 
 import (
+	"backend/internal/domain/player"
 	"errors"
 	"sort"
 	"strings"
@@ -31,16 +32,16 @@ var (
 )
 
 type Room struct {
-	ID      string             `json:"id"`
-	HostID  string             `json:"hostId"`
-	Players map[string]*Player `json:"players"`
-	Status  RoomStatus         `json:"status"`
-	GameID  string             `json:"gameId,omitempty"`
+	ID      string                    `json:"id"`
+	HostID  string                    `json:"hostId"`
+	Players map[string]*player.Player `json:"players"`
+	Status  RoomStatus                `json:"status"`
+	GameID  string                    `json:"gameId,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-func NewRoom(roomID string, host *Player) (*Room, error) {
+func NewRoom(roomID string, host *player.Player) (*Room, error) {
 	roomID = strings.TrimSpace(roomID)
 	if roomID == "" {
 		return nil, ErrInvalidRoomID
@@ -49,7 +50,7 @@ func NewRoom(roomID string, host *Player) (*Room, error) {
 		return nil, ErrInvalidHost
 	}
 
-	players := map[string]*Player{
+	players := map[string]*player.Player{
 		host.ID: host,
 	}
 
@@ -62,7 +63,7 @@ func NewRoom(roomID string, host *Player) (*Room, error) {
 	}, nil
 }
 
-func (r *Room) AddPlayer(player *Player) error {
+func (r *Room) AddPlayer(player *player.Player) error {
 	if r == nil {
 		return errors.New("room is nil")
 	}
