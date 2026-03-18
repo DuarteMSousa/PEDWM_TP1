@@ -3,80 +3,98 @@ title Sueca - Diagrama de Classes Atualizado (Domain + Patterns)
 
 skinparam classAttributeIconSize 0
 
-interface Event {
+'========================
+' Event System
+' ========================
+
+abstract class Event {
   +id:ID
   +gameId: string
   +timestamp: datetime
   +type: EventType
 }
 
-class GameCreatedEvent implements Event {
+class GameCreatedEvent extends Event {
   +type: GAME_CREATED
   +creatorId: string
   +settings: GameSettings
 }
 
-class PlayerJoinedEvent implements Event {
+class PlayerJoinedEvent extends Event {
   +type: PLAYER_JOINED
   +playerId: string
   +name: string
   +slot: int
 }
 
-class PlayerLeftEvent implements Event {
+class PlayerLeftEvent extends Event {
   +type: PLAYER_LEFT
   +playerId: string
 }
 
-class GameStartedEvent implements Event {
+class GameStartedEvent extends Event {
   +type: GAME_STARTED
 }
 
-class RoundStartedEvent implements Event {
+class RoundStartedEvent extends Event {
   +type: ROUND_STARTED
   +roundNumber: int
   +dealerId: string
 }
 
-class TrumpRevealedEvent implements Event {
+class TrumpRevealedEvent extends Event {
   +type: TRUMP_REVEALED
   +card: Card
   +suit: Suit
 }
 
-class CardDealtEvent implements Event {
+class CardDealtEvent extends Event {
   +type: CARD_DEALT
   +playerId: string
   +cards: Card[]
 }
 
-class CardPlayedEvent implements Event {
+class CardPlayedEvent extends Event {
   +type: CARD_PLAYED
   +playerId: string
   +card: Card
 }
 
-class TrickEndedEvent implements Event {
+class TrickEndedEvent extends Event {
   +type: TRICK_ENDED
   +winnerId: string
   +points: int
 }
 
-class RoundEndedEvent implements Event {
+class RoundEndedEvent extends Event {
   +type: ROUND_ENDED
   +teamAScore: int
   +teamBScore: int
   +winnerTeam: string
 }
 
-class GameEndedEvent implements Event {
+class GameEndedEvent extends Event {
   +type: GAME_ENDED
   +finalScores: Map<string, int>
   +winnerTeam: string
 }
 
+' ========================
+' Strategy Pattern Interfaces
+' ========================
+
+
+interface IGameScoringStrategy  {
+  +CalculateRoundPoints(round: Round): Map<string, int>
+}
+
+class SuecaGameScoringStrategy implements IGameScoringStrategy {
+  +CalculateRoundPoints(round: Round): Map<string, int>
+}
+
+
 '========================
-' Enums / Value Objects
+' Enums
 '========================
 enum Suit {
   HEARTS
@@ -97,6 +115,43 @@ enum Rank {
   THREE
   TWO
 }
+
+enum RoomStatus {
+  OPEN
+  IN_GAME
+  CLOSED
+}
+
+enum EventType {
+  GAME_CREATED
+  PLAYER_JOINED
+  PLAYER_LEFT
+  GAME_STARTED
+  ROUND_STARTED
+  TRICK_STARTED
+  TRUMP_REVEALED
+  CARD_DEALT
+  CARD_PLAYED
+  TRICK_ENDED
+  ROUND_ENDED
+  GAME_ENDED
+}
+
+'========================
+' Factories
+'========================
+
+class DeckFactory {
+  +CreateSuecaDeck(): Deck
+}
+
+class GameFactory {
+  +CreateSuecaGame(room: Room): Game
+}
+
+' ========================
+' Command Pattern
+' ========================
 
 interface ICommand {
   void Execute(Game game);
@@ -122,6 +177,7 @@ interface LeaveGameCommand implements ICommand {
   void Execute(Game game);
 }
 
+
 interface IGameState{
   void Enter(Game game);
   void Update(Game game);
@@ -137,7 +193,7 @@ class GamePlayingState implements IGameState {
   +Update(game: Game): void
 }
 
-class GameEndedState implements IGameState {
+class GameFinishedState implements IGameState {
   +Enter(game: Game): void
   +Update(game: Game): void
 }
@@ -157,14 +213,11 @@ class RoundPlayingState implements IRoundState {
   +Update(Round Round): void
 }
 
-class RoundScoringState implements IRoundState {
+class RoundFinishedState implements IRoundState {
   +Enter(Round Round): void
   +Update(Round Round): void
 }
 
-class DeckFactory {
-  +CreateSuecaDeck(): Deck
-}
 
 class Deck {
   +Cards: Card[*]
@@ -179,90 +232,13 @@ class Hand{
   + AddCard(card)
   + RemoveCard(card)
   + HasSuit(suit)
-  + PlayableCards()
-}
-
-class GameFactory {
-  +CreateGame(room: Room): Game
 }
 
 
-enum RoomStatus {
-  OPEN
-  IN_GAME
-  CLOSED
-}
 
 '========================
 ' Core Domain
 '========================
-class Card {
-  +Suit: Suit
-  +Rank: Rank
-}
-
-class Player {
-  +ID: string
-  +Name: string
-  +Type: PlayerType
-}
-
-class Bot extends Player {
-  +BotStrategy: BotPlayStrategy
-  +ChooseCard(Hand hand,leadSuit: Suit, trump: Suit): Card
-}
-
-class Team {
-  +ID: string
-  +Players: string[2]
-  +GameScore: int
-  +AddGamePoints(points: int)
-}
-
-class Play {
-  +PlayerID: string
-  +Card: Card
-}
-
-class Trick {
-  +LeaderID: string
-  +LeadSuit: Suit
-  +Plays: Play[*]
-  +AddPlay(play: Play): error
-  +IsEmpty(): bool
-  +IsComplete(): bool
-  +HasPlayed(playerID: string): bool
-  +Reset(newLeaderID: string): void
-}
-
-class TurnOrder {
-  +Players(): string[*] ou queue
-  +Contains(playerID: string): bool
-  +Next(currentPlayerID: string): string
-  +HasNext(): bool
-}
-
-class Round {
-  +TricksPlayed: int
-  +CurrentTrick: Trick
-  +Hands: map<string, Hand>
-  +Points: map<string, int>
-  +IsFinished(): bool
-  +StartNewTrick(leaderID: string): void
-}
-
-class Game {
-  +ID: string
-  +Teams: map<string, Team>
-
-  +GameScoringStrategy: IGameScoringStrategy
-  +EventBus: EventBus
-  +Events: Event[*]
-  +Start(): error
-  +PlayCard(playerID: string, cardID: string): error
-  +Validate(): error
-}
-
 class Room {
   +ID: string
   +HostId: string
@@ -277,6 +253,75 @@ class Room {
   +StartGame(gameID: string): error
   +Close(): void
 }
+
+class Game {
+  +ID: string
+  +Teams: map<string, Team>
+
+  +GameScoringStrategy: IGameScoringStrategy
+  +EventBus: EventBus
+  +Events: Event[*]
+  +Start(): error
+  +PlayCard(playerID: string, cardID: string): error
+  +Validate(): error
+}
+
+class Player {
+  +ID: string
+  +Name: string
+  +Type: PlayerType
+}
+
+class Bot extends Player {
+  +ChooseCard(Hand hand,leadSuit: Suit, trump: Suit): Card
+}
+
+class Team {
+  +ID: string
+  +Players: string[2]
+  +GameScore: int
+  +AddGamePoints(points: int)
+}
+
+class Round {
+  +TricksPlayed: int
+  +CurrentTrick: Trick
+  +Hands: map<string, Hand>
+  +Points: map<string, int>
+  +IsFinished(): bool
+  +StartNewTrick(leaderID: string): void
+}
+
+class Card {
+  +Suit: Suit
+  +Rank: Rank
+}
+
+class TurnOrder {
+  +Players(): string[*] ou queue
+  +Contains(playerID: string): bool
+  +Next(currentPlayerID: string): string
+  +HasNext(): bool
+}
+
+class Trick {
+  +LeaderID: string
+  +LeadSuit: Suit
+  +Plays: Play[*]
+  +AddPlay(play: Play): error
+  +IsEmpty(): bool
+  +IsComplete(): bool
+  +HasPlayed(playerID: string): bool
+  +Reset(newLeaderID: string): void
+}
+
+
+class Play {
+  +PlayerID: string
+  +Card: Card
+}
+
+
 
 '========================
 ' Strategy Pattern
@@ -297,7 +342,7 @@ interface TrickScoringStrategy {
   +TrickPoints(plays: Play[*]): int
 }
 
-interface BotStrategy {
+interface IBotStrategy {
   +ChooseCard(hand: Card[*], leadSuit: Suit, trump: Suit): Card
 }
 
@@ -308,27 +353,13 @@ class HardSuecaBotStrategy
 
 TrickRuleStrategy <|.. SuecaTrickRules
 TrickScoringStrategy  <|.. SuecaTrickScoring
-BotStrategy  <|.. EasySuecaBotStrategy
-BotStrategy  <|.. HardSuecaBotStrategy
-BotStrategy <|.. Bot
+IBotStrategy  <|.. EasySuecaBotStrategy
+IBotStrategy  <|.. HardSuecaBotStrategy
+IBotStrategy <|.. Bot
 
 '========================
 ' Observer Pattern
 '========================
-enum EventType {
-  GAME_CREATED
-  PLAYER_JOINED
-  PLAYER_LEFT
-  GAME_STARTED
-  ROUND_STARTED
-  TRICK_STARTED
-  TRUMP_REVEALED
-  CARD_DEALT
-  CARD_PLAYED
-  TRICK_ENDED
-  ROUND_ENDED
-  GAME_ENDED
-}
 
 interface Observer {
   +Update(e: Event): void
@@ -358,30 +389,25 @@ Game o-- EventBus
 '========================
 ' Associations
 '========================
-Team "1" -- "2" Player : players
-Play "*" -- "1" Card
+Team "1" -- "*" Player
+Play "1" -- "1" Card
 Hand "1" -- "*" Card
 Deck "1" -- "*" Card
-Trick "1" -- "*" Play
-Round "1" -- "1" Trick : currentTrick
+Trick "1" -- "0..*" Play
+Round "1" -- "1" Trick
 Game "1" -- "*" Team
+Game "1" -- "1" IBotStrategy
+Game "1" -- "1" IGameScoringStrategy
 Trick "1" -- "1" TurnOrder
 Game "1" -- "1" Round
-Game "1" -- "*" Event : events
 Room "1" -- "*" Player
-Room "1" -- "0..1" Game : gameId
-Round  -- RoundRuleStrategy
-Trick -- TrickRuleStrategy
-Trick -- TrickScoringStrategy
-Game -- IGameState
-Round -- IRoundState
-Round -- Deck
-Round -- Hand
-
-Suit <|-- Card
-Rank <|-- Card
-
-RoomStatus <|-- Room
-
-EventType <|-- Event
+Room "1" -- "0..1" Game
+Round "1" -- "1" RoundRuleStrategy
+Trick "1" -- "1" TrickRuleStrategy
+Trick "1" -- "1" TrickScoringStrategy
+Game "1" -- "1" IGameState
+Round "1" -- "1" IRoundState
+Round "1" -- "1" Deck
+Round "1" -- "*" Hand
+Game "1" -up- "*" Event
 @enduml
