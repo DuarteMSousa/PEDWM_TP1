@@ -1,13 +1,16 @@
 package main
 
 import (
+	"backend/internal/application/ports"
 	"backend/internal/application/usecases/players"
 	"backend/internal/application/usecases/rooms"
 	domainevents "backend/internal/domain/events"
 	infraevents "backend/internal/infrastructure/events"
 	graphqltransport "backend/internal/infrastructure/graphql"
-	"backend/internal/infrastructure/persistence/memory"
+	postgresstore "backend/internal/infrastructure/persistence/postgres"
 	wstransport "backend/internal/infrastructure/websocket"
+	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -19,9 +22,11 @@ func main() {
 	eventBus := domainevents.NewEventBus()
 	_ = eventBus.Subscribe(wstransport.NewWebSocketObserver(hub))
 
-	store := memory.NewLobbyStore()
-	playerUsecase := players.NewService(store)
-	roomUsecase := rooms.NewService(store, infraevents.NewEventBusPublisher(eventBus))
+	playerRepo, roomRepo, cleanup := buildPersistence()
+	defer cleanup()
+
+	playerUsecase := players.NewService(playerRepo)
+	roomUsecase := rooms.NewService(roomRepo, infraevents.NewEventBusPublisher(eventBus))
 
 	graphQLHandler, err := graphqltransport.NewHandler(playerUsecase, roomUsecase)
 	if err != nil {
@@ -40,6 +45,23 @@ func main() {
 	log.Printf("api listening on %s", addr)
 	if err := http.ListenAndServe(addr, withCORS(mux)); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func buildPersistence() (ports.PlayerRepository, ports.RoomRepository, func()) {
+	databaseURL := strings.TrimSpace(os.Getenv("DATABASE_URL"))
+	if databaseURL == "" {
+		log.Fatal(errors.New("DATABASE_URL is required (memory mode has been removed)"))
+	}
+
+	store, err := postgresstore.NewLobbyStore(context.Background(), databaseURL)
+	if err != nil {
+		log.Fatalf("failed to initialize postgres store: %v", err)
+	}
+
+	log.Printf("persistence mode: postgres")
+	return store, store, func() {
+		store.Close()
 	}
 }
 

@@ -1,5 +1,35 @@
 # Backend
 
+## Run with Docker (recommended)
+
+From repository root:
+
+```bash
+docker compose up --build
+```
+
+This starts:
+
+- PostgreSQL on `localhost:5432`
+- Backend on `localhost:4000`
+- pgAdmin on `localhost:5050`
+
+`DATABASE_URL` is already defined in `docker-compose.yml`, so you do not need
+to pass anything in the command line.
+
+pgAdmin login:
+
+- Email: `admin@pedwm.com`
+- Password: `admin123`
+
+Postgres server setup in pgAdmin:
+
+- Host: `postgres`
+- Port: `5432`
+- Database: `sueca`
+- User: `sueca`
+- Password: `sueca123`
+
 ## Run
 
 ```bash
@@ -7,6 +37,18 @@ go run ./cmd/api
 ```
 
 Default address: `:4000` (override with `API_ADDR`).
+
+### Persistence mode
+
+- PostgreSQL only.
+- `DATABASE_URL` is required and schema is auto-created on startup.
+
+Example:
+
+```bash
+$env:DATABASE_URL="postgres://postgres:postgres@localhost:5432/sueca?sslmode=disable"
+go run ./cmd/api
+```
 
 ## Endpoints
 
@@ -104,7 +146,7 @@ query {
 
 - Nickname uniqueness is case-insensitive (`Alex` and `alex` map to the same player).
 - If the same nickname logs in again, the same player is returned (idempotent login).
-- Data is in-memory only (no DB persistence yet).
+- Data is persisted in PostgreSQL.
 - `deleteRoom` can only be executed by the room host.
 - Server starts with no pre-created rooms.
 - Private rooms require a password on join.
