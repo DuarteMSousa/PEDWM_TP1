@@ -1,20 +1,18 @@
-package observer
+package websocket
 
 import (
 	"encoding/json"
 	"strings"
 
 	domain "backend/internal/domain/events"
-	ws "backend/internal/infrastructure/transport/websocket"
 )
 
 // Minimal bridge EventBus -> WebSocket room broadcast.
-// TODO(team-eventbus): evolve payload mapping rules with domain team.
 type WebSocketObserver struct {
-	hub *ws.Hub
+	hub *Hub
 }
 
-func NewWebSocketObserver(hub *ws.Hub) *WebSocketObserver {
+func NewWebSocketObserver(hub *Hub) *WebSocketObserver {
 	return &WebSocketObserver{hub: hub}
 }
 

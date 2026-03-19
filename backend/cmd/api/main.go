@@ -1,26 +1,29 @@
 package main
 
 import (
+	"backend/internal/application/usecases/players"
+	"backend/internal/application/usecases/rooms"
 	domainevents "backend/internal/domain/events"
+	infraevents "backend/internal/infrastructure/events"
+	graphqltransport "backend/internal/infrastructure/graphql"
+	"backend/internal/infrastructure/persistence/memory"
+	wstransport "backend/internal/infrastructure/websocket"
 	"log"
 	"net/http"
 	"os"
 	"strings"
-
-	lobbyapp "backend/internal/application/lobby"
-	wsobserver "backend/internal/infrastructure/observer"
-	graphqltransport "backend/internal/infrastructure/transport/graphql"
-	wstransport "backend/internal/infrastructure/transport/websocket"
 )
 
 func main() {
 	hub := wstransport.NewHub()
 	eventBus := domainevents.NewEventBus()
-	_ = eventBus.Subscribe(wsobserver.NewWebSocketObserver(hub))
+	_ = eventBus.Subscribe(wstransport.NewWebSocketObserver(hub))
 
-	lobbyService := lobbyapp.NewServiceWithEventBus(eventBus)
+	store := memory.NewLobbyStore()
+	playerUsecase := players.NewService(store)
+	roomUsecase := rooms.NewService(store, infraevents.NewEventBusPublisher(eventBus))
 
-	graphQLHandler, err := graphqltransport.NewHandler(lobbyService)
+	graphQLHandler, err := graphqltransport.NewHandler(playerUsecase, roomUsecase)
 	if err != nil {
 		log.Fatalf("failed to build graphql handler: %v", err)
 	}
