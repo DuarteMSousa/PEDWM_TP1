@@ -15,13 +15,13 @@ class LobbyController extends ChangeNotifier {
   String? errorMessage;
   List<Room> rooms = const [];
 
-  Future<void> loadRooms() async {
+  Future<void> loadRooms({required String playerId}) async {
     isLoading = true;
     errorMessage = null;
     notifyListeners();
 
     try {
-      await _lobbyRepository.connect();
+      await _lobbyRepository.connectLobby(playerId: playerId);
       rooms = await _lobbyRepository.fetchRooms();
     } catch (error) {
       errorMessage = error.toString();
@@ -31,7 +31,33 @@ class LobbyController extends ChangeNotifier {
     }
   }
 
-  Future<bool> joinRoom({
+  Future<Room?> createRoom({
+    required String name,
+    required String hostPlayerId,
+    bool isPrivate = false,
+  }) async {
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      final createdRoom = await _lobbyRepository.createRoom(
+        name: name,
+        hostPlayerId: hostPlayerId,
+        isPrivate: isPrivate,
+      );
+      rooms = await _lobbyRepository.fetchRooms();
+      return createdRoom;
+    } catch (error) {
+      errorMessage = error.toString();
+      return null;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<Room?> joinRoom({
     required String roomId,
     required String playerId,
   }) async {
@@ -40,19 +66,23 @@ class LobbyController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _lobbyRepository.joinRoom(roomId: roomId, playerId: playerId);
+      final room = await _lobbyRepository.joinRoom(
+        roomId: roomId,
+        playerId: playerId,
+      );
       rooms = await _lobbyRepository.fetchRooms();
-      return true;
+      return room;
     } catch (error) {
       errorMessage = error.toString();
-      return false;
+      return null;
     } finally {
       isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<void> refreshRooms() => loadRooms();
+  Future<void> refreshRooms({required String playerId}) =>
+      loadRooms(playerId: playerId);
 
   @override
   void dispose() {

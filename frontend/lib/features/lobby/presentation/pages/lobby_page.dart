@@ -7,6 +7,7 @@ import '../../../../core/shared_widgets/table_background.dart';
 import '../../../auth/domain/entities/user.dart';
 import '../../domain/entities/room.dart';
 import '../../domain/repositories/lobby_repository.dart';
+import 'room_waiting_page.dart';
 import '../state/lobby_controller.dart';
 
 class LobbyPage extends StatefulWidget {
@@ -30,7 +31,7 @@ class _LobbyPageState extends State<LobbyPage> {
   void initState() {
     super.initState();
     _controller = LobbyController(lobbyRepository: widget.lobbyRepository);
-    _controller.loadRooms();
+    _controller.loadRooms(playerId: widget.currentUser.id);
   }
 
   @override
@@ -45,8 +46,22 @@ class _LobbyPageState extends State<LobbyPage> {
     ).pushNamed(AppRoutes.profile, arguments: widget.currentUser.id);
   }
 
+  Future<void> _refreshRooms() {
+    return _controller.refreshRooms(playerId: widget.currentUser.id);
+  }
+
+  void _openRoomWaiting({required String roomId}) {
+    Navigator.of(context).pushNamed(
+      AppRoutes.roomWaiting,
+      arguments: RoomWaitingArgs(
+        currentUser: widget.currentUser,
+        roomId: roomId,
+      ),
+    );
+  }
+
   Future<void> _joinRoom(Room room) async {
-    final joined = await _controller.joinRoom(
+    final joinedRoom = await _controller.joinRoom(
       roomId: room.id,
       playerId: widget.currentUser.id,
     );
@@ -54,13 +69,89 @@ class _LobbyPageState extends State<LobbyPage> {
     if (!mounted) {
       return;
     }
-    if (joined) {
-      Navigator.of(context).pushNamed(AppRoutes.game, arguments: room);
+    if (joinedRoom != null) {
+      _openRoomWaiting(roomId: joinedRoom.id);
       return;
     }
 
     final message =
         _controller.errorMessage ?? 'Nao foi possivel entrar na sala.';
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _createRoom() async {
+    final roomNameController = TextEditingController();
+    bool isPrivate = false;
+
+    final shouldCreate = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Criar sala'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: roomNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Nome da sala',
+                      hintText: 'ex: Mesa Equipa A',
+                    ),
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => Navigator.of(context).pop(true),
+                  ),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    value: isPrivate,
+                    title: const Text('Sala privada'),
+                    onChanged: (value) => setState(() => isPrivate = value),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Criar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (shouldCreate != true) {
+      roomNameController.dispose();
+      return;
+    }
+
+    final createdRoom = await _controller.createRoom(
+      name: roomNameController.text,
+      hostPlayerId: widget.currentUser.id,
+      isPrivate: isPrivate,
+    );
+    roomNameController.dispose();
+
+    if (!mounted) {
+      return;
+    }
+    if (createdRoom != null) {
+      _openRoomWaiting(roomId: createdRoom.id);
+      return;
+    }
+
+    final message =
+        _controller.errorMessage ?? 'Nao foi possivel criar a sala.';
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
@@ -72,6 +163,11 @@ class _LobbyPageState extends State<LobbyPage> {
       appBar: AppBar(
         title: const Text('Lobby de Sueca'),
         actions: [
+          IconButton(
+            onPressed: _createRoom,
+            icon: const Icon(Icons.add_circle_outline_rounded),
+            tooltip: 'Criar sala',
+          ),
           IconButton(
             onPressed: _openProfile,
             icon: const Icon(Icons.account_circle_outlined),
@@ -109,7 +205,7 @@ class _LobbyPageState extends State<LobbyPage> {
                           ),
                           const SizedBox(height: 14),
                           ElevatedButton(
-                            onPressed: _controller.loadRooms,
+                            onPressed: _refreshRooms,
                             child: const Text('Tentar novamente'),
                           ),
                         ],
@@ -123,7 +219,7 @@ class _LobbyPageState extends State<LobbyPage> {
 
           return TableBackground(
             child: RefreshIndicator(
-              onRefresh: _controller.refreshRooms,
+              onRefresh: _refreshRooms,
               color: const Color(0xFF155B42),
               backgroundColor: const Color(0xFFF8F0DB),
               child: ListView(
@@ -187,7 +283,7 @@ class _LobbyPageState extends State<LobbyPage> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _controller.loadRooms,
+        onPressed: _refreshRooms,
         child: const Icon(Icons.refresh_rounded),
       ),
     );

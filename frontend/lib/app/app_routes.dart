@@ -5,6 +5,7 @@ import '../features/auth/presentation/pages/nickname_page.dart';
 import '../features/game/presentation/pages/game_page.dart';
 import '../features/lobby/domain/entities/room.dart';
 import '../features/lobby/presentation/pages/lobby_page.dart';
+import '../features/lobby/presentation/pages/room_waiting_page.dart';
 import '../features/profile/presentation/pages/profile_page.dart';
 import 'app_dependencies.dart';
 
@@ -13,6 +14,7 @@ class AppRoutes {
 
   static const nickname = '/';
   static const lobby = '/lobby';
+  static const roomWaiting = '/room-waiting';
   static const game = '/game';
   static const profile = '/profile';
 }
@@ -41,6 +43,20 @@ class AppRouter {
           builder: (_) => LobbyPage(
             lobbyRepository: _dependencies.lobbyRepository,
             currentUser: user,
+          ),
+        );
+      case AppRoutes.roomWaiting:
+        if (settings.arguments is! RoomWaitingArgs) {
+          return _errorRoute(
+            'Missing RoomWaitingArgs argument for /room-waiting',
+          );
+        }
+        return _buildAnimatedRoute(
+          settings: settings,
+          beginOffset: const Offset(0.07, 0),
+          builder: (_) => RoomWaitingPage(
+            lobbyRepository: _dependencies.lobbyRepository,
+            args: settings.arguments! as RoomWaitingArgs,
           ),
         );
       case AppRoutes.game:

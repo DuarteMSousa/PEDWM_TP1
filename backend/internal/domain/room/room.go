@@ -1,7 +1,7 @@
 package room
 
 import (
-	"backend/internal/domain/player"
+	domainplayer "backend/internal/domain/player"
 	"errors"
 	"sort"
 	"strings"
@@ -32,16 +32,16 @@ var (
 )
 
 type Room struct {
-	ID      string                    `json:"id"`
-	HostID  string                    `json:"hostId"`
-	Players map[string]*player.Player `json:"players"`
-	Status  RoomStatus                `json:"status"`
-	GameID  string                    `json:"gameId,omitempty"`
+	ID      string                          `json:"id"`
+	HostID  string                          `json:"hostId"`
+	Players map[string]*domainplayer.Player `json:"players"`
+	Status  RoomStatus                      `json:"status"`
+	GameID  string                          `json:"gameId,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-func NewRoom(roomID string, host *player.Player) (*Room, error) {
+func NewRoom(roomID string, host *domainplayer.Player) (*Room, error) {
 	roomID = strings.TrimSpace(roomID)
 	if roomID == "" {
 		return nil, ErrInvalidRoomID
@@ -50,7 +50,7 @@ func NewRoom(roomID string, host *player.Player) (*Room, error) {
 		return nil, ErrInvalidHost
 	}
 
-	players := map[string]*player.Player{
+	players := map[string]*domainplayer.Player{
 		host.ID: host,
 	}
 
@@ -63,24 +63,24 @@ func NewRoom(roomID string, host *player.Player) (*Room, error) {
 	}, nil
 }
 
-func (r *Room) AddPlayer(player *player.Player) error {
+func (r *Room) AddPlayer(p *domainplayer.Player) error {
 	if r == nil {
 		return errors.New("room is nil")
 	}
 	if r.Status != RoomOpen {
 		return ErrRoomNotOpen
 	}
-	if player == nil || strings.TrimSpace(player.ID) == "" {
-		return ErrInvalidPlayerID
+	if p == nil || strings.TrimSpace(p.ID) == "" {
+		return domainplayer.ErrInvalidPlayerID
 	}
 	if len(r.Players) >= 4 {
 		return ErrRoomFull
 	}
-	if _, exists := r.Players[player.ID]; exists {
+	if _, exists := r.Players[p.ID]; exists {
 		return ErrPlayerAlreadyInRoom
 	}
 
-	r.Players[player.ID] = player
+	r.Players[p.ID] = p
 	return nil
 }
 
@@ -94,7 +94,7 @@ func (r *Room) RemovePlayer(playerID string) error {
 
 	playerID = strings.TrimSpace(playerID)
 	if playerID == "" {
-		return ErrInvalidPlayerID
+		return domainplayer.ErrInvalidPlayerID
 	}
 
 	if _, exists := r.Players[playerID]; !exists {

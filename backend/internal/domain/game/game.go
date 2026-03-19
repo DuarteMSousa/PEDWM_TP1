@@ -3,10 +3,11 @@ package game
 import (
 	"backend/internal/domain/card"
 	"backend/internal/domain/events"
-	"backend/internal/domain/player"
+	domainplayer "backend/internal/domain/player"
 	"backend/internal/domain/round"
 	"backend/internal/domain/strategy"
 	"backend/internal/domain/team"
+	"backend/internal/domain/trick"
 	"backend/internal/domain/turnorder"
 	"errors"
 	"fmt"
@@ -32,16 +33,10 @@ var (
 	ErrTrickNotConfigured = errors.New("current trick not configured")
 )
 
-// Play mantém-se como antes
-type Play struct {
-	PlayerID string
-	Card     card.Card
-}
-
 type Game struct {
 	ID string
 
-	Players map[string]*player.Player
+	Players map[string]*domainplayer.Player
 	Teams   map[string]*team.Team
 
 	// Ordem determinística (em vez de []string solta)
@@ -89,14 +84,14 @@ func (g *Game) PlayCard(playerID, cardID string) error {
 		return ErrNotYourTurn
 	}
 
-	player, ok := g.Players[playerID]
-	if !ok || player == nil {
+	currentPlayer, ok := g.Players[playerID]
+	if !ok || currentPlayer == nil {
 		return ErrPlayerNotFound
 	}
 
-	card, found := player.RemoveCard(cardID)
+	card, found := currentPlayer.RemoveCard(cardID)
 	if !found {
-		return player.ErrCardNotFound
+		return domainplayer.ErrCardNotFound
 	}
 
 	// Se a tua interface TrickRuleStrategy tiver ValidatePlay, valida aqui.
@@ -109,7 +104,7 @@ func (g *Game) PlayCard(playerID, cardID string) error {
 		// }
 	}
 
-	play := Play{PlayerID: playerID, Card: card}
+	play := trick.Play{PlayerID: playerID, Card: card}
 	if err := g.Round.CurrentTrick.AddPlay(play); err != nil {
 		return err
 	}

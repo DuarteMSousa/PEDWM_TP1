@@ -1,19 +1,29 @@
-import '../../../../core/network/http/http_service.dart';
+import '../../../../core/error/app_exception.dart';
+import '../../../../core/network/graphql/graphql_service.dart';
 import '../../../../core/network/websocket/websocket_service.dart';
+import '../../domain/entities/room_details.dart';
+import '../../domain/entities/room_member.dart';
 import '../../domain/entities/room.dart';
 
 class LobbyRemoteDataSource {
   LobbyRemoteDataSource({
-    required HttpService httpService,
+    required GraphqlService graphqlService,
     required WebSocketService webSocketService,
-  }) : _httpService = httpService,
+  }) : _graphqlService = graphqlService,
        _webSocketService = webSocketService;
 
-  final HttpService _httpService;
+  final GraphqlService _graphqlService;
   final WebSocketService _webSocketService;
 
-  Future<void> connect() async {
-    await _webSocketService.connect(roomId: 'lobby', playerId: 'lobby_client');
+  Future<void> connectLobby({required String playerId}) async {
+    await _webSocketService.connect(roomId: 'lobby', playerId: playerId);
+  }
+
+  Future<void> connectRoom({
+    required String roomId,
+    required String playerId,
+  }) async {
+    await _webSocketService.connect(roomId: roomId, playerId: playerId);
   }
 
   Future<void> disconnect() async {
@@ -21,23 +31,217 @@ class LobbyRemoteDataSource {
   }
 
   Future<List<Room>> fetchRooms() async {
-    final rawRooms = await _httpService.getList('/rooms');
+    final response = await _graphqlService.query(
+      document: '''
+        query Rooms {
+          rooms {
+            id
+            name
+            playersCount
+            maxPlayers
+            isPrivate
+          }
+        }
+      ''',
+    );
+
+    final data = response['data'];
+    if (data is! Map<String, dynamic>) {
+      throw AppException('Invalid GraphQL response for rooms query.');
+    }
+
+    final rawRooms = data['rooms'];
+    if (rawRooms is! List) {
+      throw AppException('Rooms were not returned by GraphQL.');
+    }
+
     return rawRooms
         .whereType<Map<String, dynamic>>()
         .map(_roomFromJson)
         .toList(growable: false);
   }
 
+  Future<Room> createRoom({
+    required String name,
+    required String hostPlayerId,
+    int maxPlayers = 4,
+    bool isPrivate = false,
+  }) async {
+    final response = await _graphqlService.mutation(
+      document: '''
+        mutation CreateRoom(
+          \$name: String!
+          \$hostPlayerId: ID!
+          \$maxPlayers: Int
+          \$isPrivate: Boolean
+        ) {
+          createRoom(
+            input: {
+              name: \$name
+              hostPlayerId: \$hostPlayerId
+              maxPlayers: \$maxPlayers
+              isPrivate: \$isPrivate
+            }
+          ) {
+            id
+            name
+            playersCount
+            maxPlayers
+            isPrivate
+          }
+        }
+      ''',
+      variables: <String, dynamic>{
+        'name': name.trim(),
+        'hostPlayerId': hostPlayerId,
+        'maxPlayers': maxPlayers,
+        'isPrivate': isPrivate,
+      },
+    );
+
+    final data = response['data'];
+    if (data is! Map<String, dynamic>) {
+      throw AppException('Invalid GraphQL response for createRoom.');
+    }
+
+    final payload = data['createRoom'];
+    if (payload is! Map<String, dynamic>) {
+      throw AppException('Room was not returned by GraphQL createRoom.');
+    }
+
+    return _roomFromJson(payload);
+  }
+
+  Future<RoomDetails?> fetchRoomDetails({required String roomId}) async {
+    final response = await _graphqlService.query(
+      document: '''
+        query RoomDetails(\$roomId: ID!) {
+          room(id: \$roomId) {
+            id
+            name
+            hostPlayerId
+            status
+            maxPlayers
+            isPrivate
+            playersCount
+            players {
+              id
+              nickname
+            }
+          }
+        }
+      ''',
+      variables: <String, dynamic>{'roomId': roomId},
+    );
+
+    final data = response['data'];
+    if (data is! Map<String, dynamic>) {
+      throw AppException('Invalid GraphQL response for room query.');
+    }
+
+    final rawRoom = data['room'];
+    if (rawRoom == null) {
+      return null;
+    }
+    if (rawRoom is! Map<String, dynamic>) {
+      throw AppException('Room was not returned by GraphQL room query.');
+    }
+
+    return _roomDetailsFromJson(rawRoom);
+  }
+
   Future<Room> joinRoom({
     required String roomId,
     required String playerId,
   }) async {
-    final response = await _httpService.post(
-      '/rooms/$roomId/join',
-      body: <String, dynamic>{'playerId': playerId},
+    final response = await _graphqlService.mutation(
+      document: '''
+        mutation JoinRoom(\$roomId: ID!, \$playerId: ID!) {
+          joinRoom(roomId: \$roomId, playerId: \$playerId) {
+            id
+            name
+            playersCount
+            maxPlayers
+            isPrivate
+          }
+        }
+      ''',
+      variables: <String, dynamic>{'roomId': roomId, 'playerId': playerId},
     );
 
-    return _roomFromJson(response);
+    final data = response['data'];
+    if (data is! Map<String, dynamic>) {
+      throw AppException('Invalid GraphQL response for joinRoom.');
+    }
+
+    final payload = data['joinRoom'];
+    if (payload is! Map<String, dynamic>) {
+      throw AppException('Room was not returned by GraphQL joinRoom.');
+    }
+
+    return _roomFromJson(payload);
+  }
+
+  Future<RoomDetails> leaveRoom({
+    required String roomId,
+    required String playerId,
+  }) async {
+    final response = await _graphqlService.mutation(
+      document: '''
+        mutation LeaveRoom(\$roomId: ID!, \$playerId: ID!) {
+          leaveRoom(roomId: \$roomId, playerId: \$playerId) {
+            id
+            name
+            hostPlayerId
+            status
+            maxPlayers
+            isPrivate
+            playersCount
+            players {
+              id
+              nickname
+            }
+          }
+        }
+      ''',
+      variables: <String, dynamic>{'roomId': roomId, 'playerId': playerId},
+    );
+
+    final data = response['data'];
+    if (data is! Map<String, dynamic>) {
+      throw AppException('Invalid GraphQL response for leaveRoom.');
+    }
+
+    final payload = data['leaveRoom'];
+    if (payload is! Map<String, dynamic>) {
+      throw AppException('Room was not returned by GraphQL leaveRoom.');
+    }
+
+    return _roomDetailsFromJson(payload);
+  }
+
+  Future<bool> deleteRoom({
+    required String roomId,
+    required String requesterId,
+  }) async {
+    final response = await _graphqlService.mutation(
+      document: '''
+        mutation DeleteRoom(\$roomId: ID!, \$requesterId: ID!) {
+          deleteRoom(roomId: \$roomId, requesterId: \$requesterId)
+        }
+      ''',
+      variables: <String, dynamic>{
+        'roomId': roomId,
+        'requesterId': requesterId,
+      },
+    );
+
+    final data = response['data'];
+    if (data is! Map<String, dynamic>) {
+      throw AppException('Invalid GraphQL response for deleteRoom.');
+    }
+
+    return data['deleteRoom'] == true;
   }
 
   Room _roomFromJson(Map<String, dynamic> json) {
@@ -47,6 +251,31 @@ class LobbyRemoteDataSource {
       playersCount: (json['playersCount'] as num?)?.toInt() ?? 0,
       maxPlayers: (json['maxPlayers'] as num?)?.toInt() ?? 4,
       isPrivate: json['isPrivate'] == true,
+    );
+  }
+
+  RoomDetails _roomDetailsFromJson(Map<String, dynamic> json) {
+    final rawPlayers = json['players'];
+    final players = rawPlayers is List
+        ? rawPlayers
+              .whereType<Map<String, dynamic>>()
+              .map(
+                (item) => RoomMember(
+                  id: item['id']?.toString() ?? '',
+                  nickname: item['nickname']?.toString() ?? 'Guest',
+                ),
+              )
+              .toList(growable: false)
+        : const <RoomMember>[];
+
+    return RoomDetails(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'Sala',
+      hostPlayerId: json['hostPlayerId']?.toString() ?? '',
+      status: json['status']?.toString() ?? 'OPEN',
+      maxPlayers: (json['maxPlayers'] as num?)?.toInt() ?? 4,
+      isPrivate: json['isPrivate'] == true,
+      players: players,
     );
   }
 }
