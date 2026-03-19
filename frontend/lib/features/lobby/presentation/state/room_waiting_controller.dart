@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../../domain/entities/lobby_realtime_event.dart';
 import '../../domain/entities/room_details.dart';
 import '../../domain/repositories/lobby_repository.dart';
 
@@ -21,8 +22,7 @@ class RoomWaitingController extends ChangeNotifier {
   String? errorMessage;
   RoomDetails? room;
   bool roomUnavailable = false;
-
-  Timer? _pollingTimer;
+  StreamSubscription<LobbyRealtimeEvent>? _eventsSubscription;
 
   bool get hasAllPlayers => room?.hasRequiredPlayers == true;
   bool get isHost => room?.hostPlayerId == currentPlayerId;
@@ -38,7 +38,7 @@ class RoomWaitingController extends ChangeNotifier {
         playerId: currentPlayerId,
       );
       await refreshRoom();
-      _startPolling();
+      await _startRealtimeSync();
     } catch (error) {
       errorMessage = error.toString();
     } finally {
@@ -58,6 +58,7 @@ class RoomWaitingController extends ChangeNotifier {
       } else {
         room = updatedRoom;
         roomUnavailable = false;
+        errorMessage = null;
       }
     } catch (error) {
       errorMessage = error.toString();
@@ -109,16 +110,29 @@ class RoomWaitingController extends ChangeNotifier {
     }
   }
 
-  void _startPolling() {
-    _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      unawaited(refreshRoom());
-    });
+  Future<void> _startRealtimeSync() async {
+    await _eventsSubscription?.cancel();
+    _eventsSubscription = _lobbyRepository.watchRealtimeEvents().listen(
+      (event) {
+        final sameRoom = event.roomId == roomId;
+        final roomDeleted =
+            event.isRoomDeleted &&
+            event.payload['roomId']?.toString() == roomId;
+        if (!sameRoom && !roomDeleted) {
+          return;
+        }
+        unawaited(refreshRoom());
+      },
+      onError: (Object error) {
+        errorMessage = error.toString();
+        notifyListeners();
+      },
+    );
   }
 
   @override
   void dispose() {
-    _pollingTimer?.cancel();
+    _eventsSubscription?.cancel();
     unawaited(_lobbyRepository.disconnect());
     super.dispose();
   }

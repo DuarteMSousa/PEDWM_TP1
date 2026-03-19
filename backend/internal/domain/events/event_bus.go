@@ -1,27 +1,62 @@
 package events
 
+import "sync"
+
 // Observer contract for domain events.
 type Observer interface {
 	Update(event Event)
 }
 
-// EventBus is intentionally minimal in this branch.
-// TODO(team-eventbus): replace with full publish/subscribe implementation.
-type EventBus struct{}
+// EventBus dispatches domain events to subscribed observers.
+type EventBus struct {
+	mu           sync.RWMutex
+	nextID       int
+	subscription map[int]Observer
+}
 
 func NewEventBus() *EventBus {
-	return &EventBus{}
+	return &EventBus{
+		subscription: make(map[int]Observer),
+	}
 }
 
 func (b *EventBus) Subscribe(observer Observer) int {
-	_ = observer
-	return 0
+	if b == nil || observer == nil {
+		return 0
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.nextID++
+	id := b.nextID
+	b.subscription[id] = observer
+	return id
 }
 
 func (b *EventBus) Unsubscribe(subscriptionID int) {
-	_ = subscriptionID
+	if b == nil || subscriptionID <= 0 {
+		return
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	delete(b.subscription, subscriptionID)
 }
 
 func (b *EventBus) Publish(event Event) {
-	_ = event
+	if b == nil {
+		return
+	}
+
+	b.mu.RLock()
+	observers := make([]Observer, 0, len(b.subscription))
+	for _, observer := range b.subscription {
+		observers = append(observers, observer)
+	}
+	b.mu.RUnlock()
+
+	for _, observer := range observers {
+		observer.Update(event)
+	}
 }

@@ -1,3 +1,4 @@
+import '../../domain/entities/lobby_realtime_event.dart';
 import '../../domain/entities/room_details.dart';
 import '../../domain/entities/room.dart';
 import '../../domain/repositories/lobby_repository.dart';
@@ -20,6 +21,11 @@ class LobbyRepositoryImpl implements LobbyRepository {
   }
 
   @override
+  Stream<LobbyRealtimeEvent> watchRealtimeEvents() {
+    return _remoteDataSource.watchRealtimeEvents();
+  }
+
+  @override
   Future<void> disconnect() => _remoteDataSource.disconnect();
 
   @override
@@ -31,12 +37,14 @@ class LobbyRepositoryImpl implements LobbyRepository {
     required String hostPlayerId,
     int maxPlayers = 4,
     bool isPrivate = false,
+    String? password,
   }) {
     return _remoteDataSource.createRoom(
       name: name,
       hostPlayerId: hostPlayerId,
       maxPlayers: maxPlayers,
       isPrivate: isPrivate,
+      password: password,
     );
   }
 
@@ -46,8 +54,16 @@ class LobbyRepositoryImpl implements LobbyRepository {
   }
 
   @override
-  Future<Room> joinRoom({required String roomId, required String playerId}) {
-    return _remoteDataSource.joinRoom(roomId: roomId, playerId: playerId);
+  Future<Room> joinRoom({
+    required String roomId,
+    required String playerId,
+    String? password,
+  }) {
+    return _remoteDataSource.joinRoom(
+      roomId: roomId,
+      playerId: playerId,
+      password: password,
+    );
   }
 
   @override

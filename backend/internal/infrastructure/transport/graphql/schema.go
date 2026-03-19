@@ -141,6 +141,9 @@ func newSchema(service *lobbyapp.Service) (gql.Schema, error) {
 			"isPrivate": &gql.InputObjectFieldConfig{
 				Type: gql.Boolean,
 			},
+			"password": &gql.InputObjectFieldConfig{
+				Type: gql.String,
+			},
 		},
 	})
 
@@ -229,8 +232,15 @@ func newSchema(service *lobbyapp.Service) (gql.Schema, error) {
 					hostPlayerID, _ := rawInput["hostPlayerId"].(string)
 					maxPlayers := toInt(rawInput["maxPlayers"])
 					isPrivate, _ := rawInput["isPrivate"].(bool)
+					password, _ := rawInput["password"].(string)
 
-					return service.CreateRoom(name, hostPlayerID, maxPlayers, isPrivate)
+					return service.CreateRoom(
+						name,
+						hostPlayerID,
+						maxPlayers,
+						isPrivate,
+						password,
+					)
 				},
 			},
 			"deleteRoom": &gql.Field{
@@ -255,11 +265,13 @@ func newSchema(service *lobbyapp.Service) (gql.Schema, error) {
 				Args: gql.FieldConfigArgument{
 					"roomId":   &gql.ArgumentConfig{Type: gql.NewNonNull(gql.ID)},
 					"playerId": &gql.ArgumentConfig{Type: gql.NewNonNull(gql.ID)},
+					"password": &gql.ArgumentConfig{Type: gql.String},
 				},
 				Resolve: func(p gql.ResolveParams) (any, error) {
 					roomID, _ := p.Args["roomId"].(string)
 					playerID, _ := p.Args["playerId"].(string)
-					if _, err := service.JoinRoom(roomID, playerID); err != nil {
+					password, _ := p.Args["password"].(string)
+					if _, err := service.JoinRoom(roomID, playerID, password); err != nil {
 						return nil, err
 					}
 					room, _ := service.GetRoom(roomID)

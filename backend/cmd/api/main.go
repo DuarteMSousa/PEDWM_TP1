@@ -1,19 +1,24 @@
 package main
 
 import (
+	domainevents "backend/internal/domain/events"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 
 	lobbyapp "backend/internal/application/lobby"
+	wsobserver "backend/internal/infrastructure/observer"
 	graphqltransport "backend/internal/infrastructure/transport/graphql"
 	wstransport "backend/internal/infrastructure/transport/websocket"
 )
 
 func main() {
 	hub := wstransport.NewHub()
-	lobbyService := lobbyapp.NewService()
+	eventBus := domainevents.NewEventBus()
+	_ = eventBus.Subscribe(wsobserver.NewWebSocketObserver(hub))
+
+	lobbyService := lobbyapp.NewServiceWithEventBus(eventBus)
 
 	graphQLHandler, err := graphqltransport.NewHandler(lobbyService)
 	if err != nil {

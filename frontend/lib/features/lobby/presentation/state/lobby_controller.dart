@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../../domain/entities/lobby_realtime_event.dart';
 import '../../domain/entities/room.dart';
 import '../../domain/repositories/lobby_repository.dart';
 
@@ -14,6 +15,10 @@ class LobbyController extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
   List<Room> rooms = const [];
+  String? _connectedPlayerId;
+  bool _isRefreshingFromEvent = false;
+  bool _hasPendingEventRefresh = false;
+  StreamSubscription<LobbyRealtimeEvent>? _eventsSubscription;
 
   Future<void> loadRooms({required String playerId}) async {
     isLoading = true;
@@ -21,7 +26,7 @@ class LobbyController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _lobbyRepository.connectLobby(playerId: playerId);
+      await _ensureConnected(playerId: playerId);
       rooms = await _lobbyRepository.fetchRooms();
     } catch (error) {
       errorMessage = error.toString();
@@ -35,6 +40,7 @@ class LobbyController extends ChangeNotifier {
     required String name,
     required String hostPlayerId,
     bool isPrivate = false,
+    String? password,
   }) async {
     isLoading = true;
     errorMessage = null;
@@ -45,6 +51,7 @@ class LobbyController extends ChangeNotifier {
         name: name,
         hostPlayerId: hostPlayerId,
         isPrivate: isPrivate,
+        password: password,
       );
       rooms = await _lobbyRepository.fetchRooms();
       return createdRoom;
@@ -60,6 +67,7 @@ class LobbyController extends ChangeNotifier {
   Future<Room?> joinRoom({
     required String roomId,
     required String playerId,
+    String? password,
   }) async {
     isLoading = true;
     errorMessage = null;
@@ -69,6 +77,7 @@ class LobbyController extends ChangeNotifier {
       final room = await _lobbyRepository.joinRoom(
         roomId: roomId,
         playerId: playerId,
+        password: password,
       );
       rooms = await _lobbyRepository.fetchRooms();
       return room;
@@ -84,8 +93,53 @@ class LobbyController extends ChangeNotifier {
   Future<void> refreshRooms({required String playerId}) =>
       loadRooms(playerId: playerId);
 
+  Future<void> _ensureConnected({required String playerId}) async {
+    await _lobbyRepository.connectLobby(playerId: playerId);
+
+    if (_eventsSubscription != null && _connectedPlayerId == playerId) {
+      return;
+    }
+
+    await _eventsSubscription?.cancel();
+    _connectedPlayerId = playerId;
+    _eventsSubscription = _lobbyRepository.watchRealtimeEvents().listen(
+      (event) {
+        if (event.roomId != 'lobby') {
+          return;
+        }
+        unawaited(_refreshFromRealtimeEvent());
+      },
+      onError: (Object error) {
+        errorMessage = error.toString();
+        notifyListeners();
+      },
+    );
+  }
+
+  Future<void> _refreshFromRealtimeEvent() async {
+    if (_isRefreshingFromEvent) {
+      _hasPendingEventRefresh = true;
+      return;
+    }
+
+    _isRefreshingFromEvent = true;
+    try {
+      do {
+        _hasPendingEventRefresh = false;
+        rooms = await _lobbyRepository.fetchRooms();
+        errorMessage = null;
+        notifyListeners();
+      } while (_hasPendingEventRefresh);
+    } catch (_) {
+      // Silent by design: temporary WS bursts should not spam user-facing errors.
+    } finally {
+      _isRefreshingFromEvent = false;
+    }
+  }
+
   @override
   void dispose() {
+    _eventsSubscription?.cancel();
     unawaited(_lobbyRepository.disconnect());
     super.dispose();
   }

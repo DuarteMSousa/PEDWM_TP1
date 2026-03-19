@@ -41,6 +41,36 @@ mutation {
 }
 ```
 
+### Create private room (with password)
+
+```graphql
+mutation {
+  createRoom(
+    input: {
+      name: "Mesa Privada"
+      hostPlayerId: "player_1"
+      isPrivate: true
+      password: "1234"
+    }
+  ) {
+    id
+    isPrivate
+    playersCount
+  }
+}
+```
+
+### Join room
+
+```graphql
+mutation {
+  joinRoom(roomId: "room_1", playerId: "player_2", password: "1234") {
+    id
+    playersCount
+  }
+}
+```
+
 ### Delete room
 
 ```graphql
@@ -77,3 +107,4 @@ query {
 - Data is in-memory only (no DB persistence yet).
 - `deleteRoom` can only be executed by the room host.
 - Server starts with no pre-created rooms.
+- Private rooms require a password on join.

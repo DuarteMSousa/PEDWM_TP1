@@ -2,7 +2,6 @@ package events
 
 import (
 	"backend/internal/domain/card"
-	"backend/internal/domain/player"
 	"fmt"
 	"time"
 )
@@ -15,6 +14,8 @@ type EventType string
 
 const (
 	EventRoomCreated  EventType = "ROOM_CREATED"
+	EventRoomUpdated  EventType = "ROOM_UPDATED"
+	EventRoomDeleted  EventType = "ROOM_DELETED"
 	EventPlayerJoined EventType = "PLAYER_JOINED"
 	EventPlayerLeft   EventType = "PLAYER_LEFT"
 	EventGameStarted  EventType = "GAME_STARTED"
@@ -30,6 +31,11 @@ type Event struct {
 	GameID    string    `json:"gameId,omitempty"`
 	Timestamp time.Time `json:"timestamp"`
 	Payload   any       `json:"payload,omitempty"`
+}
+
+func (e Event) WithPayload(payload any) Event {
+	e.Payload = payload
+	return e
 }
 
 func newEvent(typ EventType, roomID string, gameID string, payload any) Event {
@@ -48,13 +54,24 @@ func NewRoomCreatedEvent(roomID string, hostID string) Event {
 	return newEvent(EventRoomCreated, roomID, "", map[string]any{"hostId": hostID})
 }
 
-func NewPlayerJoinedEvent(roomID string, player *player.Player) Event {
-	payload := map[string]any{"playerId": "", "name": ""}
-	if player != nil {
-		payload["playerId"] = player.ID
-		payload["name"] = player.Name
-	}
-	return newEvent(EventPlayerJoined, roomID, "", payload)
+func NewRoomUpdatedEvent(roomID string, payload any) Event {
+	return newEvent(EventRoomUpdated, roomID, "", payload)
+}
+
+func NewRoomDeletedEvent(roomID string, payload any) Event {
+	return newEvent(EventRoomDeleted, roomID, "", payload)
+}
+
+func NewPlayerJoinedEvent(roomID string, playerID string, nickname string) Event {
+	return newEvent(
+		EventPlayerJoined,
+		roomID,
+		"",
+		map[string]any{
+			"playerId": playerID,
+			"nickname": nickname,
+		},
+	)
 }
 
 func NewPlayerLeftEvent(roomID string, playerID string) Event {

@@ -1,6 +1,7 @@
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/network/graphql/graphql_service.dart';
 import '../../../../core/network/websocket/websocket_service.dart';
+import '../../domain/entities/lobby_realtime_event.dart';
 import '../../domain/entities/room_details.dart';
 import '../../domain/entities/room_member.dart';
 import '../../domain/entities/room.dart';
@@ -28,6 +29,13 @@ class LobbyRemoteDataSource {
 
   Future<void> disconnect() async {
     await _webSocketService.disconnect();
+  }
+
+  Stream<LobbyRealtimeEvent> watchRealtimeEvents() {
+    return _webSocketService.events
+        .map(_mapRealtimeEvent)
+        .where((event) => event != null)
+        .cast<LobbyRealtimeEvent>();
   }
 
   Future<List<Room>> fetchRooms() async {
@@ -66,7 +74,10 @@ class LobbyRemoteDataSource {
     required String hostPlayerId,
     int maxPlayers = 4,
     bool isPrivate = false,
+    String? password,
   }) async {
+    final cleanedPassword = password?.trim();
+
     final response = await _graphqlService.mutation(
       document: '''
         mutation CreateRoom(
@@ -74,6 +85,7 @@ class LobbyRemoteDataSource {
           \$hostPlayerId: ID!
           \$maxPlayers: Int
           \$isPrivate: Boolean
+          \$password: String
         ) {
           createRoom(
             input: {
@@ -81,6 +93,7 @@ class LobbyRemoteDataSource {
               hostPlayerId: \$hostPlayerId
               maxPlayers: \$maxPlayers
               isPrivate: \$isPrivate
+              password: \$password
             }
           ) {
             id
@@ -96,6 +109,7 @@ class LobbyRemoteDataSource {
         'hostPlayerId': hostPlayerId,
         'maxPlayers': maxPlayers,
         'isPrivate': isPrivate,
+        'password': cleanedPassword?.isEmpty == true ? null : cleanedPassword,
       },
     );
 
@@ -153,11 +167,14 @@ class LobbyRemoteDataSource {
   Future<Room> joinRoom({
     required String roomId,
     required String playerId,
+    String? password,
   }) async {
+    final cleanedPassword = password?.trim();
+
     final response = await _graphqlService.mutation(
       document: '''
-        mutation JoinRoom(\$roomId: ID!, \$playerId: ID!) {
-          joinRoom(roomId: \$roomId, playerId: \$playerId) {
+        mutation JoinRoom(\$roomId: ID!, \$playerId: ID!, \$password: String) {
+          joinRoom(roomId: \$roomId, playerId: \$playerId, password: \$password) {
             id
             name
             playersCount
@@ -166,7 +183,11 @@ class LobbyRemoteDataSource {
           }
         }
       ''',
-      variables: <String, dynamic>{'roomId': roomId, 'playerId': playerId},
+      variables: <String, dynamic>{
+        'roomId': roomId,
+        'playerId': playerId,
+        'password': cleanedPassword?.isEmpty == true ? null : cleanedPassword,
+      },
     );
 
     final data = response['data'];
@@ -276,6 +297,27 @@ class LobbyRemoteDataSource {
       maxPlayers: (json['maxPlayers'] as num?)?.toInt() ?? 4,
       isPrivate: json['isPrivate'] == true,
       players: players,
+    );
+  }
+
+  LobbyRealtimeEvent? _mapRealtimeEvent(Map<String, dynamic> rawEvent) {
+    final type = rawEvent['type']?.toString();
+    final roomId = rawEvent['roomId']?.toString();
+    if (type == null || roomId == null || type.isEmpty || roomId.isEmpty) {
+      return null;
+    }
+
+    final payload = rawEvent['payload'];
+    final payloadMap = payload is Map
+        ? Map<String, dynamic>.from(payload)
+        : const <String, dynamic>{};
+
+    return LobbyRealtimeEvent(
+      id: rawEvent['id']?.toString() ?? '',
+      type: type,
+      roomId: roomId,
+      timestamp: rawEvent['timestamp']?.toString() ?? '',
+      payload: payloadMap,
     );
   }
 }
