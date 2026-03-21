@@ -1,0 +1,22 @@
+@startuml
+title Diagrama de Estados - Round
+
+[*] --> Setup
+
+Setup : Baralhar cartas
+Setup : Distribuir cartas
+Setup : Revelar trunfo
+
+Setup --> Playing : Ronda pronta para ser jogada
+
+Playing : Jogadores jogam cartas
+Playing : Gerir vazas
+
+Playing --> Finished : Todas as vazas terminadas
+
+Finished : Calcular pontos
+Finished : Determinar equipa vencedora
+
+Finished --> [*] : Ronda terminada
+
+@enduml

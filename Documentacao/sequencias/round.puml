@@ -1,0 +1,77 @@
+@startuml
+title Diagrama de Sequências - Ronda Completa (Refatorado)
+
+actor Jogador
+participant "Frontend" as FE
+participant "WebSocket" as WS
+participant "Game" as Game
+participant "Round" as Round
+participant "Deck" as Deck
+participant "Trick" as Trick
+participant "EventBus" as EB
+
+== Início da Ronda ==
+Game -> Round : criar ronda
+
+Round -> Deck : baralhar cartas
+Deck --> Round : cartas baralhadas
+
+Round -> EB : Notify(RoundStartedEvent)
+EB -> WS : broadcast
+WS -> FE : iniciar UI da ronda
+
+Round -> Deck : revelar trunfo
+Deck --> Round : carta de trunfo
+
+Round -> EB : Notify(TrumpRevealedEvent)
+EB -> WS : broadcast
+WS -> FE : mostrar trunfo
+
+Round -> Deck : distribuir cartas
+Deck --> Round : cartas distribuídas
+
+loop para cada jogador
+    Round -> EB : Notify(CardDealtEvent)
+    EB -> WS : broadcast
+    WS -> FE : mostrar cartas
+end
+
+== Vaza ==
+loop até ronda terminar
+
+    Round -> Trick : criar nova vaza
+
+    loop 4 jogadas (1 por jogador)
+
+        Jogador -> FE : jogar carta
+        FE -> WS : send(PlayCardCommand)
+
+        WS -> Game : PlayCard(playerId, cardId)
+        Game -> Round : processar jogada
+
+        Round -> Trick : AddPlay()
+
+        Round -> EB : Notify(CardPlayedEvent)
+        EB -> WS : broadcast
+        WS -> FE : atualizar mesa
+
+    end
+
+    Trick --> Round : Winner + pontos
+
+    Round -> EB : Notify(TrickEndedEvent)
+    EB -> WS : broadcast
+    WS -> FE : mostrar vencedor da vaza
+
+end
+
+== Fim da Ronda ==
+
+Round -> Round : verificar se terminou
+note right : Lógica interna de\nverificação de fim de ronda
+
+Round -> EB : Notify(RoundEndedEvent)
+EB -> WS : broadcast
+WS -> FE : mostrar pontuações
+
+@enduml

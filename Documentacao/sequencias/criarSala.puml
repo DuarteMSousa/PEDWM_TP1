@@ -1,0 +1,48 @@
+@startuml
+title Diagrama de Sequências - Criação de Sala (GraphQL) até Jogo via WebSocket
+
+actor Jogador
+participant "Frontend" as FE
+participant "GraphQL API" as GQL
+participant "Room Service" as Room
+participant "WebSocket" as WS
+participant "GameFactory" as GF
+participant "Game" as Game
+participant "EventBus" as EB
+
+== Criar Sala (GraphQL) ==
+Jogador -> FE : Criar sala
+FE -> GQL : mutation createRoom(hostId)
+GQL -> Room : createRoom(hostId)
+Room --> GQL : roomId
+GQL --> FE : roomId
+
+== Conectar ao WebSocket ==
+FE -> WS : connect(roomId)
+
+== Jogadores entram ==
+Jogador -> FE : Entrar na sala
+FE -> WS : send(EnterGameCommand)
+
+WS -> Room : AddPlayer(player)
+
+Room -> EB : Notify(PlayerJoinedEvent)
+EB -> WS : broadcast(PlayerJoinedEvent)
+WS -> FE : atualizar UI
+
+== Iniciar Jogo ==
+Jogador -> FE : Iniciar jogo
+FE -> WS : send(StartGameCommand)
+
+WS -> Room : StartGame()
+
+Room -> GF : CreateGame(room)
+GF --> Room : Game
+
+Room -> Game : Start()
+
+Game -> EB : Notify(GameStartedEvent)
+EB -> WS : broadcast(GameStartedEvent)
+WS -> FE : iniciar jogo UI
+
+@enduml
