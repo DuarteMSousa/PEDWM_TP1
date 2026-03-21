@@ -1,56 +1,34 @@
 package player
 
-import (
-	"backend/internal/domain/card"
-	"errors"
-	"strings"
-)
-
 type PlayerType string
 
 const (
-	Humano PlayerType = "HUMANO"
-	Bot    PlayerType = "BOT"
-)
-
-var (
-	ErrCardNotFound    = errors.New("card not found")
-	ErrInvalidPlayer   = errors.New("invalid player")
-	ErrInvalidPlayerID = errors.New("invalid player id")
+	HUMAN PlayerType = "HUMAN"
+	BOT   PlayerType = "BOT"
 )
 
 type Player struct {
-	ID     string      `json:"id"`
-	Name   string      `json:"name"`
-	Type   PlayerType  `json:"type"`
-	TeamID string      `json:"teamId,omitempty"`
-	Hand   []card.Card `json:"hand,omitempty"`
+	ID   string     `json:"id"`
+	Name string     `json:"name"`
+	Type PlayerType `json:"type"`
 }
 
-func (p Player) Validate() error {
-	if strings.TrimSpace(p.ID) == "" {
-		return ErrInvalidPlayerID
-	}
-	if strings.TrimSpace(p.Name) == "" {
-		return ErrInvalidPlayer
-	}
-	return nil
+type Bot struct {
+	Player,
+	Strategy BotStrategy
 }
 
-func (p *Player) RemoveCard(cardID string) (card.Card, bool) {
-	if p == nil {
-		return card.Card{}, false
+func NewPlayer(id, name string, playerType PlayerType) Player {
+	return Player{
+		ID:   id,
+		Name: name,
+		Type: playerType,
 	}
-	cardID = strings.TrimSpace(cardID)
-	if cardID == "" {
-		return card.Card{}, false
-	}
+}
 
-	for i, c := range p.Hand {
-		if c.ID == cardID {
-			p.Hand = append(p.Hand[:i], p.Hand[i+1:]...)
-			return c, true
-		}
+func NewBot(id, name string, strategy BotStrategy) Bot {
+	return Bot{
+		Player:   NewPlayer(id, name, BOT),
+		Strategy: strategy,
 	}
-	return card.Card{}, false
 }
