@@ -7,7 +7,6 @@ import (
 )
 
 type Naipe string
-
 type Rank string
 
 const (
@@ -65,17 +64,16 @@ type Card struct {
 	Rank  Rank   `json:"rank"`
 }
 
-func NewCard(id string, naipe Naipe, rank Rank) (Card, error) {
-	id = strings.TrimSpace(id)
-	if id == "" {
-		return Card{}, ErrInvalidCardID
-	}
+func NewCard(naipe Naipe, rank Rank) (Card, error) {
 	if !naipe.Valid() {
 		return Card{}, fmt.Errorf("%w: %q", ErrInvalidNaipe, naipe)
 	}
 	if !rank.Valid() {
 		return Card{}, fmt.Errorf("%w: %q", ErrInvalidRank, rank)
 	}
+
+	id := string(rank) + "_" + string(naipe)
+
 	return Card{ID: id, Naipe: naipe, Rank: rank}, nil
 }
 

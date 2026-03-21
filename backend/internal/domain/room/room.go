@@ -11,13 +11,9 @@ import (
 type RoomStatus string
 
 const (
-	RoomOpen   RoomStatus = "OPEN"
-	RoomInGame RoomStatus = "IN_GAME"
-	RoomClosed RoomStatus = "CLOSED"
-
-	SalaAberta  RoomStatus = RoomOpen
-	SalaEmJogo  RoomStatus = RoomInGame
-	SalaFechada RoomStatus = RoomClosed
+	OPEN    RoomStatus = "OPEN"
+	IN_GAME RoomStatus = "IN_GAME"
+	CLOSED  RoomStatus = "CLOSED"
 )
 
 var (
@@ -58,7 +54,7 @@ func NewRoom(roomID string, host *domainplayer.Player) (*Room, error) {
 		ID:        roomID,
 		HostID:    host.ID,
 		Players:   players,
-		Status:    RoomOpen,
+		Status:    OPEN,
 		CreatedAt: time.Now().UTC(),
 	}, nil
 }
@@ -67,7 +63,7 @@ func (r *Room) AddPlayer(p *domainplayer.Player) error {
 	if r == nil {
 		return errors.New("room is nil")
 	}
-	if r.Status != RoomOpen {
+	if r.Status != OPEN {
 		return ErrRoomNotOpen
 	}
 	if p == nil || strings.TrimSpace(p.ID) == "" {
@@ -88,7 +84,7 @@ func (r *Room) RemovePlayer(playerID string) error {
 	if r == nil {
 		return errors.New("room is nil")
 	}
-	if r.Status != RoomOpen {
+	if r.Status != OPEN {
 		return ErrRoomNotOpen
 	}
 
@@ -116,7 +112,7 @@ func (r *Room) RemovePlayer(playerID string) error {
 	}
 
 	if len(r.Players) == 0 {
-		r.Status = RoomClosed
+		r.Status = CLOSED
 	}
 
 	return nil
@@ -126,7 +122,7 @@ func (r *Room) CanStartGame() bool {
 	if r == nil {
 		return false
 	}
-	return r.Status == RoomOpen && len(r.Players) == 4
+	return r.Status == OPEN && len(r.Players) == 4
 }
 
 func (r *Room) StartGame(gameID string) error {
@@ -141,8 +137,7 @@ func (r *Room) StartGame(gameID string) error {
 		return ErrInvalidGameID
 	}
 
-	r.Status = RoomInGame
-	r.GameID = gameID
+	r.Status = IN_GAME
 	return nil
 }
 
@@ -150,5 +145,5 @@ func (r *Room) Close() {
 	if r == nil {
 		return
 	}
-	r.Status = RoomClosed
+	r.Status = CLOSED
 }
