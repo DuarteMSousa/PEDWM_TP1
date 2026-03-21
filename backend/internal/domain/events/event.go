@@ -33,7 +33,7 @@ type Event struct {
 	Payload   any       `json:"payload,omitempty"`
 }
 
-func (e Event) WithPayload(payload any) Event {
+func (e Event) setPayload(payload any) Event {
 	e.Payload = payload
 	return e
 }

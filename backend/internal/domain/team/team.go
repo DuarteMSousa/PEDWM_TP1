@@ -1,6 +1,7 @@
 package team
 
 import (
+	"backend/internal/domain/player"
 	"errors"
 	"strings"
 )
@@ -13,7 +14,7 @@ var (
 // Team representa uma equipa no domínio.
 type Team struct {
 	ID      string
-	Players []string // IDs dos jogadores
+	Players []player.Player
 	Score   int
 }
 
