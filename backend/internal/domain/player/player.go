@@ -8,27 +8,17 @@ const (
 )
 
 type Player struct {
-	ID   string     `json:"id"`
-	Name string     `json:"name"`
-	Type PlayerType `json:"type"`
+	ID       string     `json:"id"`
+	Name     string     `json:"name"`
+	Type     PlayerType `json:"type"`
+	Sequence int        `json:"sequence"`
 }
 
-type Bot struct {
-	Player,
-	Strategy BotStrategy
-}
-
-func NewPlayer(id, name string, playerType PlayerType) Player {
+func NewPlayer(id, name string, sequence int) Player {
 	return Player{
-		ID:   id,
-		Name: name,
-		Type: playerType,
-	}
-}
-
-func NewBot(id, name string, strategy BotStrategy) Bot {
-	return Bot{
-		Player:   NewPlayer(id, name, BOT),
-		Strategy: strategy,
+		ID:       id,
+		Name:     name,
+		Type:     HUMAN,
+		Sequence: sequence,
 	}
 }

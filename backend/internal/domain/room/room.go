@@ -25,6 +25,7 @@ var (
 	ErrPlayerNotFoundInRoom   = errors.New("player not found in room")
 	ErrCannotStartGamePlayers = errors.New("cannot start game: need exactly 4 players")
 	ErrInvalidGameID          = errors.New("invalid game id")
+	ErrInvalidPlayerID        = errors.New("invalid player id")
 )
 
 type Room struct {
@@ -67,7 +68,7 @@ func (r *Room) AddPlayer(p *domainplayer.Player) error {
 		return ErrRoomNotOpen
 	}
 	if p == nil || strings.TrimSpace(p.ID) == "" {
-		return domainplayer.ErrInvalidPlayerID
+		return ErrInvalidPlayerID
 	}
 	if len(r.Players) >= 4 {
 		return ErrRoomFull
@@ -90,7 +91,7 @@ func (r *Room) RemovePlayer(playerID string) error {
 
 	playerID = strings.TrimSpace(playerID)
 	if playerID == "" {
-		return domainplayer.ErrInvalidPlayerID
+		return ErrInvalidPlayerID
 	}
 
 	if _, exists := r.Players[playerID]; !exists {
@@ -126,6 +127,8 @@ func (r *Room) CanStartGame() bool {
 }
 
 func (r *Room) StartGame(gameID string) error {
+	panic("Not implemented yet")
+
 	if r == nil {
 		return errors.New("room is nil")
 	}

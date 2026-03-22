@@ -2,9 +2,10 @@ package game
 
 import (
 	"backend/internal/domain/events"
+	game_strategy "backend/internal/domain/game/gameStrategy"
 	"backend/internal/domain/player"
+	bot_strategy "backend/internal/domain/player/botStrategy"
 	"backend/internal/domain/round"
-	"backend/internal/domain/strategy"
 	"backend/internal/domain/team"
 	"errors"
 )
@@ -28,16 +29,23 @@ type Game struct {
 
 	state           IGameState
 	round           *round.Round
-	scoringStrategy strategy.ScoringStrategy
-	botStrategy     strategy.BotPlayStrategy
+	scoringStrategy game_strategy.IGameScoringStrategy
+	botStrategy     bot_strategy.IBotStrategy
 
 	events   []*events.Event
 	eventBus *events.EventBus
 }
 
-func (g *Game) NewGame(teams []team.Team, scoringStrategy strategy.ScoringStrategy, botStrategy strategy.BotPlayStrategy) {
-	g.ID = "game-123" // Gerar ID único
-	g.players = make(map[string]*player.Player)
+func NewGame(teams []team.Team, scoringStrategy game_strategy.IGameScoringStrategy, botStrategy bot_strategy.IBotStrategy) *Game {
+	g := &Game{
+		ID:              "game-123", // Gerar ID único
+		players:         make(map[string]*player.Player),
+		scoringStrategy: scoringStrategy,
+		botStrategy:     botStrategy,
+		teams:           make(map[string]*team.Team),
+		events:          []*events.Event{},
+	}
+
 	for _, t := range teams {
 		for _, p := range t.Players {
 			g.players[p.ID] = &p
@@ -51,4 +59,5 @@ func (g *Game) NewGame(teams []team.Team, scoringStrategy strategy.ScoringStrate
 	}
 	g.events = []*events.Event{}
 	g.state = NewGameStartingState(g)
+	return g
 }

@@ -11,10 +11,10 @@ var (
 )
 
 // Trick representa uma vaza em curso (até 4 jogadas).
-// Ela guarda as jogadas e o naipe de saída (lead suit).
+// Ela guarda as jogadas e o Suit de saída (lead suit).
 type Trick struct {
 	LeaderID string
-	LeadSuit *card.Naipe
+	LeadSuit *card.Suit
 	Plays    []Play
 }
 
@@ -42,7 +42,7 @@ func (t *Trick) HasPlayed(playerID string) bool {
 	return false
 }
 
-// AddPlay adiciona a jogada à vaza. Não valida regras de Sueca (seguir naipe/trunfo);
+// AddPlay adiciona a jogada à vaza. Não valida regras de Sueca (seguir Suit/trunfo);
 // isso deve ser feito pela TrickRuleStrategy (ValidatePlay / Winner).
 func (t *Trick) AddPlay(play Play) error {
 	if t.IsComplete() {
@@ -53,7 +53,7 @@ func (t *Trick) AddPlay(play Play) error {
 	}
 
 	if t.IsEmpty() {
-		ls := play.Card.Naipe
+		ls := play.Card.Suit
 		t.LeadSuit = &ls
 	}
 

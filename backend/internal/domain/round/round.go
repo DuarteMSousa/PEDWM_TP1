@@ -2,35 +2,59 @@ package round
 
 import (
 	"backend/internal/domain/card"
+	"backend/internal/domain/deck"
+	"backend/internal/domain/hand"
+	"backend/internal/domain/player"
+	"backend/internal/domain/team"
 	"backend/internal/domain/trick"
 	"errors"
+	"math/rand"
 )
 
 var (
 	ErrRoundNotStarted = errors.New("round not started")
 )
 
-// Round (mão) representa as 10 vazas jogadas com o mesmo baralho (4 jogadores -> 10 vazas).
-// Guarda o trunfo, o contador de vazas e a vaza atual.
 type Round struct {
-	TrumpSuit    card.Naipe
-	TricksPlayed int // 0..10
+	TrumpSuit    card.Suit
 	CurrentTrick *trick.Trick
+	Deck         *deck.Deck
+	Hands        map[string]*hand.Hand
+	Points       map[string]int
+	State        IRoundState
+	RuleStrategy IRoundRuleStrategy
 }
 
-func NewRound(trump card.Naipe, firstLeaderID string) (*Round, error) {
+func NewRound(trump card.Suit, teams []team.Team) *Round {
 	if !trump.Valid() {
-		return nil, card.ErrInvalidNaipe
+		panic(card.ErrInvalidSuit)
 	}
-	return &Round{
-		TrumpSuit:    trump,
-		TricksPlayed: 0,
-		CurrentTrick: trick.NewTrick(firstLeaderID),
-	}, nil
-}
 
-func (r *Round) IsFinished() bool {
-	return r.TricksPlayed >= 10
+	players := make([]*player.Player, 0)
+
+	hands := make(map[string]*hand.Hand)
+	points := make(map[string]int)
+	for _, t := range teams {
+		points[t.ID] = 0
+		for _, p := range t.Players {
+			players = append(players, p)
+			hands[p.ID] = hand.NewHand()
+
+		}
+	}
+
+	round := &Round{
+		TrumpSuit: trump,
+		Hands:     hands,
+		Points:    points,
+	}
+
+	//select random player id
+	leaderID := players[rand.Intn(len(players))].ID
+	round.StartNewTrick(leaderID)
+
+	round.State = NewRoundSetupState(round)
+	return round
 }
 
 func (r *Round) StartNewTrick(leaderID string) {
@@ -39,8 +63,4 @@ func (r *Round) StartNewTrick(leaderID string) {
 		return
 	}
 	r.CurrentTrick.Reset(leaderID)
-}
-
-func (r *Round) IncrementTrick() {
-	r.TricksPlayed++
 }

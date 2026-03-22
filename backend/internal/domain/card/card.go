@@ -6,19 +6,19 @@ import (
 	"strings"
 )
 
-type Naipe string
+type Suit string
 type Rank string
 
 const (
-	Hearts   Naipe = "HEARTS"
-	Spades   Naipe = "SPADES"
-	Diamonds Naipe = "DIAMONDS"
-	Clubs    Naipe = "CLUBS"
+	Hearts   Suit = "HEARTS"
+	Spades   Suit = "SPADES"
+	Diamonds Suit = "DIAMONDS"
+	Clubs    Suit = "CLUBS"
 
-	Copas   Naipe = Hearts
-	Espadas Naipe = Spades
-	Ouros   Naipe = Diamonds
-	Paus    Naipe = Clubs
+	Copas   Suit = Hearts
+	Espadas Suit = Spades
+	Ouros   Suit = Diamonds
+	Paus    Suit = Clubs
 )
 
 const (
@@ -34,13 +34,16 @@ const (
 	Two   Rank = "2"
 )
 
+var Suits = []Suit{Hearts, Spades, Diamonds, Clubs}
+var Ranks = []Rank{A, K, Q, J, Seven, Six, Five, Four, Three, Two}
+
 var (
-	ErrInvalidNaipe  = errors.New("invalid suit")
+	ErrInvalidSuit   = errors.New("invalid suit")
 	ErrInvalidRank   = errors.New("invalid rank")
 	ErrInvalidCardID = errors.New("invalid card id")
 )
 
-func (n Naipe) Valid() bool {
+func (n Suit) Valid() bool {
 	switch n {
 	case Hearts, Spades, Diamonds, Clubs:
 		return true
@@ -59,30 +62,30 @@ func (r Rank) Valid() bool {
 }
 
 type Card struct {
-	ID    string `json:"id"`
-	Naipe Naipe  `json:"naipe"`
-	Rank  Rank   `json:"rank"`
+	ID   string `json:"id"`
+	Suit Suit   `json:"Suit"`
+	Rank Rank   `json:"rank"`
 }
 
-func NewCard(naipe Naipe, rank Rank) (Card, error) {
-	if !naipe.Valid() {
-		return Card{}, fmt.Errorf("%w: %q", ErrInvalidNaipe, naipe)
+func NewCard(Suit Suit, rank Rank) (Card, error) {
+	if !Suit.Valid() {
+		return Card{}, fmt.Errorf("%w: %q", ErrInvalidSuit, Suit)
 	}
 	if !rank.Valid() {
 		return Card{}, fmt.Errorf("%w: %q", ErrInvalidRank, rank)
 	}
 
-	id := string(rank) + "_" + string(naipe)
+	id := string(rank) + "_" + string(Suit)
 
-	return Card{ID: id, Naipe: naipe, Rank: rank}, nil
+	return Card{ID: id, Suit: Suit, Rank: rank}, nil
 }
 
 func (c Card) Validate() error {
 	if strings.TrimSpace(c.ID) == "" {
 		return ErrInvalidCardID
 	}
-	if !c.Naipe.Valid() {
-		return fmt.Errorf("%w: %q", ErrInvalidNaipe, c.Naipe)
+	if !c.Suit.Valid() {
+		return fmt.Errorf("%w: %q", ErrInvalidSuit, c.Suit)
 	}
 	if !c.Rank.Valid() {
 		return fmt.Errorf("%w: %q", ErrInvalidRank, c.Rank)
@@ -90,6 +93,6 @@ func (c Card) Validate() error {
 	return nil
 }
 
-func (c Card) IsTrump(trump Naipe) bool {
-	return c.Naipe == trump
+func (c Card) IsTrump(trump Suit) bool {
+	return c.Suit == trump
 }

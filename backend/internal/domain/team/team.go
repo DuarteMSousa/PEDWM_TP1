@@ -14,7 +14,7 @@ var (
 // Team representa uma equipa no domínio.
 type Team struct {
 	ID      string
-	Players []player.Player
+	Players []*player.Player
 	Score   int
 }
 
