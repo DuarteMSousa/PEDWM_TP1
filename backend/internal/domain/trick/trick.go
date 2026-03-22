@@ -2,6 +2,9 @@ package trick
 
 import (
 	"backend/internal/domain/card"
+	"backend/internal/domain/player"
+	"backend/internal/domain/team"
+	"backend/internal/domain/turnorder"
 	"errors"
 )
 
@@ -13,15 +16,36 @@ var (
 // Trick representa uma vaza em curso (até 4 jogadas).
 // Ela guarda as jogadas e o Suit de saída (lead suit).
 type Trick struct {
-	LeaderID string
-	LeadSuit *card.Suit
-	Plays    []Play
+	LeaderID  string
+	LeadSuit  *card.Suit
+	TrumpSuit card.Suit
+	Plays     []Play
+	Teams     map[string]team.Team
+
+	TurnOrder       turnorder.TurnOrder
+	ScoringStrategy ITrickScoringStrategy
+	RuleStrategy    ITrickRuleStrategy
 }
 
-func NewTrick(leaderID string) *Trick {
+func NewTrick(leaderID string, TrumpSuit card.Suit, teams map[string]team.Team) *Trick {
+	players := make([]*player.Player, 0)
+	for _, t := range teams {
+		for _, p := range t.Players {
+			players = append(players, p)
+		}
+	}
+	turnorder, err := turnorder.NewTurnOrder(leaderID, players)
+
+	if err != nil {
+		panic("Failed to create turn order: " + err.Error())
+	}
+
 	return &Trick{
-		LeaderID: leaderID,
-		Plays:    make([]Play, 0, 4),
+		LeaderID:  leaderID,
+		TurnOrder: turnorder,
+		TrumpSuit: TrumpSuit,
+		Plays:     make([]Play, 0),
+		Teams:     teams,
 	}
 }
 
@@ -42,8 +66,6 @@ func (t *Trick) HasPlayed(playerID string) bool {
 	return false
 }
 
-// AddPlay adiciona a jogada à vaza. Não valida regras de Sueca (seguir Suit/trunfo);
-// isso deve ser feito pela TrickRuleStrategy (ValidatePlay / Winner).
 func (t *Trick) AddPlay(play Play) error {
 	if t.IsComplete() {
 		return ErrTrickComplete

@@ -34,3 +34,12 @@ func (h *Hand) RemoveCard(cardId string) error {
 func (h *Hand) IsEmpty() bool {
 	return len(h.Cards) == 0
 }
+
+func (h *Hand) HasSuit(suit card.Suit) bool {
+	for _, card := range h.Cards {
+		if card.Suit == suit {
+			return true
+		}
+	}
+	return false
+}

@@ -20,9 +20,9 @@ func (s *SuecaRoundRuleStrategy) Winner(Round *Round) string {
 
 	var winner string
 	var maxPoints int
-	for teamID, points := range Round.Points {
-		if points > maxPoints {
-			maxPoints = points
+	for teamID, team := range Round.Teams {
+		if team.RoundScore > maxPoints {
+			maxPoints = team.RoundScore
 			winner = teamID
 		}
 	}
@@ -32,11 +32,15 @@ func (s *SuecaRoundRuleStrategy) Winner(Round *Round) string {
 
 func (s *SuecaRoundRuleStrategy) HasEnded(Round *Round) bool {
 	endedHands := 0
-	for _, hand := range Round.Hands {
-		if hand.IsEmpty() {
-			endedHands++
+	totalPlayers := 0
+	for _, team := range Round.Teams {
+		for _, player := range team.Players {
+			if player.Hand.IsEmpty() {
+				endedHands++
+			}
+			totalPlayers++
 		}
 	}
 
-	return endedHands == len(Round.Hands)
+	return endedHands == totalPlayers
 }

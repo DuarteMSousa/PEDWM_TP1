@@ -10,9 +10,9 @@ import (
 )
 
 func CreateSuecaGame(room room.Room) *game.Game {
-	roomPlayers := make([]player.Player, 0, len(room.Players))
+	roomPlayers := make([]*player.Player, 0, len(room.Players))
 	for _, p := range room.Players {
-		roomPlayers = append(roomPlayers, *p)
+		roomPlayers = append(roomPlayers, p)
 	}
 	team1 := team.Team{ID: "team1"}
 	team2 := team.Team{ID: "team2"}

@@ -1,5 +1,7 @@
 package player
 
+import "backend/internal/domain/hand"
+
 type PlayerType string
 
 const (
@@ -12,6 +14,7 @@ type Player struct {
 	Name     string     `json:"name"`
 	Type     PlayerType `json:"type"`
 	Sequence int        `json:"sequence"`
+	Hand     *hand.Hand `json:"hand"`
 }
 
 func NewPlayer(id, name string, sequence int) Player {
@@ -20,5 +23,6 @@ func NewPlayer(id, name string, sequence int) Player {
 		Name:     name,
 		Type:     HUMAN,
 		Sequence: sequence,
+		Hand:     hand.NewHand(),
 	}
 }

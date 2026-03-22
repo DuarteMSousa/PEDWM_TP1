@@ -284,10 +284,9 @@ class Team {
 }
 
 class Round {
-  +TricksPlayed: int
   +CurrentTrick: Trick
-  +Hands: map<string, Hand>
-  +Points: map<string, int>
+  +Teams: map<string, Team>
+  +TrumpSuit: Suit
   +IsFinished(): bool
   +StartNewTrick(leaderID: string): void
 }
@@ -298,7 +297,8 @@ class Card {
 }
 
 class TurnOrder {
-  +Players(): string[*] ou queue
+  +Players: Player[]
+
   +Contains(playerID: string): bool
   +Next(currentPlayerID: string): string
   +HasNext(): bool
@@ -307,7 +307,8 @@ class TurnOrder {
 class Trick {
   +LeaderID: string
   +LeadSuit: Suit
-  +Plays: Play[*]
+  +TrumpSuit: Suit
+  +Teams: map<string, Team>
   +AddPlay(play: Play): error
   +IsEmpty(): bool
   +IsComplete(): bool
@@ -333,7 +334,7 @@ interface RoundRuleStrategy {
 
 interface TrickRuleStrategy {
   +Winner(Trick trick): string
-  +HasEnded(Round round): bool
+  +HasEnded(Trick trick): bool
   +ValidatePlay(Trick trick,Play play): error
 }
 
@@ -408,6 +409,6 @@ Trick "1" -- "1" TrickScoringStrategy
 Game "1" -- "1" IGameState
 Round "1" -- "1" IRoundState
 Round "1" -- "1" Deck
-Round "1" -- "*" Hand
+Player "1" -- "1" Hand
 Game "1" -up- "*" Event
 @enduml

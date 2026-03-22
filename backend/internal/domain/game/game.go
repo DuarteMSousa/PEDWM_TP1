@@ -48,7 +48,7 @@ func NewGame(teams []team.Team, scoringStrategy game_strategy.IGameScoringStrate
 
 	for _, t := range teams {
 		for _, p := range t.Players {
-			g.players[p.ID] = &p
+			g.players[p.ID] = p
 		}
 	}
 	g.scoringStrategy = scoringStrategy
