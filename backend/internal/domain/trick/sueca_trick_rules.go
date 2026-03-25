@@ -5,10 +5,11 @@ import "errors"
 type SuecaTrickRules struct{}
 
 var (
-	ErrTrickNotEnded = errors.New("trick has not ended yet")
+	ErrTrickNotEnded         = errors.New("trick has not ended yet")
+	ErrWinningPlayerNotFound = errors.New("winning player not found in any team")
 )
 
-func (s SuecaTrickRules) Winner(trick Trick) (string, error) {
+func (s SuecaTrickRules) WinningPlayer(trick Trick) (string, error) {
 	if !trick.RuleStrategy.HasEnded(trick) {
 		return "", ErrTrickNotEnded
 	}
@@ -26,6 +27,24 @@ func (s SuecaTrickRules) Winner(trick Trick) (string, error) {
 	}
 
 	return winningPlay.PlayerID, nil
+}
+
+func (s SuecaTrickRules) WinningTeam(trick Trick) (string, error) {
+	winningPlayerID, err := s.WinningPlayer(trick)
+	if err != nil {
+		return "", err
+	}
+
+	for teamID, team := range trick.Teams {
+		for _, player := range team.Players {
+			if player.ID == winningPlayerID {
+				return teamID, nil
+			}
+		}
+	}
+
+	return "", ErrWinningPlayerNotFound
+
 }
 
 func (s SuecaTrickRules) HasEnded(trick Trick) bool {

@@ -2,8 +2,9 @@ package events
 
 import (
 	"backend/internal/domain/card"
-	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // NOTE: Event model kept intentionally minimal so websocket transport can be
@@ -13,9 +14,13 @@ import (
 type EventType string
 
 const (
-	EventRoomCreated  EventType = "ROOM_CREATED"
-	EventRoomUpdated  EventType = "ROOM_UPDATED"
-	EventRoomDeleted  EventType = "ROOM_DELETED"
+	EventGameCreated   EventType = "GAME_CREATED"
+	EventRoundStarted  EventType = "ROUND_STARTED"
+	EventTrickStarted  EventType = "TRICK_STARTED"
+	EventTrumpRevealed EventType = "TRUMP_REVEALED"
+	EventCardDealt     EventType = "CARD_DEALT"
+	EventRoundEnded    EventType = "ROUND_ENDED"
+
 	EventPlayerJoined EventType = "PLAYER_JOINED"
 	EventPlayerLeft   EventType = "PLAYER_LEFT"
 	EventGameStarted  EventType = "GAME_STARTED"
@@ -27,69 +32,126 @@ const (
 type Event struct {
 	ID        string    `json:"id"`
 	Type      EventType `json:"type"`
-	RoomID    string    `json:"roomId,omitempty"`
 	GameID    string    `json:"gameId,omitempty"`
 	Timestamp time.Time `json:"timestamp"`
 	Payload   any       `json:"payload,omitempty"`
 }
 
-func (e Event) setPayload(payload any) Event {
+type GameCreatedPayload struct {
+	CreatorID string `json:"creatorId"`
+	Settings  any    `json:"settings,omitempty"`
+}
+
+type PlayerJoinedPayload struct {
+	PlayerID string `json:"playerId"`
+	Name     string `json:"name"`
+	Slot     int    `json:"slot"`
+}
+
+type PlayerLeftPayload struct {
+	PlayerID string `json:"playerId"`
+}
+
+type RoundStartedPayload struct {
+	RoundNumber int    `json:"roundNumber"`
+	DealerID    string `json:"dealerId"`
+}
+
+type TrickStartedPayload struct {
+	LeaderID string `json:"leaderId"`
+}
+
+type TrumpRevealedPayload struct {
+	Card card.Card `json:"card"`
+	Suit card.Suit `json:"suit"`
+}
+
+type CardDealtPayload struct {
+	PlayerID string      `json:"playerId"`
+	Cards    []card.Card `json:"cards"`
+}
+
+type CardPlayedPayload struct {
+	PlayerID string    `json:"playerId"`
+	Card     card.Card `json:"card"`
+}
+
+type TrickEndedPayload struct {
+	WinnerID string `json:"winnerId"`
+	Points   int    `json:"points"`
+}
+
+type RoundEndedPayload struct {
+	TeamAScore int    `json:"teamAScore"`
+	TeamBScore int    `json:"teamBScore"`
+	WinnerTeam string `json:"winnerTeam"`
+}
+
+type GameEndedPayload struct {
+	FinalScores map[string]int `json:"finalScores"`
+	WinnerTeam  string         `json:"winnerTeam"`
+}
+
+func (e Event) WithPayload(payload any) Event {
 	e.Payload = payload
 	return e
 }
 
-func newEvent(typ EventType, roomID string, gameID string, payload any) Event {
+func newEvent(typ EventType, gameID string, payload any) Event {
 	now := time.Now().UTC()
 	return Event{
-		ID:        fmt.Sprintf("evt_%d", now.UnixNano()),
+		ID:        uuid.NewString(),
 		Type:      typ,
-		RoomID:    roomID,
 		GameID:    gameID,
 		Timestamp: now,
 		Payload:   payload,
 	}
 }
 
-func NewRoomCreatedEvent(roomID string, hostID string) Event {
-	return newEvent(EventRoomCreated, roomID, "", map[string]any{"hostId": hostID})
+func NewGameCreatedEvent(gameID string, creatorID string, settings any) Event {
+	return newEvent(EventGameCreated, gameID, GameCreatedPayload{CreatorID: creatorID, Settings: settings})
 }
 
-func NewRoomUpdatedEvent(roomID string, payload any) Event {
-	return newEvent(EventRoomUpdated, roomID, "", payload)
+func NewPlayerJoinedEvent(gameID string, playerID string, name string, slot int) Event {
+	return newEvent(EventPlayerJoined, gameID, PlayerJoinedPayload{PlayerID: playerID, Name: name, Slot: slot})
 }
 
-func NewRoomDeletedEvent(roomID string, payload any) Event {
-	return newEvent(EventRoomDeleted, roomID, "", payload)
+func NewPlayerLeftEvent(gameID string, playerID string) Event {
+	return newEvent(EventPlayerLeft, gameID, PlayerLeftPayload{PlayerID: playerID})
 }
 
-func NewPlayerJoinedEvent(roomID string, playerID string, nickname string) Event {
-	return newEvent(
-		EventPlayerJoined,
-		roomID,
-		"",
-		map[string]any{
-			"playerId": playerID,
-			"nickname": nickname,
-		},
-	)
+func NewGameStartedEvent(gameID string) Event {
+	return newEvent(EventGameStarted, gameID, nil)
 }
 
-func NewPlayerLeftEvent(roomID string, playerID string) Event {
-	return newEvent(EventPlayerLeft, roomID, "", map[string]any{"playerId": playerID})
+func NewRoundStartedEvent(gameID string, roundNumber int, dealerID string) Event {
+	return newEvent(EventRoundStarted, gameID, RoundStartedPayload{RoundNumber: roundNumber, DealerID: dealerID})
 }
 
-func NewGameStartedEvent(roomID string, gameID string) Event {
-	return newEvent(EventGameStarted, roomID, gameID, nil)
+func NewTrickStartedEvent(gameID string, leaderID string) Event {
+	return newEvent(EventTrickStarted, gameID, TrickStartedPayload{LeaderID: leaderID})
 }
 
-func NewCardPlayedEvent(gameID string, playerID string, card card.Card) Event {
-	return newEvent(EventCardPlayed, "", gameID, map[string]any{"playerId": playerID, "card": card})
+func NewTrumpRevealedEvent(gameID string, trumpCard card.Card) Event {
+	return newEvent(EventTrumpRevealed, gameID, TrumpRevealedPayload{Card: trumpCard, Suit: trumpCard.Suit})
+}
+
+func NewCardDealtEvent(gameID string, playerID string, cards []card.Card) Event {
+	return newEvent(EventCardDealt, gameID, CardDealtPayload{PlayerID: playerID, Cards: cards})
+}
+
+func NewCardPlayedEvent(gameID string, playerID string, playedCard card.Card) Event {
+	return newEvent(EventCardPlayed, gameID, CardPlayedPayload{PlayerID: playerID, Card: playedCard})
 }
 
 func NewTrickEndedEvent(gameID string, winnerID string, points int) Event {
-	return newEvent(EventTrickEnded, "", gameID, map[string]any{"winnerId": winnerID, "points": points})
+	return newEvent(EventTrickEnded, gameID, TrickEndedPayload{WinnerID: winnerID, Points: points})
 }
 
-func NewGameEndedEvent(gameID string) Event {
-	return newEvent(EventGameEnded, "", gameID, nil)
+func NewRoundEndedEvent(gameID string, teamAScore int, teamBScore int, winnerTeam string) Event {
+	return newEvent(EventRoundEnded, gameID, RoundEndedPayload{TeamAScore: teamAScore, TeamBScore: teamBScore, WinnerTeam: winnerTeam})
+}
+
+func NewGameEndedEvent(gameID string, finalScores map[string]int, winnerTeam string) Event {
+	return newEvent(EventGameEnded, gameID, GameEndedPayload{FinalScores: finalScores, WinnerTeam: winnerTeam})
 }

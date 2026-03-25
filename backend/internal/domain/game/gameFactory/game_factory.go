@@ -2,18 +2,22 @@ package game_factory
 
 import (
 	"backend/internal/domain/game"
-	game_strategy "backend/internal/domain/game/gameStrategy"
 	"backend/internal/domain/player"
 	bot_strategy "backend/internal/domain/player/botStrategy"
-	"backend/internal/domain/room"
 	"backend/internal/domain/team"
+	"sort"
 )
 
-func CreateSuecaGame(room room.Room) *game.Game {
-	roomPlayers := make([]*player.Player, 0, len(room.Players))
-	for _, p := range room.Players {
+func CreateSuecaGame(players map[string]*player.Player) *game.Game {
+	roomPlayers := make([]*player.Player, 0, len(players))
+	for _, p := range players {
 		roomPlayers = append(roomPlayers, p)
 	}
+
+	sort.Slice(roomPlayers, func(i, j int) bool {
+		return roomPlayers[i].Sequence < roomPlayers[j].Sequence
+	})
+
 	team1 := team.Team{ID: "team1"}
 	team2 := team.Team{ID: "team2"}
 	for i, p := range roomPlayers {
@@ -24,6 +28,6 @@ func CreateSuecaGame(room room.Room) *game.Game {
 		}
 	}
 
-	game := game.NewGame([]team.Team{team1, team2}, game_strategy.NewSuecaGameScoringStrategy(), bot_strategy.NewEasyBotStrategy())
+	game := game.NewGame([]*team.Team{&team1, &team2}, game.NewSuecaGameScoringStrategy(), bot_strategy.NewEasyBotStrategy())
 	return game
 }

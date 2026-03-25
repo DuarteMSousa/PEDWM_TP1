@@ -1,6 +1,8 @@
 package room
 
 import (
+	"backend/internal/domain/game"
+	game_factory "backend/internal/domain/game/gameFactory"
 	domainplayer "backend/internal/domain/player"
 	"errors"
 	"math/rand"
@@ -33,7 +35,7 @@ type Room struct {
 	HostID  string                          `json:"hostId"`
 	Players map[string]*domainplayer.Player `json:"players"`
 	Status  RoomStatus                      `json:"status"`
-	GameID  string                          `json:"gameId,omitempty"`
+	Game    *game.Game                      `json:"game,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 }
@@ -124,18 +126,17 @@ func (r *Room) CanStartGame() bool {
 	return r.Status == OPEN && len(r.Players) == 4
 }
 
-func (r *Room) StartGame(gameID string) error {
-	panic("Not implemented yet")
+func (r *Room) StartGame() error {
 
 	if !r.CanStartGame() {
 		return ErrCannotStartGamePlayers
 	}
-	gameID = strings.TrimSpace(gameID)
-	if gameID == "" {
-		return ErrInvalidGameID
-	}
 
+	r.Game = game_factory.CreateSuecaGame(r.Players)
 	r.Status = IN_GAME
+
+	r.Game.State.Enter()
+
 	return nil
 }
 

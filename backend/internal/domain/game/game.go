@@ -2,7 +2,6 @@ package game
 
 import (
 	"backend/internal/domain/events"
-	game_strategy "backend/internal/domain/game/gameStrategy"
 	"backend/internal/domain/player"
 	bot_strategy "backend/internal/domain/player/botStrategy"
 	"backend/internal/domain/round"
@@ -27,25 +26,25 @@ var (
 type Game struct {
 	ID      uuid.UUID
 	players map[string]*player.Player
-	teams   map[string]*team.Team
+	Teams   map[string]*team.Team
 
-	state           IGameState
+	State           IGameState
 	round           *round.Round
-	scoringStrategy game_strategy.IGameScoringStrategy
+	scoringStrategy IGameScoringStrategy
 	botStrategy     bot_strategy.IBotStrategy
 
-	events   []*events.Event
+	events   []events.Event
 	eventBus *events.EventBus
 }
 
-func NewGame(teams []*team.Team, scoringStrategy game_strategy.IGameScoringStrategy, botStrategy bot_strategy.IBotStrategy) *Game {
+func NewGame(teams []*team.Team, scoringStrategy IGameScoringStrategy, botStrategy bot_strategy.IBotStrategy) *Game {
 	g := &Game{
 		ID:              uuid.New(),
 		players:         make(map[string]*player.Player),
 		scoringStrategy: scoringStrategy,
 		botStrategy:     botStrategy,
-		teams:           make(map[string]*team.Team),
-		events:          []*events.Event{},
+		Teams:           make(map[string]*team.Team),
+		events:          []events.Event{},
 	}
 
 	for _, t := range teams {
@@ -55,14 +54,25 @@ func NewGame(teams []*team.Team, scoringStrategy game_strategy.IGameScoringStrat
 	}
 	g.scoringStrategy = scoringStrategy
 	g.botStrategy = botStrategy
-	g.teams = make(map[string]*team.Team)
+	g.Teams = make(map[string]*team.Team)
 	for _, t := range teams {
-		g.teams[t.ID] = t
+		g.Teams[t.ID] = t
 	}
-	g.events = []*events.Event{}
+	g.events = []events.Event{}
 	g.eventBus = events.NewEventBus()
 
-	g.state = NewGameStartingState(g)
-	g.state.Enter()
+	g.State = NewGameStartingState(g)
 	return g
+}
+
+func (g *Game) AddEvent(e events.Event) {
+	if g == nil {
+		return
+	}
+
+	g.events = append(g.events, e)
+	if g.eventBus != nil {
+		g.eventBus.Publish(e)
+	}
+
 }
