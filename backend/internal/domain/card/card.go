@@ -14,11 +14,6 @@ const (
 	Spades   Suit = "SPADES"
 	Diamonds Suit = "DIAMONDS"
 	Clubs    Suit = "CLUBS"
-
-	Copas   Suit = Hearts
-	Espadas Suit = Spades
-	Ouros   Suit = Diamonds
-	Paus    Suit = Clubs
 )
 
 const (
@@ -63,7 +58,7 @@ func (r Rank) Valid() bool {
 
 type Card struct {
 	ID   string `json:"id"`
-	Suit Suit   `json:"Suit"`
+	Suit Suit   `json:"suit"`
 	Rank Rank   `json:"rank"`
 }
 

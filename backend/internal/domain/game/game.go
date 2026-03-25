@@ -8,6 +8,8 @@ import (
 	"backend/internal/domain/round"
 	"backend/internal/domain/team"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -23,7 +25,7 @@ var (
 )
 
 type Game struct {
-	ID      string
+	ID      uuid.UUID
 	players map[string]*player.Player
 	teams   map[string]*team.Team
 
@@ -36,9 +38,9 @@ type Game struct {
 	eventBus *events.EventBus
 }
 
-func NewGame(teams []team.Team, scoringStrategy game_strategy.IGameScoringStrategy, botStrategy bot_strategy.IBotStrategy) *Game {
+func NewGame(teams []*team.Team, scoringStrategy game_strategy.IGameScoringStrategy, botStrategy bot_strategy.IBotStrategy) *Game {
 	g := &Game{
-		ID:              "game-123", // Gerar ID único
+		ID:              uuid.New(),
 		players:         make(map[string]*player.Player),
 		scoringStrategy: scoringStrategy,
 		botStrategy:     botStrategy,
@@ -55,9 +57,12 @@ func NewGame(teams []team.Team, scoringStrategy game_strategy.IGameScoringStrate
 	g.botStrategy = botStrategy
 	g.teams = make(map[string]*team.Team)
 	for _, t := range teams {
-		g.teams[t.ID] = &t
+		g.teams[t.ID] = t
 	}
 	g.events = []*events.Event{}
+	g.eventBus = events.NewEventBus()
+
 	g.state = NewGameStartingState(g)
+	g.state.Enter()
 	return g
 }

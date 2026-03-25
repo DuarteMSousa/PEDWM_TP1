@@ -3,7 +3,7 @@ package room
 import (
 	domainplayer "backend/internal/domain/player"
 	"errors"
-	"sort"
+	"math/rand"
 	"strings"
 	"time"
 )
@@ -18,8 +18,8 @@ const (
 
 var (
 	ErrInvalidRoomID          = errors.New("invalid room id")
-	ErrInvalidHost            = errors.New("invalid host")
-	ErrRoomNotOpen            = errors.New("cannot join/leave: room is not open")
+	ErrInvalidHost            = errors.New("invalid room host")
+	ErrRoomNotOpen            = errors.New("room is not open")
 	ErrRoomFull               = errors.New("room is full")
 	ErrPlayerAlreadyInRoom    = errors.New("player already in room")
 	ErrPlayerNotFoundInRoom   = errors.New("player not found in room")
@@ -88,7 +88,6 @@ func (r *Room) RemovePlayer(playerID string) error {
 	if r.Status != OPEN {
 		return ErrRoomNotOpen
 	}
-
 	playerID = strings.TrimSpace(playerID)
 	if playerID == "" {
 		return ErrInvalidPlayerID
@@ -106,9 +105,8 @@ func (r *Room) RemovePlayer(playerID string) error {
 		for id := range r.Players {
 			ids = append(ids, id)
 		}
-		sort.Strings(ids)
 		if len(ids) > 0 {
-			r.HostID = ids[0]
+			r.HostID = ids[rand.Intn(len(ids))]
 		}
 	}
 
@@ -129,9 +127,6 @@ func (r *Room) CanStartGame() bool {
 func (r *Room) StartGame(gameID string) error {
 	panic("Not implemented yet")
 
-	if r == nil {
-		return errors.New("room is nil")
-	}
 	if !r.CanStartGame() {
 		return ErrCannotStartGamePlayers
 	}

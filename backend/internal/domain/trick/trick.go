@@ -20,14 +20,14 @@ type Trick struct {
 	LeadSuit  *card.Suit
 	TrumpSuit card.Suit
 	Plays     []Play
-	Teams     map[string]team.Team
+	Teams     map[string]*team.Team
 
 	TurnOrder       turnorder.TurnOrder
 	ScoringStrategy ITrickScoringStrategy
 	RuleStrategy    ITrickRuleStrategy
 }
 
-func NewTrick(leaderID string, TrumpSuit card.Suit, teams map[string]team.Team) *Trick {
+func NewTrick(leaderID string, TrumpSuit card.Suit, teams map[string]*team.Team) *Trick {
 	players := make([]*player.Player, 0)
 	for _, t := range teams {
 		for _, p := range t.Players {
