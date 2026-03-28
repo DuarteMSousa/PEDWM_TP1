@@ -1,8 +1,10 @@
 package interfaces
 
+import "backend/internal/domain/player"
+
 type PlayerRepository interface {
-	CreateOrGetByNickname(nickname string) (Player, error)
-	GetPlayer(playerID string) (Player, bool)
-	ListPlayers() []Player
-	PlayersByIDs(ids []string) []Player
+	CreateOrGetByNickname(nickname string) (*player.Player, error)
+	GetPlayer(playerID string) (*player.Player, bool)
+	ListPlayers() []*player.Player
+	PlayersByIDs(ids []string) []*player.Player
 }

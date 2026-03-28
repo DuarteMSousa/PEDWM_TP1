@@ -5,7 +5,8 @@ import (
 	"backend/internal/domain/events"
 	infraevents "backend/internal/infrastructure/events"
 	"backend/internal/infrastructure/graph"
-	postgres "backend/internal/infrastructure/persistence/postgres"
+	"backend/internal/infrastructure/persistence/postgres"
+	"backend/internal/infrastructure/persistence/postgres/repositories"
 	wstransport "backend/internal/infrastructure/websocket"
 	"context"
 	"log"
@@ -44,9 +45,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	repo := postgres.NewRoomPostgresRepository(pool)
-	userRepo := postgres.NewUserPostgresRepository(pool)
-	friendshipRepo := postgres.NewFriendshipPostgresRepository(pool)
+	repo := repositories.NewRoomPostgresRepository(pool)
+	userRepo := repositories.NewUserPostgresRepository(pool)
+	friendshipRepo := repositories.NewFriendshipPostgresRepository(pool)
 
 	// ========================
 	// Application
