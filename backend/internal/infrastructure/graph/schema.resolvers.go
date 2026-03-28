@@ -10,6 +10,64 @@ import (
 	"context"
 )
 
+// Register is the resolver for the register field.
+func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInput) (*model.AuthPayload, error) {
+	u, err := r.UserService.Register(input.Username, input.Password)
+	if err != nil {
+		return nil, err
+	}
+	return &model.AuthPayload{
+		User: mapUser(u),
+	}, nil
+}
+
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*model.AuthPayload, error) {
+	u, err := r.UserService.Login(input.Username, input.Password)
+	if err != nil {
+		return nil, err
+	}
+	return &model.AuthPayload{
+		User: mapUser(u),
+	}, nil
+}
+
+// SendFriendRequest is the resolver for the sendFriendRequest field.
+func (r *mutationResolver) SendFriendRequest(ctx context.Context, input model.SendFriendRequestInput) (*model.Friendship, error) {
+	f, err := r.FriendshipService.SendRequest(input.RequesterID, input.AddresseeID)
+	if err != nil {
+		return nil, err
+	}
+	return mapFriendship(f), nil
+}
+
+// AcceptFriendRequest is the resolver for the acceptFriendRequest field.
+func (r *mutationResolver) AcceptFriendRequest(ctx context.Context, input model.RespondFriendRequestInput) (*model.Friendship, error) {
+	f, err := r.FriendshipService.AcceptRequest(input.RequesterID, input.AddresseeID)
+	if err != nil {
+		return nil, err
+	}
+	return mapFriendship(f), nil
+}
+
+// RejectFriendRequest is the resolver for the rejectFriendRequest field.
+func (r *mutationResolver) RejectFriendRequest(ctx context.Context, input model.RespondFriendRequestInput) (*model.Friendship, error) {
+	f, err := r.FriendshipService.RejectRequest(input.RequesterID, input.AddresseeID)
+	if err != nil {
+		return nil, err
+	}
+	return mapFriendship(f), nil
+}
+
+// RemoveFriend is the resolver for the removeFriend field.
+func (r *mutationResolver) RemoveFriend(ctx context.Context, input model.RemoveFriendInput) (bool, error) {
+	if err := r.FriendshipService.RemoveFriend(input.UserID, input.FriendID); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// CreateRoom is the resolver for the createRoom field.
 func (r *mutationResolver) CreateRoom(ctx context.Context, input model.CreateRoomInput) (*model.Room, error) {
 	room, err := r.RoomService.CreateRoom(input.RoomID, input.HostID, input.HostName)
 	if err != nil {
@@ -18,6 +76,7 @@ func (r *mutationResolver) CreateRoom(ctx context.Context, input model.CreateRoo
 	return mapRoom(room), nil
 }
 
+// JoinRoom is the resolver for the joinRoom field.
 func (r *mutationResolver) JoinRoom(ctx context.Context, input model.JoinRoomInput) (*model.Room, error) {
 	room, err := r.RoomService.JoinRoom(input.RoomID, input.PlayerID, input.PlayerName)
 	if err != nil {
@@ -26,6 +85,7 @@ func (r *mutationResolver) JoinRoom(ctx context.Context, input model.JoinRoomInp
 	return mapRoom(room), nil
 }
 
+// LeaveRoom is the resolver for the leaveRoom field.
 func (r *mutationResolver) LeaveRoom(ctx context.Context, input model.LeaveRoomInput) (*model.Room, error) {
 	room, err := r.RoomService.LeaveRoom(input.RoomID, input.PlayerID)
 	if err != nil {
@@ -34,6 +94,7 @@ func (r *mutationResolver) LeaveRoom(ctx context.Context, input model.LeaveRoomI
 	return mapRoom(room), nil
 }
 
+// StartGame is the resolver for the startGame field.
 func (r *mutationResolver) StartGame(ctx context.Context, input model.StartGameInput) (*model.Room, error) {
 	room, err := r.RoomService.StartGame(input.RoomID)
 	if err != nil {
@@ -42,6 +103,51 @@ func (r *mutationResolver) StartGame(ctx context.Context, input model.StartGameI
 	return mapRoom(room), nil
 }
 
+// User is the resolver for the user field.
+func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
+	u, err := r.UserService.GetUser(id)
+	if err != nil {
+		return nil, err
+	}
+	return mapUser(u), nil
+}
+
+// UserByUsername is the resolver for the userByUsername field.
+func (r *queryResolver) UserByUsername(ctx context.Context, username string) (*model.User, error) {
+	u, err := r.UserService.GetUserByUsername(username)
+	if err != nil {
+		return nil, err
+	}
+	return mapUser(u), nil
+}
+
+// Friends is the resolver for the friends field.
+func (r *queryResolver) Friends(ctx context.Context, userID string) ([]*model.Friendship, error) {
+	friends, err := r.FriendshipService.GetFriends(userID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*model.Friendship, 0, len(friends))
+	for _, f := range friends {
+		result = append(result, mapFriendship(f))
+	}
+	return result, nil
+}
+
+// PendingFriendRequests is the resolver for the pendingFriendRequests field.
+func (r *queryResolver) PendingFriendRequests(ctx context.Context, userID string) ([]*model.Friendship, error) {
+	pending, err := r.FriendshipService.GetPendingRequests(userID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*model.Friendship, 0, len(pending))
+	for _, f := range pending {
+		result = append(result, mapFriendship(f))
+	}
+	return result, nil
+}
+
+// Room is the resolver for the room field.
 func (r *queryResolver) Room(ctx context.Context, id string) (*model.Room, error) {
 	room, err := r.RoomService.GetRoom(id)
 	if err != nil || room == nil {
@@ -50,6 +156,7 @@ func (r *queryResolver) Room(ctx context.Context, id string) (*model.Room, error
 	return mapRoom(room), nil
 }
 
+// Rooms is the resolver for the rooms field.
 func (r *queryResolver) Rooms(ctx context.Context) ([]*model.Room, error) {
 	rooms, err := r.RoomService.GetRooms()
 	if err != nil {
@@ -72,18 +179,3 @@ func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-/*
-	func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	panic(fmt.Errorf("not implemented: CreateTodo - createTodo"))
-}
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	panic(fmt.Errorf("not implemented: Todos - todos"))
-}
-*/

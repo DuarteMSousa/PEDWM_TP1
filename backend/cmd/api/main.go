@@ -45,11 +45,15 @@ func main() {
 	}
 
 	repo := postgres.NewRoomPostgresRepository(pool)
+	userRepo := postgres.NewUserPostgresRepository(pool)
+	friendshipRepo := postgres.NewFriendshipPostgresRepository(pool)
 
 	// ========================
 	// Application
 	// ========================
 	roomService := application.NewRoomService(repo)
+	userService := application.NewUserService(userRepo)
+	friendshipService := application.NewFriendshipService(friendshipRepo, userRepo)
 
 	_ = infraevents.NewEventBusPublisher(eventBus)
 
@@ -57,7 +61,9 @@ func main() {
 	// GraphQL
 	// ========================
 	resolver := &graph.Resolver{
-		RoomService: roomService,
+		RoomService:       roomService,
+		UserService:       userService,
+		FriendshipService: friendshipService,
 	}
 
 	srv := handler.New(graph.NewExecutableSchema(

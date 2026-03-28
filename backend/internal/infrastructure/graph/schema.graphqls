@@ -1,5 +1,9 @@
 scalar Time
 
+# =========================
+# Enums
+# =========================
+
 enum RoomStatus {
   OPEN
   IN_GAME
@@ -9,6 +13,40 @@ enum RoomStatus {
 enum PlayerType {
   HUMAN
   BOT
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+# =========================
+# Types
+# =========================
+
+type User {
+  id: ID!
+  username: String!
+}
+
+type UserStats {
+  userId: ID!
+  games: Int!
+  wins: Int!
+  elo: Int!
+}
+
+type Friendship {
+  requesterId: ID!
+  addresseeId: ID!
+  status: FriendshipStatus!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type AuthPayload {
+  user: User!
 }
 
 type Player {
@@ -24,6 +62,35 @@ type Room {
   players: [Player!]!
   status: RoomStatus!
   createdAt: Time!
+}
+
+# =========================
+# Inputs
+# =========================
+
+input RegisterInput {
+  username: String!
+  password: String!
+}
+
+input LoginInput {
+  username: String!
+  password: String!
+}
+
+input SendFriendRequestInput {
+  requesterId: ID!
+  addresseeId: ID!
+}
+
+input RespondFriendRequestInput {
+  requesterId: ID!
+  addresseeId: ID!
+}
+
+input RemoveFriendInput {
+  userId: ID!
+  friendId: ID!
 }
 
 input CreateRoomInput {
@@ -47,12 +114,36 @@ input StartGameInput {
   roomId: ID!
 }
 
+# =========================
+# Queries & Mutations
+# =========================
+
 type Query {
+  # Users
+  user(id: ID!): User
+  userByUsername(username: String!): User
+
+  # Friendships
+  friends(userId: ID!): [Friendship!]!
+  pendingFriendRequests(userId: ID!): [Friendship!]!
+
+  # Rooms
   room(id: ID!): Room
   rooms: [Room!]!
 }
 
 type Mutation {
+  # Auth
+  register(input: RegisterInput!): AuthPayload!
+  login(input: LoginInput!): AuthPayload!
+
+  # Friendships
+  sendFriendRequest(input: SendFriendRequestInput!): Friendship!
+  acceptFriendRequest(input: RespondFriendRequestInput!): Friendship!
+  rejectFriendRequest(input: RespondFriendRequestInput!): Friendship!
+  removeFriend(input: RemoveFriendInput!): Boolean!
+
+  # Rooms
   createRoom(input: CreateRoomInput!): Room!
   joinRoom(input: JoinRoomInput!): Room!
   leaveRoom(input: LeaveRoomInput!): Room!

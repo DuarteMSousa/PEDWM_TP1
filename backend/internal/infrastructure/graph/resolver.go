@@ -8,5 +8,7 @@ import application "backend/internal/application/services"
 // here.
 
 type Resolver struct {
-	RoomService *application.RoomService
+	RoomService       *application.RoomService
+	UserService       *application.UserService
+	FriendshipService *application.FriendshipService
 }

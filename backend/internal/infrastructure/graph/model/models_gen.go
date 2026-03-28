@@ -10,10 +10,22 @@ import (
 	"time"
 )
 
+type AuthPayload struct {
+	User *User `json:"user"`
+}
+
 type CreateRoomInput struct {
 	RoomID   string `json:"roomId"`
 	HostID   string `json:"hostId"`
 	HostName string `json:"hostName"`
+}
+
+type Friendship struct {
+	RequesterID string           `json:"requesterId"`
+	AddresseeID string           `json:"addresseeId"`
+	Status      FriendshipStatus `json:"status"`
+	CreatedAt   time.Time        `json:"createdAt"`
+	UpdatedAt   time.Time        `json:"updatedAt"`
 }
 
 type JoinRoomInput struct {
@@ -25,6 +37,11 @@ type JoinRoomInput struct {
 type LeaveRoomInput struct {
 	RoomID   string `json:"roomId"`
 	PlayerID string `json:"playerId"`
+}
+
+type LoginInput struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 type Mutation struct {
@@ -40,17 +57,105 @@ type Player struct {
 type Query struct {
 }
 
+type RegisterInput struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type RemoveFriendInput struct {
+	UserID   string `json:"userId"`
+	FriendID string `json:"friendId"`
+}
+
+type RespondFriendRequestInput struct {
+	RequesterID string `json:"requesterId"`
+	AddresseeID string `json:"addresseeId"`
+}
+
 type Room struct {
 	ID        string     `json:"id"`
 	HostID    string     `json:"hostId"`
 	Players   []*Player  `json:"players"`
 	Status    RoomStatus `json:"status"`
-	GameID    *string    `json:"gameId,omitempty"`
 	CreatedAt time.Time  `json:"createdAt"`
+}
+
+type SendFriendRequestInput struct {
+	RequesterID string `json:"requesterId"`
+	AddresseeID string `json:"addresseeId"`
 }
 
 type StartGameInput struct {
 	RoomID string `json:"roomId"`
+}
+
+type User struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+}
+
+type UserStats struct {
+	UserID string `json:"userId"`
+	Games  int32  `json:"games"`
+	Wins   int32  `json:"wins"`
+	Elo    int32  `json:"elo"`
+}
+
+type FriendshipStatus string
+
+const (
+	FriendshipStatusPending  FriendshipStatus = "PENDING"
+	FriendshipStatusAccepted FriendshipStatus = "ACCEPTED"
+	FriendshipStatusRejected FriendshipStatus = "REJECTED"
+)
+
+var AllFriendshipStatus = []FriendshipStatus{
+	FriendshipStatusPending,
+	FriendshipStatusAccepted,
+	FriendshipStatusRejected,
+}
+
+func (e FriendshipStatus) IsValid() bool {
+	switch e {
+	case FriendshipStatusPending, FriendshipStatusAccepted, FriendshipStatusRejected:
+		return true
+	}
+	return false
+}
+
+func (e FriendshipStatus) String() string {
+	return string(e)
+}
+
+func (e *FriendshipStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = FriendshipStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid FriendshipStatus", str)
+	}
+	return nil
+}
+
+func (e FriendshipStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *FriendshipStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e FriendshipStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }
 
 type PlayerType string
