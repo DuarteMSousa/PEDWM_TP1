@@ -15,8 +15,8 @@ type Deck struct {
 	cards []card.Card
 }
 
-func NewDeck() *Deck {
-	return &Deck{cards: []card.Card{}}
+func NewDeck(cards []card.Card) *Deck {
+	return &Deck{cards: cards}
 }
 
 func (d *Deck) Shuffle() {

@@ -9,7 +9,9 @@ import (
 )
 
 var (
-	ErrRoundNotStarted = errors.New("round not started")
+	ErrRoundNotStarted       = errors.New("round not started")
+	ErrRoundFinished         = errors.New("round finished")
+	ErrWinningPlayerNotFound = errors.New("winning player not found in any team")
 )
 
 type Round struct {
@@ -31,9 +33,16 @@ func NewRound(teams map[string]*team.Team) *Round {
 }
 
 func (r *Round) StartNewTrick(leaderID string) {
-	if r.CurrentTrick == nil {
-		r.CurrentTrick = trick.NewTrick(leaderID, r.TrumpSuit, r.Teams)
-		return
+	r.CurrentTrick = trick.NewTrick(leaderID, r.TrumpSuit, r.Teams)
+}
+
+func (r *Round) GetPlayerTeamId(playerID string) (string, error) {
+	for _, team := range r.Teams {
+		for _, player := range team.Players {
+			if player.ID == playerID {
+				return team.ID, nil
+			}
+		}
 	}
-	r.CurrentTrick.Reset(leaderID)
+	return "", ErrWinningPlayerNotFound
 }

@@ -30,14 +30,24 @@ func (s *RoundPlayingState) Enter() {
 	s.round.State.Update()
 }
 func (s *RoundPlayingState) Update() {
-	if s.round.RuleStrategy.HasEnded(s.round) {
-		s.round.State = NewRoundFinishedState(s.round)
-		s.round.State.Enter()
-		return
-	}
-
 	if s.round.CurrentTrick.RuleStrategy.HasEnded(*s.round.CurrentTrick) {
-		//Fazer distribuição de pontos e continuar a ronda
-	}
+		roundPoints := s.round.RuleStrategy.CalculateCurrentTrickRoundPoints(s.round)
 
+		winnerId, err := s.round.CurrentTrick.RuleStrategy.WinningPlayer(*s.round.CurrentTrick)
+
+		if err != nil {
+			panic(err)
+		}
+
+		for _, team := range s.round.Teams {
+			team.RoundScore += roundPoints[team.ID]
+		}
+
+		if s.round.RuleStrategy.HasEnded(s.round) {
+			s.round.State = NewRoundFinishedState(s.round)
+			s.round.State.Enter()
+		} else {
+			s.round.StartNewTrick(winnerId)
+		}
+	}
 }

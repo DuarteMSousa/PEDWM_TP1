@@ -3,6 +3,7 @@ package turnorder
 import (
 	"backend/internal/domain/player"
 	"errors"
+	"sort"
 )
 
 var (
@@ -23,9 +24,18 @@ func NewTurnOrder(leaderId string, players []*player.Player) (TurnOrder, error) 
 	if len(players) != 4 {
 		return TurnOrder{}, ErrTurnOrderInvalidSize
 	}
+	orderedPlayers := make([]*player.Player, len(players))
+	copy(orderedPlayers, players)
+	sort.Slice(orderedPlayers, func(i, j int) bool {
+		if orderedPlayers[i].Sequence == orderedPlayers[j].Sequence {
+			return orderedPlayers[i].ID < orderedPlayers[j].ID
+		}
+		return orderedPlayers[i].Sequence < orderedPlayers[j].Sequence
+	})
+
 	seen := map[string]bool{}
 	leaderIdx := -1
-	for i, p := range players {
+	for i, p := range orderedPlayers {
 		if p.ID == "" {
 			return TurnOrder{}, errors.New("turn order contains empty player id")
 		}
@@ -41,9 +51,9 @@ func NewTurnOrder(leaderId string, players []*player.Player) (TurnOrder, error) 
 		return TurnOrder{}, errors.New("leader id not found in players")
 	}
 	// Rearranjar para começar pelo líder
-	cp := make([]*player.Player, len(players))
-	for i := 0; i < len(players); i++ {
-		cp[i] = players[(leaderIdx+i)%len(players)]
+	cp := make([]*player.Player, len(orderedPlayers))
+	for i := 0; i < len(orderedPlayers); i++ {
+		cp[i] = orderedPlayers[(leaderIdx+i)%len(orderedPlayers)]
 	}
 	return TurnOrder{players: cp}, nil
 }

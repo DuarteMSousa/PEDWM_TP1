@@ -11,7 +11,7 @@ func NewSuecaGameScoringStrategy() SuecaGameScoringStrategy {
 	return SuecaGameScoringStrategy{}
 }
 
-func (s *SuecaGameScoringStrategy) CalculateRoundGamePoints(round *round.Round) map[string]int {
+func (s SuecaGameScoringStrategy) CalculateCurrentRoundGamePoints(round *round.Round) map[string]int {
 	points := make(map[string]int)
 
 	for teamID, team := range round.Teams {
@@ -31,7 +31,7 @@ func (s *SuecaGameScoringStrategy) CalculateRoundGamePoints(round *round.Round) 
 	return points
 }
 
-func (s *SuecaGameScoringStrategy) HasGameEnded(game *Game) bool {
+func (s SuecaGameScoringStrategy) HasGameEnded(game *Game) bool {
 	for _, team := range game.Teams {
 		if team.GameScore >= 4 {
 			return true
@@ -40,7 +40,7 @@ func (s *SuecaGameScoringStrategy) HasGameEnded(game *Game) bool {
 	return false
 }
 
-func (s *SuecaGameScoringStrategy) Winner(game *Game) string {
+func (s SuecaGameScoringStrategy) Winner(game *Game) string {
 	var winner string
 	var maxPoints int
 	for teamID, team := range game.Teams {

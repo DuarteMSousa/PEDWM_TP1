@@ -21,6 +21,7 @@ var (
 	ErrEventBusNotSet     = errors.New("event bus not set")
 	ErrRoundNotConfigured = errors.New("round not configured")
 	ErrTrickNotConfigured = errors.New("current trick not configured")
+	ErrGameDoesNotExist   = errors.New("game does not exist")
 )
 
 type Game struct {
@@ -75,4 +76,16 @@ func (g *Game) AddEvent(e events.Event) {
 		g.eventBus.Publish(e)
 	}
 
+}
+
+func (g *Game) GetEvents() []events.Event {
+	return g.events
+}
+
+func (g *Game) AddPlayer(player player.Player) error {
+	if g == nil {
+		return ErrGameDoesNotExist
+	}
+
+	return nil
 }

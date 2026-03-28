@@ -6,7 +6,7 @@ import (
 )
 
 func CreateSuecaDeck() *deck.Deck {
-	deck := deck.NewDeck()
+
 	cards := make([]card.Card, 0, 40)
 	for _, suit := range card.Suits {
 		for _, rank := range card.Ranks {
@@ -14,7 +14,7 @@ func CreateSuecaDeck() *deck.Deck {
 		}
 	}
 
-	deck.Cards = cards
+	deck := deck.NewDeck(cards)
 
 	return deck
 }
