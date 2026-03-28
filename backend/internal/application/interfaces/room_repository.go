@@ -1,0 +1,10 @@
+package interfaces
+
+import "backend/internal/domain/room"
+
+type RoomRepository interface {
+	Save(room *room.Room) error
+	FindByID(id string) (*room.Room, error)
+	FindAll() ([]*room.Room, error)
+	Delete(id string) error
+}

@@ -1,4 +1,4 @@
-package ports
+package interfaces
 
 import domainevents "backend/internal/domain/events"
 

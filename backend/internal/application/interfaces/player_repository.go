@@ -1,4 +1,4 @@
-package ports
+package interfaces
 
 type PlayerRepository interface {
 	CreateOrGetByNickname(nickname string) (Player, error)
