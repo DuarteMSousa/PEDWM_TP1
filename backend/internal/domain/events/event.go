@@ -14,7 +14,7 @@ import (
 type EventType string
 
 const (
-	EventGameCreated   EventType = "GAME_CREATED"
+	// EventGameCreated   EventType = "GAME_CREATED"
 	EventRoundStarted  EventType = "ROUND_STARTED"
 	EventTrickStarted  EventType = "TRICK_STARTED"
 	EventTrumpRevealed EventType = "TRUMP_REVEALED"
@@ -67,8 +67,8 @@ type TrumpRevealedPayload struct {
 }
 
 type CardDealtPayload struct {
-	PlayerID string      `json:"playerId"`
-	Cards    []card.Card `json:"cards"`
+	PlayerID string    `json:"playerId"`
+	Card     card.Card `json:"card"`
 }
 
 type CardPlayedPayload struct {
@@ -108,9 +108,9 @@ func newEvent(typ EventType, gameID string, payload any) Event {
 	}
 }
 
-func NewGameCreatedEvent(gameID string, creatorID string, settings any) Event {
-	return newEvent(EventGameCreated, gameID, GameCreatedPayload{CreatorID: creatorID, Settings: settings})
-}
+// func NewGameCreatedEvent(gameID string, creatorID string, settings any) Event {
+// 	return newEvent(EventGameCreated, gameID, GameCreatedPayload{CreatorID: creatorID, Settings: settings})
+// }
 
 func NewPlayerJoinedEvent(gameID string, playerID string, name string, slot int) Event {
 	return newEvent(EventPlayerJoined, gameID, PlayerJoinedPayload{PlayerID: playerID, Name: name, Slot: slot})
@@ -124,8 +124,8 @@ func NewGameStartedEvent(gameID string) Event {
 	return newEvent(EventGameStarted, gameID, nil)
 }
 
-func NewRoundStartedEvent(gameID string, roundNumber int, dealerID string) Event {
-	return newEvent(EventRoundStarted, gameID, RoundStartedPayload{RoundNumber: roundNumber, DealerID: dealerID})
+func NewRoundStartedEvent(gameID string) Event {
+	return newEvent(EventRoundStarted, gameID, nil)
 }
 
 func NewTrickStartedEvent(gameID string, leaderID string) Event {
@@ -136,8 +136,8 @@ func NewTrumpRevealedEvent(gameID string, trumpCard card.Card) Event {
 	return newEvent(EventTrumpRevealed, gameID, TrumpRevealedPayload{Card: trumpCard, Suit: trumpCard.Suit})
 }
 
-func NewCardDealtEvent(gameID string, playerID string, cards []card.Card) Event {
-	return newEvent(EventCardDealt, gameID, CardDealtPayload{PlayerID: playerID, Cards: cards})
+func NewCardDealtEvent(gameID string, playerID string, card card.Card) Event {
+	return newEvent(EventCardDealt, gameID, CardDealtPayload{PlayerID: playerID, Card: card})
 }
 
 func NewCardPlayedEvent(gameID string, playerID string, playedCard card.Card) Event {

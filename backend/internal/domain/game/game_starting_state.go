@@ -18,7 +18,7 @@ func (s *GameStartingState) Enter() {
 		t.GameScore = 0
 	}
 
-	s.game.round = round.NewRound(s.game.Teams)
+	s.game.round = round.NewRound(s.game.ID, s.game.Teams, s.game.botStrategy)
 
 	s.game.round.State.Enter()
 

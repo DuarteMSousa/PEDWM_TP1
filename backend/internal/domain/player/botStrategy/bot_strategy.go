@@ -6,5 +6,5 @@ import (
 )
 
 type IBotStrategy interface {
-	ChooseCard(hand []hand.Hand, leadSuit card.Suit) card.Card
+	ChooseCard(hand hand.Hand, leadSuit card.Suit) card.Card
 }

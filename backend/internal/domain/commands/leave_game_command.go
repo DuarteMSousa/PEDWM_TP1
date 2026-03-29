@@ -11,5 +11,6 @@ func NewLeaveGameCommand(playerId string) LeaveGameCommand {
 }
 
 func (c LeaveGameCommand) Execute(game *game.Game) {
-	game.RemovePlayer(c.playerId)
+	panic("not implemented yet")
+	// game.RemovePlayer(c.playerId)
 }

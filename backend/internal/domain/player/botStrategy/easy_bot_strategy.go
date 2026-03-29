@@ -11,7 +11,7 @@ func NewEasyBotStrategy() *EasyBotStrategy {
 	return &EasyBotStrategy{}
 }
 
-func (e *EasyBotStrategy) ChooseCard(hand []hand.Hand, leadSuit card.Suit) card.Card {
+func (e *EasyBotStrategy) ChooseCard(hand hand.Hand, leadSuit card.Suit) card.Card {
 
 	panic("chooose card not implemented yet")
 }

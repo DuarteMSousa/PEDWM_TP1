@@ -14,5 +14,6 @@ func NewEnterGameCommand(player player.Player) EnterGameCommand {
 }
 
 func (c EnterGameCommand) Execute(game *game.Game) {
-	game.AddPlayer(c.player.ID)
+	panic("Not implemented yet")
+	// game.AddPlayer(c.player.ID)
 }

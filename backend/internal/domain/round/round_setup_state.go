@@ -2,6 +2,7 @@ package round
 
 import (
 	"backend/internal/domain/deck/deckFactory"
+	"backend/internal/domain/events"
 )
 
 const NUMBER_OF_SUECA_CARDS_PER_PLAYER = 10
@@ -25,6 +26,7 @@ func (s *RoundSetupState) Enter() {
 	}
 
 	s.round.TrumpSuit = firstCard.Suit
+	s.round.events = append(s.round.events, events.NewTrumpRevealedEvent(s.round.gameId.String(), firstCard))
 
 	for _, team := range s.round.Teams {
 		for _, player := range team.Players {
@@ -34,6 +36,7 @@ func (s *RoundSetupState) Enter() {
 					panic("Failed to draw a card from the deck: " + err.Error())
 				}
 				player.Hand.AddCard(card)
+				s.round.events = append(s.round.events, events.NewCardDealtEvent(s.round.gameId.String(), player.ID, card))
 			}
 		}
 	}
@@ -42,6 +45,7 @@ func (s *RoundSetupState) Enter() {
 }
 
 func (s *RoundSetupState) Update() {
+	s.round.events = append(s.round.events, events.NewRoundStartedEvent(s.round.gameId.String()))
 	s.round.State = NewRoundPlayingState(s.round)
 	s.round.State.Enter()
 }

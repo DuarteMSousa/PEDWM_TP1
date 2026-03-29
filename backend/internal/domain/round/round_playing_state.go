@@ -29,7 +29,9 @@ func (s *RoundPlayingState) Enter() {
 
 	s.round.State.Update()
 }
+
 func (s *RoundPlayingState) Update() {
+
 	if s.round.CurrentTrick.RuleStrategy.HasEnded(*s.round.CurrentTrick) {
 		roundPoints := s.round.RuleStrategy.CalculateCurrentTrickRoundPoints(s.round)
 
@@ -49,5 +51,24 @@ func (s *RoundPlayingState) Update() {
 		} else {
 			s.round.StartNewTrick(winnerId)
 		}
+	} else {
+		nextId, err := s.round.CurrentTrick.TurnOrder.Next()
+
+		if err != nil {
+			panic(err)
+		}
+
+		nextPlayer, playerErr := s.round.GetPlayer(nextId)
+
+		if playerErr != nil {
+			panic(playerErr)
+		}
+
+		if nextPlayer.Type == player.BOT {
+			// choosenCard := s.round.BotStrategy.ChooseCard(*nextPlayer.Hand, s.round.TrumpSuit)
+
+			// s.round.PlayCard(*nextPlayer, choosenCard.ID)
+		}
+
 	}
 }

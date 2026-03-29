@@ -82,10 +82,27 @@ func (g *Game) GetEvents() []events.Event {
 	return g.events
 }
 
-func (g *Game) AddPlayer(player player.Player) error {
-	if g == nil {
-		return ErrGameDoesNotExist
+func (g *Game) PlayCard(player player.Player, cardId string) {
+	if g.State == nil {
+		panic(ErrGameNotPlaying)
 	}
 
-	return nil
+	g.round.PlayCard(player, cardId)
+
+	g.State.Update()
+
 }
+
+// func (g *Game) SwitchPlayer(player player.Player) error {
+// 	if g == nil {
+// 		return ErrGameDoesNotExist
+// 	}
+
+// 	for _, qplayer := range g.players {
+// 		if player.Sequence == qplayer.Sequence {
+// 			g.players[qplayer.ID] = &player
+// 		}
+// 	}
+
+// 	return nil
+// }

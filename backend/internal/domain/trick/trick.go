@@ -11,6 +11,7 @@ import (
 var (
 	ErrTrickComplete     = errors.New("trick already complete")
 	ErrPlayerAlreadyPlay = errors.New("player already played in this trick")
+	ErrPlayerOutOfTurn   = errors.New("player is playing out of turn")
 )
 
 // Trick representa uma vaza em curso (até 4 jogadas).
@@ -70,6 +71,7 @@ func (t *Trick) AddPlay(play Play) error {
 	if t.IsComplete() {
 		return ErrTrickComplete
 	}
+
 	if t.HasPlayed(play.PlayerID) {
 		return ErrPlayerAlreadyPlay
 	}
@@ -79,7 +81,18 @@ func (t *Trick) AddPlay(play Play) error {
 		t.LeadSuit = &ls
 	}
 
+	nextPlayerID, err := t.TurnOrder.Next()
+
+	if err != nil {
+		return err
+	}
+
+	if nextPlayerID != play.PlayerID {
+		return ErrPlayerOutOfTurn
+	}
+
 	t.Plays = append(t.Plays, play)
+
 	return nil
 }
 
