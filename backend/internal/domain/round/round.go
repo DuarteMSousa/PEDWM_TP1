@@ -29,6 +29,7 @@ type Round struct {
 	State        IRoundState
 	RuleStrategy IRoundRuleStrategy
 	BotStrategy  bot_strategy.IBotStrategy
+	score        map[string]int
 
 	events []events.Event
 }
@@ -97,11 +98,7 @@ func (r *Round) PlayCard(playerID string, cardId string) error {
 }
 
 func (r *Round) GetScore() map[string]int {
-	score := make(map[string]int)
-	for _, team := range r.Teams {
-		score[team.ID] = team.RoundScore
-	}
-	return score
+	return r.score
 }
 
 func (r *Round) AddEvent(event events.Event) events.Event {

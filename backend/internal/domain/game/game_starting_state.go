@@ -17,7 +17,7 @@ func NewGameStartingState(g *Game) *GameStartingState {
 func (s *GameStartingState) Enter() {
 	s.game.AddEvent(events.NewGameStartedEvent(s.game.ID.String()))
 	for _, t := range s.game.Teams {
-		t.GameScore = 0
+		s.game.Score[t.ID] = 0
 	}
 
 	s.game.round = round.NewRound(s.game.ID, s.game.Teams, s.game.botStrategy)

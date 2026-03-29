@@ -28,6 +28,7 @@ type Game struct {
 	ID      uuid.UUID
 	players map[string]*player.Player
 	Teams   map[string]*team.Team
+	Score   map[string]int
 
 	State           IGameState
 	round           *round.Round
@@ -87,7 +88,7 @@ func (g *Game) PlayCard(playerId string, cardId string) {
 		panic(ErrGameNotPlaying)
 	}
 
-	player, ok := g.players[playerId]
+	_, ok := g.players[playerId]
 	if !ok {
 		panic(ErrPlayerNotFound)
 	}

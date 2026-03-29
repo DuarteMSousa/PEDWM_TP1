@@ -12,18 +12,14 @@ var (
 )
 
 type Team struct {
-	ID         string
-	Players    []*player.Player
-	GameScore  int
-	RoundScore int
+	ID      string
+	Players []*player.Player
 }
 
 func NewTeam(id string, players []*player.Player) (Team, error) {
 	team := Team{
-		ID:         id,
-		Players:    players,
-		GameScore:  0,
-		RoundScore: 0,
+		ID:      id,
+		Players: players,
 	}
 
 	return team, team.Validate()
@@ -33,27 +29,5 @@ func (t Team) Validate() error {
 	if strings.TrimSpace(t.ID) == "" {
 		return ErrInvalidTeamID
 	}
-	return nil
-}
-
-func (t *Team) AddRoundPoints(points int) error {
-	if t == nil {
-		return ErrInvalidTeamID
-	}
-	if points < 0 {
-		return ErrNegativePoints
-	}
-	t.RoundScore += points
-	return nil
-}
-
-func (t *Team) AddGamePoints(points int) error {
-	if t == nil {
-		return ErrInvalidTeamID
-	}
-	if points < 0 {
-		return ErrNegativePoints
-	}
-	t.GameScore += points
 	return nil
 }

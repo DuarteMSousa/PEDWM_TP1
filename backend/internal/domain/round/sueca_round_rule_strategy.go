@@ -20,9 +20,9 @@ func (s *SuecaRoundRuleStrategy) Winner(Round *Round) string {
 
 	var winner string
 	var maxPoints int
-	for teamID, team := range Round.Teams {
-		if team.RoundScore > maxPoints {
-			maxPoints = team.RoundScore
+	for teamID, _ := range Round.Teams {
+		if Round.GetScore()[teamID] > maxPoints {
+			maxPoints = Round.GetScore()[teamID]
 			winner = teamID
 		}
 	}
@@ -54,7 +54,7 @@ func (s *SuecaRoundRuleStrategy) CalculateCurrentTrickRoundPoints(Round *Round) 
 		return nil, winnerErr
 	}
 
-	for teamID, _ := range Round.Teams {
+	for teamID := range Round.Teams {
 		teamPoints := 0
 		if teamID == winner {
 			teamPoints += Round.CurrentTrick.ScoringStrategy.TrickPoints(Round.CurrentTrick.Plays)

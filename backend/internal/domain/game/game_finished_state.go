@@ -19,10 +19,6 @@ func (s *GameFinishedState) Enter() {
 
 func (s *GameFinishedState) Update() {
 	winner := s.game.scoringStrategy.Winner(s.game)
-	finalScores := make(map[string]int)
-	for teamID, team := range s.game.Teams {
-		finalScores[teamID] = team.GameScore
-	}
-	event := events.NewGameEndedEvent(s.game.ID.String(), finalScores, winner)
+	event := events.NewGameEndedEvent(s.game.ID.String(), s.game.Score, winner)
 	s.game.AddEvent(event)
 }

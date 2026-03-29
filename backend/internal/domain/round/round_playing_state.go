@@ -51,7 +51,7 @@ func (s *RoundPlayingState) Update() {
 		s.round.AddEvent(events.NewTrickEndedEvent(s.round.gameId.String(), winnerId, roundPoints[winningTeamId]))
 
 		for _, team := range s.round.Teams {
-			team.RoundScore += roundPoints[team.ID]
+			s.round.score[team.ID] += roundPoints[team.ID]
 		}
 
 		if s.round.RuleStrategy.HasEnded(s.round) {

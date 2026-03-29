@@ -21,7 +21,7 @@ func (s *GamePlayingState) Update() {
 		teamScores := s.game.scoringStrategy.CalculateCurrentRoundGamePoints(s.game.round)
 
 		for teamID, points := range teamScores {
-			s.game.Teams[teamID].GameScore += points
+			s.game.Score[teamID] += points
 		}
 
 		if s.game.scoringStrategy.HasGameEnded(s.game) {
