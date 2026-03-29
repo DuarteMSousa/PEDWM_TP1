@@ -13,11 +13,12 @@ var (
 )
 
 type UserService struct {
-	repo interfaces.UserRepository
+	repo      interfaces.UserRepository
+	statsRepo interfaces.UserStatsRepository
 }
 
-func NewUserService(repo interfaces.UserRepository) *UserService {
-	return &UserService{repo: repo}
+func NewUserService(repo interfaces.UserRepository, statsRepo interfaces.UserStatsRepository) *UserService {
+	return &UserService{repo: repo, statsRepo: statsRepo}
 }
 
 func (s *UserService) Register(username, password string) (*user.User, error) {
@@ -32,6 +33,12 @@ func (s *UserService) Register(username, password string) (*user.User, error) {
 	}
 
 	if err := s.repo.Save(u); err != nil {
+		return nil, err
+	}
+
+	us := user.NewUserStats(u.ID)
+
+	if err := s.statsRepo.Save(us); err != nil {
 		return nil, err
 	}
 

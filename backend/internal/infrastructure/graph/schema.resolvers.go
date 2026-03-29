@@ -69,7 +69,7 @@ func (r *mutationResolver) RemoveFriend(ctx context.Context, input model.RemoveF
 
 // CreateRoom is the resolver for the createRoom field.
 func (r *mutationResolver) CreateRoom(ctx context.Context, input model.CreateRoomInput) (*model.Room, error) {
-	room, err := r.RoomService.CreateRoom(input.RoomID, input.HostID, input.HostName)
+	room, err := r.RoomService.CreateRoom(input.HostID)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (r *mutationResolver) CreateRoom(ctx context.Context, input model.CreateRoo
 
 // JoinRoom is the resolver for the joinRoom field.
 func (r *mutationResolver) JoinRoom(ctx context.Context, input model.JoinRoomInput) (*model.Room, error) {
-	room, err := r.RoomService.JoinRoom(input.RoomID, input.PlayerID, input.PlayerName)
+	room, err := r.RoomService.JoinRoom(input.RoomID, input.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (r *mutationResolver) JoinRoom(ctx context.Context, input model.JoinRoomInp
 
 // LeaveRoom is the resolver for the leaveRoom field.
 func (r *mutationResolver) LeaveRoom(ctx context.Context, input model.LeaveRoomInput) (*model.Room, error) {
-	room, err := r.RoomService.LeaveRoom(input.RoomID, input.PlayerID)
+	room, err := r.RoomService.LeaveRoom(input.RoomID, input.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -101,6 +101,15 @@ func (r *mutationResolver) StartGame(ctx context.Context, input model.StartGameI
 		return nil, err
 	}
 	return mapRoom(room), nil
+}
+
+// RecordGame is the resolver for the recordGame field.
+func (r *mutationResolver) RecordGame(ctx context.Context, input model.RecordGameInput) (*model.UserStats, error) {
+	userStats, err := r.UserStatsService.RecordGame(input.UserID, input.Won)
+	if err != nil {
+		return nil, err
+	}
+	return mapUserStats(userStats), nil
 }
 
 // User is the resolver for the user field.
@@ -169,6 +178,15 @@ func (r *queryResolver) Rooms(ctx context.Context) ([]*model.Room, error) {
 	}
 
 	return result, nil
+}
+
+// UserStats is the resolver for the userStats field.
+func (r *queryResolver) UserStats(ctx context.Context, userID string) (*model.UserStats, error) {
+	userStats, err := r.UserStatsService.GetByUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+	return mapUserStats(userStats), nil
 }
 
 // Mutation returns MutationResolver implementation.

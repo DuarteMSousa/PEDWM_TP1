@@ -1,4 +1,9 @@
 package interfaces
 
-// GameRepository is reserved for game persistence once full game flow is wired.
-type GameRepository interface{}
+import "backend/internal/domain/game"
+
+type GameRepository interface {
+	Save(g *game.Game) error
+	FindByID(id string) (*game.Game, error)
+	FindByRoomID(roomID string) ([]*game.Game, error)
+}

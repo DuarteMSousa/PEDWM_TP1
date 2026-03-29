@@ -56,10 +56,15 @@ type Player {
   sequence: Int!
 }
 
+type RoomPlayer {
+  id: ID!
+  username: String!
+}
+
 type Room {
   id: ID!
   hostId: ID!
-  players: [Player!]!
+  players: [RoomPlayer!]!
   status: RoomStatus!
   createdAt: Time!
 }
@@ -94,24 +99,26 @@ input RemoveFriendInput {
 }
 
 input CreateRoomInput {
-  roomId: ID!
   hostId: ID!
-  hostName: String!
 }
 
 input JoinRoomInput {
   roomId: ID!
-  playerId: ID!
-  playerName: String!
+  userId: ID!
 }
 
 input LeaveRoomInput {
   roomId: ID!
-  playerId: ID!
+  userId: ID!
 }
 
 input StartGameInput {
   roomId: ID!
+}
+
+input RecordGameInput {
+  userId: ID!
+  won: Boolean!
 }
 
 # =========================
@@ -130,6 +137,9 @@ type Query {
   # Rooms
   room(id: ID!): Room
   rooms: [Room!]!
+
+  # User Stats
+  userStats(userId: ID!): UserStats
 }
 
 type Mutation {
@@ -148,4 +158,7 @@ type Mutation {
   joinRoom(input: JoinRoomInput!): Room!
   leaveRoom(input: LeaveRoomInput!): Room!
   startGame(input: StartGameInput!): Room!
+
+  # User Stats
+  recordGame(input: RecordGameInput!): UserStats!
 }

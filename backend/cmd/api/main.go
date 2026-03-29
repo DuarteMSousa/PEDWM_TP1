@@ -48,13 +48,16 @@ func main() {
 	repo := repositories.NewRoomPostgresRepository(pool)
 	userRepo := repositories.NewUserPostgresRepository(pool)
 	friendshipRepo := repositories.NewFriendshipPostgresRepository(pool)
+	userStatsRepo := repositories.NewUserStatsPostgresRepository(pool)
+	gameRepo := repositories.NewGamePostgresRepository(pool)
 
 	// ========================
 	// Application
 	// ========================
-	roomService := application.NewRoomService(repo)
-	userService := application.NewUserService(userRepo)
+	roomService := application.NewRoomService(repo, gameRepo, userRepo)
+	userService := application.NewUserService(userRepo, userStatsRepo)
 	friendshipService := application.NewFriendshipService(friendshipRepo, userRepo)
+	userStatsService := application.NewUserStatsService(userStatsRepo, userRepo)
 
 	_ = infraevents.NewEventBusPublisher(eventBus)
 
@@ -65,6 +68,7 @@ func main() {
 		RoomService:       roomService,
 		UserService:       userService,
 		FriendshipService: friendshipService,
+		UserStatsService:  userStatsService,
 	}
 
 	srv := handler.New(graph.NewExecutableSchema(

@@ -8,6 +8,8 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type RoomStatus string
@@ -30,56 +32,65 @@ var (
 	ErrInvalidPlayerID        = errors.New("invalid player id")
 )
 
+type RoomPlayer struct {
+	UserID   string `json:"userId"`
+	Username string `json:"username"`
+}
+
 type Room struct {
-	ID      string                          `json:"id"`
-	HostID  string                          `json:"hostId"`
-	Players map[string]*domainplayer.Player `json:"players"`
-	Status  RoomStatus                      `json:"status"`
-	Game    *game.Game                      `json:"game,omitempty"`
+	ID      string                 `json:"id"`
+	HostID  string                 `json:"hostId"`
+	Players map[string]*RoomPlayer `json:"players"`
+	Status  RoomStatus             `json:"status"`
+	Game    *game.Game             `json:"game,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-func NewRoom(roomID string, host *domainplayer.Player) (*Room, error) {
-	roomID = strings.TrimSpace(roomID)
-	if roomID == "" {
-		return nil, ErrInvalidRoomID
-	}
-	if host == nil || strings.TrimSpace(host.ID) == "" {
+func NewRoom(hostID string, hostUsername string) (*Room, error) {
+	hostID = strings.TrimSpace(hostID)
+	if hostID == "" {
 		return nil, ErrInvalidHost
 	}
 
-	players := map[string]*domainplayer.Player{
-		host.ID: host,
+	players := map[string]*RoomPlayer{
+		hostID: {
+			UserID:   hostID,
+			Username: hostUsername,
+		},
 	}
 
 	return &Room{
-		ID:        roomID,
-		HostID:    host.ID,
+		ID:        uuid.New().String(),
+		HostID:    hostID,
 		Players:   players,
 		Status:    OPEN,
 		CreatedAt: time.Now().UTC(),
 	}, nil
 }
 
-func (r *Room) AddPlayer(p *domainplayer.Player) error {
+func (r *Room) AddPlayer(userID, username string) error {
 	if r == nil {
 		return errors.New("room is nil")
 	}
 	if r.Status != OPEN {
 		return ErrRoomNotOpen
 	}
-	if p == nil || strings.TrimSpace(p.ID) == "" {
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
 		return ErrInvalidPlayerID
 	}
 	if len(r.Players) >= 4 {
 		return ErrRoomFull
 	}
-	if _, exists := r.Players[p.ID]; exists {
+	if _, exists := r.Players[userID]; exists {
 		return ErrPlayerAlreadyInRoom
 	}
 
-	r.Players[p.ID] = p
+	r.Players[userID] = &RoomPlayer{
+		UserID:   userID,
+		Username: username,
+	}
 	return nil
 }
 
@@ -127,12 +138,20 @@ func (r *Room) CanStartGame() bool {
 }
 
 func (r *Room) StartGame() error {
-
 	if !r.CanStartGame() {
 		return ErrCannotStartGamePlayers
 	}
 
-	r.Game = game_factory.CreateSuecaGame(r.Players)
+	gamePlayers := make(map[string]*domainplayer.Player)
+	seq := 0
+	for _, rp := range r.Players {
+		p := domainplayer.NewPlayer(rp.UserID, rp.Username, seq)
+		gamePlayers[rp.UserID] = &p
+		seq++
+	}
+
+	r.Game = game_factory.CreateSuecaGame(gamePlayers)
+	r.Game.RoomID = r.ID
 	r.Status = IN_GAME
 
 	r.Game.State.Enter()

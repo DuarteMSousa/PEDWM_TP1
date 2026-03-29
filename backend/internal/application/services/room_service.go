@@ -2,22 +2,26 @@ package application
 
 import (
 	"backend/internal/application/interfaces"
-	"backend/internal/domain/player"
 	"backend/internal/domain/room"
 )
 
 type RoomService struct {
-	repo interfaces.RoomRepository
+	repo     interfaces.RoomRepository
+	gameRepo interfaces.GameRepository
+	userRepo interfaces.UserRepository
 }
 
-func NewRoomService(repo interfaces.RoomRepository) *RoomService {
-	return &RoomService{repo: repo}
+func NewRoomService(repo interfaces.RoomRepository, gameRepo interfaces.GameRepository, userRepo interfaces.UserRepository) *RoomService {
+	return &RoomService{repo: repo, gameRepo: gameRepo, userRepo: userRepo}
 }
 
-func (s *RoomService) CreateRoom(roomID, hostID, hostName string) (*room.Room, error) {
-	host := player.NewPlayer(hostID, hostName, 0)
+func (s *RoomService) CreateRoom(hostID string) (*room.Room, error) {
+	user, err := s.userRepo.FindByID(hostID)
+	if err != nil || user == nil {
+		return nil, err
+	}
 
-	r, err := room.NewRoom(roomID, &host)
+	r, err := room.NewRoom(hostID, user.Username)
 	if err != nil {
 		return nil, err
 	}
@@ -25,28 +29,31 @@ func (s *RoomService) CreateRoom(roomID, hostID, hostName string) (*room.Room, e
 	return r, s.repo.Save(r)
 }
 
-func (s *RoomService) JoinRoom(roomID, playerID, playerName string) (*room.Room, error) {
+func (s *RoomService) JoinRoom(roomID, userID string) (*room.Room, error) {
 	r, err := s.repo.FindByID(roomID)
 	if err != nil || r == nil {
 		return nil, err
 	}
 
-	p := player.NewPlayer(playerID, playerName, len(r.Players))
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil || user == nil {
+		return nil, err
+	}
 
-	if err := r.AddPlayer(&p); err != nil {
+	if err := r.AddPlayer(userID, user.Username); err != nil {
 		return nil, err
 	}
 
 	return r, s.repo.Save(r)
 }
 
-func (s *RoomService) LeaveRoom(roomID, playerID string) (*room.Room, error) {
+func (s *RoomService) LeaveRoom(roomID, userID string) (*room.Room, error) {
 	r, err := s.repo.FindByID(roomID)
 	if err != nil || r == nil {
 		return nil, err
 	}
 
-	if err := r.RemovePlayer(playerID); err != nil {
+	if err := r.RemovePlayer(userID); err != nil {
 		return nil, err
 	}
 
@@ -63,7 +70,17 @@ func (s *RoomService) StartGame(roomID string) (*room.Room, error) {
 		return nil, err
 	}
 
-	return r, s.repo.Save(r)
+	if err := s.repo.Save(r); err != nil {
+		return nil, err
+	}
+
+	if r.Game != nil {
+		if err := s.gameRepo.Save(r.Game); err != nil {
+			return nil, err
+		}
+	}
+
+	return r, nil
 }
 
 func (s *RoomService) GetRoom(id string) (*room.Room, error) {

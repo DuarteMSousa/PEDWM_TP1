@@ -7,8 +7,17 @@ import (
 	"backend/internal/domain/round"
 	"backend/internal/domain/team"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
+)
+
+type GameStatus string
+
+const (
+	PENDING     GameStatus = "PENDING"
+	IN_PROGRESS GameStatus = "IN_PROGRESS"
+	FINISHED    GameStatus = "FINISHED"
 )
 
 var (
@@ -26,6 +35,8 @@ var (
 
 type Game struct {
 	ID      uuid.UUID
+	RoomID  string
+	Status  GameStatus
 	players map[string]*player.Player
 	Teams   map[string]*team.Team
 	Score   map[string]int
@@ -37,16 +48,22 @@ type Game struct {
 
 	events   []events.Event
 	eventBus *events.EventBus
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func NewGame(teams []*team.Team, scoringStrategy IGameScoringStrategy, botStrategy bot_strategy.IBotStrategy) *Game {
 	g := &Game{
 		ID:              uuid.New(),
+		Status:          IN_PROGRESS,
 		players:         make(map[string]*player.Player),
 		scoringStrategy: scoringStrategy,
 		botStrategy:     botStrategy,
 		Teams:           make(map[string]*team.Team),
 		events:          []events.Event{},
+		CreatedAt:       time.Now().UTC(),
+		UpdatedAt:       time.Now().UTC(),
 	}
 
 	for _, t := range teams {

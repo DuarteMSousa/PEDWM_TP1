@@ -15,9 +15,7 @@ type AuthPayload struct {
 }
 
 type CreateRoomInput struct {
-	RoomID   string `json:"roomId"`
-	HostID   string `json:"hostId"`
-	HostName string `json:"hostName"`
+	HostID string `json:"hostId"`
 }
 
 type Friendship struct {
@@ -29,14 +27,13 @@ type Friendship struct {
 }
 
 type JoinRoomInput struct {
-	RoomID     string `json:"roomId"`
-	PlayerID   string `json:"playerId"`
-	PlayerName string `json:"playerName"`
+	RoomID string `json:"roomId"`
+	UserID string `json:"userId"`
 }
 
 type LeaveRoomInput struct {
-	RoomID   string `json:"roomId"`
-	PlayerID string `json:"playerId"`
+	RoomID string `json:"roomId"`
+	UserID string `json:"userId"`
 }
 
 type LoginInput struct {
@@ -57,6 +54,11 @@ type Player struct {
 type Query struct {
 }
 
+type RecordGameInput struct {
+	UserID string `json:"userId"`
+	Won    bool   `json:"won"`
+}
+
 type RegisterInput struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -73,11 +75,16 @@ type RespondFriendRequestInput struct {
 }
 
 type Room struct {
-	ID        string     `json:"id"`
-	HostID    string     `json:"hostId"`
-	Players   []*Player  `json:"players"`
-	Status    RoomStatus `json:"status"`
-	CreatedAt time.Time  `json:"createdAt"`
+	ID        string        `json:"id"`
+	HostID    string        `json:"hostId"`
+	Players   []*RoomPlayer `json:"players"`
+	Status    RoomStatus    `json:"status"`
+	CreatedAt time.Time     `json:"createdAt"`
+}
+
+type RoomPlayer struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
 }
 
 type SendFriendRequestInput struct {

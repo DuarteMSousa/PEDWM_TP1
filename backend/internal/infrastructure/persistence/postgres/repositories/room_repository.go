@@ -1,8 +1,6 @@
 package repositories
 
 import (
-	"backend/internal/domain/hand"
-	"backend/internal/domain/player"
 	"backend/internal/domain/room"
 	"context"
 
@@ -31,7 +29,8 @@ func (r *RoomPostgresRepository) Save(rm *room.Room) error {
 		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (id) DO UPDATE
 		SET host_id = $2,
-		    status = $3
+		    status = $3,
+		    updated_at = NOW()
 	`,
 		rm.ID,
 		rm.HostID,
@@ -47,17 +46,13 @@ func (r *RoomPostgresRepository) Save(rm *room.Room) error {
 		return err
 	}
 
-	// Persistir apenas ID, Name, Type e Sequence (Hand NÃO é persistido)
 	for _, p := range rm.Players {
 		_, err := tx.Exec(ctx, `
-			INSERT INTO room_players (room_id, player_id, name, type, sequence)
-			VALUES ($1, $2, $3, $4, $5)
+			INSERT INTO room_players (room_id, user_id)
+			VALUES ($1, $2)
 		`,
 			rm.ID,
-			p.ID,
-			p.Name,
-			string(p.Type),
-			p.Sequence,
+			p.UserID,
 		)
 		if err != nil {
 			return err
@@ -86,27 +81,24 @@ func (r *RoomPostgresRepository) FindByID(id string) (*room.Room, error) {
 	rm.Status = room.RoomStatus(status)
 
 	rows, err := r.pool.Query(ctx, `
-		SELECT player_id, name, type, sequence
-		FROM room_players WHERE room_id = $1
+		SELECT rp.user_id, u.username
+		FROM room_players rp
+		JOIN users u ON u.id = rp.user_id
+		WHERE rp.room_id = $1
 	`, id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	rm.Players = make(map[string]*player.Player)
+	rm.Players = make(map[string]*room.RoomPlayer)
 
 	for rows.Next() {
-		var (
-			p     player.Player
-			pType string
-		)
-		if err := rows.Scan(&p.ID, &p.Name, &pType, &p.Sequence); err != nil {
+		var p room.RoomPlayer
+		if err := rows.Scan(&p.UserID, &p.Username); err != nil {
 			return nil, err
 		}
-		p.Type = player.PlayerType(pType)
-		p.Hand = hand.NewHand() // Hand vazio — não é persistido
-		rm.Players[p.ID] = &p
+		rm.Players[p.UserID] = &p
 	}
 
 	return &rm, nil

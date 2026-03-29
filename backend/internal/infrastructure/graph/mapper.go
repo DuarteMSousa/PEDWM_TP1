@@ -14,6 +14,15 @@ func mapUser(u *user.User) *model.User {
 	}
 }
 
+func mapUserStats(s *user.UserStats) *model.UserStats {
+	return &model.UserStats{
+		UserID: s.UserId,
+		Games:  int32(s.Games),
+		Wins:   int32(s.Wins),
+		Elo:    int32(s.Elo),
+	}
+}
+
 func mapFriendship(f *friendship.Friendship) *model.Friendship {
 	return &model.Friendship{
 		RequesterID: f.RequesterID,
@@ -25,14 +34,12 @@ func mapFriendship(f *friendship.Friendship) *model.Friendship {
 }
 
 func mapRoom(r *room.Room) *model.Room {
-	players := make([]*model.Player, 0, len(r.Players))
+	players := make([]*model.RoomPlayer, 0, len(r.Players))
 
 	for _, p := range r.Players {
-		players = append(players, &model.Player{
-			ID:       p.ID,
-			Name:     p.Name,
-			Type:     model.PlayerType(p.Type),
-			Sequence: int32(p.Sequence),
+		players = append(players, &model.RoomPlayer{
+			ID:       p.UserID,
+			Username: p.Username,
 		})
 	}
 
