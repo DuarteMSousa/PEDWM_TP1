@@ -1,6 +1,7 @@
 package round
 
 import (
+	"backend/internal/domain/events"
 	"backend/internal/domain/player"
 	"math/rand"
 )
@@ -33,13 +34,21 @@ func (s *RoundPlayingState) Enter() {
 func (s *RoundPlayingState) Update() {
 
 	if s.round.CurrentTrick.RuleStrategy.HasEnded(*s.round.CurrentTrick) {
+
 		roundPoints := s.round.RuleStrategy.CalculateCurrentTrickRoundPoints(s.round)
 
 		winnerId, err := s.round.CurrentTrick.RuleStrategy.WinningPlayer(*s.round.CurrentTrick)
+		winningTeamId, teamErr := s.round.GetPlayerTeamId(winnerId)
+
+		if teamErr != nil {
+			panic(teamErr)
+		}
 
 		if err != nil {
 			panic(err)
 		}
+
+		s.round.AddEvent(events.NewTrickEndedEvent(s.round.gameId.String(), winnerId, roundPoints[winningTeamId]))
 
 		for _, team := range s.round.Teams {
 			team.RoundScore += roundPoints[team.ID]
@@ -50,8 +59,10 @@ func (s *RoundPlayingState) Update() {
 			s.round.State.Enter()
 		} else {
 			s.round.StartNewTrick(winnerId)
+			s.round.State.Update()
 		}
 	} else {
+
 		nextId, err := s.round.CurrentTrick.TurnOrder.Next()
 
 		if err != nil {

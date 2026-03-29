@@ -82,15 +82,28 @@ func (g *Game) GetEvents() []events.Event {
 	return g.events
 }
 
-func (g *Game) PlayCard(player player.Player, cardId string) {
+func (g *Game) PlayCard(playerId string, cardId string) {
 	if g.State == nil {
 		panic(ErrGameNotPlaying)
 	}
 
-	g.round.PlayCard(player, cardId)
+	player, ok := g.players[playerId]
+	if !ok {
+		panic(ErrPlayerNotFound)
+	}
+
+	g.round.PlayCard(playerId, cardId)
 
 	g.State.Update()
 
+}
+
+func (g *Game) UpdateRoundState() {
+	g.round.State.Update()
+	events := g.round.CollectEvents()
+	for _, event := range events {
+		g.AddEvent(event)
+	}
 }
 
 // func (g *Game) SwitchPlayer(player player.Player) error {

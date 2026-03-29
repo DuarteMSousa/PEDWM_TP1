@@ -46,6 +46,7 @@ func NewRound(gameId uuid.UUID, teams map[string]*team.Team, botStrategy bot_str
 
 func (r *Round) StartNewTrick(leaderID string) {
 	r.CurrentTrick = trick.NewTrick(leaderID, r.TrumpSuit, r.Teams)
+	r.AddEvent(events.NewTrickStartedEvent(r.gameId.String(), leaderID))
 }
 
 func (r *Round) GetPlayerTeamId(playerID string) (string, error) {
@@ -88,9 +89,28 @@ func (r *Round) PlayCard(playerID string, cardId string) error {
 	play := trick.NewPlay(player.ID, card)
 
 	r.CurrentTrick.AddPlay(play)
-	r.events = append(r.events, events.NewCardPlayedEvent(r.CurrentTrick.LeaderID, player.ID, card))
+	r.AddEvent(events.NewCardPlayedEvent(r.CurrentTrick.LeaderID, player.ID, card))
 
 	r.State.Update()
 
 	return nil
+}
+
+func (r *Round) GetScore() map[string]int {
+	score := make(map[string]int)
+	for _, team := range r.Teams {
+		score[team.ID] = team.RoundScore
+	}
+	return score
+}
+
+func (r *Round) AddEvent(event events.Event) events.Event {
+	r.events = append(r.events, event)
+	return event
+}
+
+func (r *Round) CollectEvents() []events.Event {
+	collectedEvents := r.events
+	r.events = []events.Event{}
+	return collectedEvents
 }

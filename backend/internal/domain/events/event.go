@@ -82,9 +82,8 @@ type TrickEndedPayload struct {
 }
 
 type RoundEndedPayload struct {
-	TeamAScore int    `json:"teamAScore"`
-	TeamBScore int    `json:"teamBScore"`
-	WinnerTeam string `json:"winnerTeam"`
+	Score      map[string]int `json:"score"`
+	WinnerTeam string         `json:"winnerTeam"`
 }
 
 type GameEndedPayload struct {
@@ -148,8 +147,8 @@ func NewTrickEndedEvent(gameID string, winnerID string, points int) Event {
 	return newEvent(EventTrickEnded, gameID, TrickEndedPayload{WinnerID: winnerID, Points: points})
 }
 
-func NewRoundEndedEvent(gameID string, teamAScore int, teamBScore int, winnerTeam string) Event {
-	return newEvent(EventRoundEnded, gameID, RoundEndedPayload{TeamAScore: teamAScore, TeamBScore: teamBScore, WinnerTeam: winnerTeam})
+func NewRoundEndedEvent(gameID string, score map[string]int, winnerTeam string) Event {
+	return newEvent(EventRoundEnded, gameID, RoundEndedPayload{Score: score, WinnerTeam: winnerTeam})
 }
 
 func NewGameEndedEvent(gameID string, finalScores map[string]int, winnerTeam string) Event {

@@ -1,6 +1,7 @@
 package game
 
 import (
+	"backend/internal/domain/events"
 	"backend/internal/domain/round"
 )
 
@@ -14,6 +15,7 @@ func NewGameStartingState(g *Game) *GameStartingState {
 }
 
 func (s *GameStartingState) Enter() {
+	s.game.AddEvent(events.NewGameStartedEvent(s.game.ID.String()))
 	for _, t := range s.game.Teams {
 		t.GameScore = 0
 	}

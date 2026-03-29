@@ -1,7 +1,5 @@
 package game
 
-import "backend/internal/domain/events"
-
 // GamePlayingState implementa GameState
 type GamePlayingState struct {
 	game *Game
@@ -12,12 +10,12 @@ func NewGamePlayingState(g *Game) *GamePlayingState {
 }
 
 func (s *GamePlayingState) Enter() {
-	event := events.NewGameStartedEvent(s.game.ID.String())
-	s.game.AddEvent(event)
 	s.game.State.Update()
 }
 
 func (s *GamePlayingState) Update() {
+	s.game.UpdateRoundState()
+
 	if s.game.round.RuleStrategy.HasEnded(s.game.round) {
 
 		teamScores := s.game.scoringStrategy.CalculateCurrentRoundGamePoints(s.game.round)
