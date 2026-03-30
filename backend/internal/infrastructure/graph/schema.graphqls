@@ -116,11 +116,6 @@ input StartGameInput {
   roomId: ID!
 }
 
-input RecordGameInput {
-  userId: ID!
-  won: Boolean!
-}
-
 # =========================
 # Queries & Mutations
 # =========================
@@ -158,7 +153,4 @@ type Mutation {
   joinRoom(input: JoinRoomInput!): Room!
   leaveRoom(input: LeaveRoomInput!): Room!
   startGame(input: StartGameInput!): Room!
-
-  # User Stats
-  recordGame(input: RecordGameInput!): UserStats!
 }

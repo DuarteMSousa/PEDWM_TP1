@@ -55,7 +55,6 @@ type ComplexityRoot struct {
 		JoinRoom            func(childComplexity int, input model.JoinRoomInput) int
 		LeaveRoom           func(childComplexity int, input model.LeaveRoomInput) int
 		Login               func(childComplexity int, input model.LoginInput) int
-		RecordGame          func(childComplexity int, input model.RecordGameInput) int
 		Register            func(childComplexity int, input model.RegisterInput) int
 		RejectFriendRequest func(childComplexity int, input model.RespondFriendRequestInput) int
 		RemoveFriend        func(childComplexity int, input model.RemoveFriendInput) int
@@ -117,7 +116,6 @@ type MutationResolver interface {
 	JoinRoom(ctx context.Context, input model.JoinRoomInput) (*model.Room, error)
 	LeaveRoom(ctx context.Context, input model.LeaveRoomInput) (*model.Room, error)
 	StartGame(ctx context.Context, input model.StartGameInput) (*model.Room, error)
-	RecordGame(ctx context.Context, input model.RecordGameInput) (*model.UserStats, error)
 }
 type QueryResolver interface {
 	User(ctx context.Context, id string) (*model.User, error)
@@ -236,17 +234,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.Login(childComplexity, args["input"].(model.LoginInput)), true
-	case "Mutation.recordGame":
-		if e.ComplexityRoot.Mutation.RecordGame == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_recordGame_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.ComplexityRoot.Mutation.RecordGame(childComplexity, args["input"].(model.RecordGameInput)), true
 	case "Mutation.register":
 		if e.ComplexityRoot.Mutation.Register == nil {
 			break
@@ -496,7 +483,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputJoinRoomInput,
 		ec.unmarshalInputLeaveRoomInput,
 		ec.unmarshalInputLoginInput,
-		ec.unmarshalInputRecordGameInput,
 		ec.unmarshalInputRegisterInput,
 		ec.unmarshalInputRemoveFriendInput,
 		ec.unmarshalInputRespondFriendRequestInput,
@@ -644,17 +630,6 @@ func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawAr
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNLoginInput2backendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐLoginInput)
-	if err != nil {
-		return nil, err
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_recordGame_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRecordGameInput2backendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐRecordGameInput)
 	if err != nil {
 		return nil, err
 	}
@@ -1522,57 +1497,6 @@ func (ec *executionContext) fieldContext_Mutation_startGame(ctx context.Context,
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_startGame_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_recordGame(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_recordGame,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().RecordGame(ctx, fc.Args["input"].(model.RecordGameInput))
-		},
-		nil,
-		ec.marshalNUserStats2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐUserStats,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_recordGame(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "userId":
-				return ec.fieldContext_UserStats_userId(ctx, field)
-			case "games":
-				return ec.fieldContext_UserStats_games(ctx, field)
-			case "wins":
-				return ec.fieldContext_UserStats_wins(ctx, field)
-			case "elo":
-				return ec.fieldContext_UserStats_elo(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type UserStats", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_recordGame_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -4118,43 +4042,6 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj an
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputRecordGameInput(ctx context.Context, obj any) (model.RecordGameInput, error) {
-	var it model.RecordGameInput
-	if obj == nil {
-		return it, nil
-	}
-
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"userId", "won"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "userId":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-			data, err := ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.UserID = data
-		case "won":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("won"))
-			data, err := ec.unmarshalNBoolean2bool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Won = data
-		}
-	}
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputRegisterInput(ctx context.Context, obj any) (model.RegisterInput, error) {
 	var it model.RegisterInput
 	if obj == nil {
@@ -4524,13 +4411,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "startGame":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_startGame(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "recordGame":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_recordGame(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -5472,11 +5352,6 @@ func (ec *executionContext) marshalNPlayerType2backendᚋinternalᚋinfrastructu
 	return v
 }
 
-func (ec *executionContext) unmarshalNRecordGameInput2backendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐRecordGameInput(ctx context.Context, v any) (model.RecordGameInput, error) {
-	res, err := ec.unmarshalInputRecordGameInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNRegisterInput2backendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐRegisterInput(ctx context.Context, v any) (model.RegisterInput, error) {
 	res, err := ec.unmarshalInputRegisterInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -5608,20 +5483,6 @@ func (ec *executionContext) marshalNUser2ᚖbackendᚋinternalᚋinfrastructure�
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNUserStats2backendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐUserStats(ctx context.Context, sel ast.SelectionSet, v model.UserStats) graphql.Marshaler {
-	return ec._UserStats(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNUserStats2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐUserStats(ctx context.Context, sel ast.SelectionSet, v *model.UserStats) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._UserStats(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {

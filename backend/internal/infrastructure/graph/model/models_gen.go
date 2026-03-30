@@ -54,11 +54,6 @@ type Player struct {
 type Query struct {
 }
 
-type RecordGameInput struct {
-	UserID string `json:"userId"`
-	Won    bool   `json:"won"`
-}
-
 type RegisterInput struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
