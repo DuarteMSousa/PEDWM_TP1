@@ -60,66 +60,10 @@ class _LobbyPageState extends State<LobbyPage> {
     );
   }
 
-  Future<String?> _askPrivateRoomPassword(Room room) async {
-    final passwordController = TextEditingController();
-
-    final password = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Senha da sala: ${room.name}'),
-          content: TextField(
-            controller: passwordController,
-            autofocus: true,
-            obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Senha',
-              hintText: 'Introduz a senha da sala',
-            ),
-            textInputAction: TextInputAction.done,
-            onSubmitted: (value) => Navigator.of(context).pop(value),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.of(context).pop(passwordController.text),
-              child: const Text('Entrar'),
-            ),
-          ],
-        );
-      },
-    );
-
-    passwordController.dispose();
-    return password?.trim();
-  }
-
   Future<void> _joinRoom(Room room) async {
-    String? roomPassword;
-    if (room.isPrivate) {
-      roomPassword = await _askPrivateRoomPassword(room);
-      if (!mounted) {
-        return;
-      }
-      if (roomPassword == null) {
-        return;
-      }
-      if (roomPassword.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Esta sala privada exige senha.')),
-        );
-        return;
-      }
-    }
-
     final joinedRoom = await _controller.joinRoom(
       roomId: room.id,
       playerId: widget.currentUser.id,
-      password: roomPassword,
     );
 
     if (!mounted) {
@@ -138,95 +82,9 @@ class _LobbyPageState extends State<LobbyPage> {
   }
 
   Future<void> _createRoom() async {
-    final roomNameController = TextEditingController();
-    final roomPasswordController = TextEditingController();
-    bool isPrivate = false;
-
-    final shouldCreate = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Criar sala'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: roomNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nome da sala',
-                      hintText: 'ex: Mesa Equipa A',
-                    ),
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => Navigator.of(context).pop(true),
-                  ),
-                  const SizedBox(height: 12),
-                  SwitchListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    value: isPrivate,
-                    title: const Text('Sala privada'),
-                    onChanged: (value) => setState(() => isPrivate = value),
-                  ),
-                  if (isPrivate) ...[
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: roomPasswordController,
-                      decoration: const InputDecoration(
-                        labelText: 'Senha da sala',
-                        hintText: 'ex: 1234',
-                      ),
-                      obscureText: true,
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => Navigator.of(context).pop(true),
-                    ),
-                  ],
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Criar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-
-    if (shouldCreate != true) {
-      roomNameController.dispose();
-      roomPasswordController.dispose();
-      return;
-    }
-
-    final roomPassword = roomPasswordController.text.trim();
-    if (isPrivate && roomPassword.isEmpty) {
-      roomNameController.dispose();
-      roomPasswordController.dispose();
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Define uma senha para sala privada.')),
-      );
-      return;
-    }
-
     final createdRoom = await _controller.createRoom(
-      name: roomNameController.text,
       hostPlayerId: widget.currentUser.id,
-      isPrivate: isPrivate,
-      password: isPrivate ? roomPassword : null,
     );
-    roomNameController.dispose();
-    roomPasswordController.dispose();
 
     if (!mounted) {
       return;
@@ -465,12 +323,6 @@ class _RoomCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
-                if (room.isPrivate)
-                  const Icon(
-                    Icons.lock_outline_rounded,
-                    size: 18,
-                    color: Color(0xFF6A4A2D),
-                  ),
               ],
             ),
             const SizedBox(height: 8),

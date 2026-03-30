@@ -36,22 +36,14 @@ class LobbyController extends ChangeNotifier {
     }
   }
 
-  Future<Room?> createRoom({
-    required String name,
-    required String hostPlayerId,
-    bool isPrivate = false,
-    String? password,
-  }) async {
+  Future<Room?> createRoom({required String hostPlayerId}) async {
     isLoading = true;
     errorMessage = null;
     notifyListeners();
 
     try {
       final createdRoom = await _lobbyRepository.createRoom(
-        name: name,
         hostPlayerId: hostPlayerId,
-        isPrivate: isPrivate,
-        password: password,
       );
       rooms = await _lobbyRepository.fetchRooms();
       return createdRoom;
@@ -67,7 +59,6 @@ class LobbyController extends ChangeNotifier {
   Future<Room?> joinRoom({
     required String roomId,
     required String playerId,
-    String? password,
   }) async {
     isLoading = true;
     errorMessage = null;
@@ -77,7 +68,6 @@ class LobbyController extends ChangeNotifier {
       final room = await _lobbyRepository.joinRoom(
         roomId: roomId,
         playerId: playerId,
-        password: password,
       );
       rooms = await _lobbyRepository.fetchRooms();
       return room;
@@ -140,7 +130,6 @@ class LobbyController extends ChangeNotifier {
   @override
   void dispose() {
     _eventsSubscription?.cancel();
-    unawaited(_lobbyRepository.disconnect());
     super.dispose();
   }
 }

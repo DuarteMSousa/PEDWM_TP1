@@ -4,6 +4,7 @@ class Room {
     required this.name,
     required this.playersCount,
     required this.maxPlayers,
+    required this.status,
     this.isPrivate = false,
   });
 
@@ -11,6 +12,7 @@ class Room {
   final String name;
   final int playersCount;
   final int maxPlayers;
+  final String status;
   final bool isPrivate;
 
   bool get isFull => playersCount >= maxPlayers;

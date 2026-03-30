@@ -7,11 +7,15 @@ import '../../domain/entities/sueca_game_state.dart';
 import '../../domain/repositories/game_repository.dart';
 
 class GameController extends ChangeNotifier {
-  GameController({required GameRepository gameRepository, required this.roomId})
-    : _gameRepository = gameRepository;
+  GameController({
+    required GameRepository gameRepository,
+    required this.roomId,
+    required this.currentPlayerId,
+  }) : _gameRepository = gameRepository;
 
   final GameRepository _gameRepository;
   final String roomId;
+  final String currentPlayerId;
 
   bool isLoading = false;
   String? errorMessage;
@@ -24,7 +28,10 @@ class GameController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      gameState = await _gameRepository.loadGame(roomId);
+      gameState = await _gameRepository.loadGame(
+        roomId: roomId,
+        playerId: currentPlayerId,
+      );
       _subscription = _gameRepository
           .watchGame(roomId)
           .listen(

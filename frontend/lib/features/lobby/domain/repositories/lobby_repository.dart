@@ -8,25 +8,12 @@ abstract class LobbyRepository {
   Stream<LobbyRealtimeEvent> watchRealtimeEvents();
   Future<void> disconnect();
   Future<List<Room>> fetchRooms();
-  Future<Room> createRoom({
-    required String name,
-    required String hostPlayerId,
-    int maxPlayers,
-    bool isPrivate,
-    String? password,
-  });
+  Future<Room> createRoom({required String hostPlayerId});
   Future<RoomDetails?> fetchRoomDetails({required String roomId});
-  Future<Room> joinRoom({
-    required String roomId,
-    required String playerId,
-    String? password,
-  });
+  Future<Room> joinRoom({required String roomId, required String playerId});
   Future<RoomDetails> leaveRoom({
     required String roomId,
     required String playerId,
   });
-  Future<bool> deleteRoom({
-    required String roomId,
-    required String requesterId,
-  });
+  Future<RoomDetails> startGame({required String roomId});
 }

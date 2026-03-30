@@ -33,6 +33,7 @@ type Event struct {
 	ID        string    `json:"id"`
 	Type      EventType `json:"type"`
 	GameID    string    `json:"gameId,omitempty"`
+	RoomID    string    `json:"roomId,omitempty"`
 	Timestamp time.Time `json:"timestamp"`
 	Payload   any       `json:"payload,omitempty"`
 }

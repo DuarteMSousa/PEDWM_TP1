@@ -21,7 +21,10 @@ func (o *WebSocketObserver) Update(event domain.Event) {
 		return
 	}
 
-	roomID := strings.TrimSpace(event.GameID)
+	roomID := strings.TrimSpace(event.RoomID)
+	if roomID == "" {
+		roomID = strings.TrimSpace(event.GameID)
+	}
 	if roomID == "" {
 		return
 	}

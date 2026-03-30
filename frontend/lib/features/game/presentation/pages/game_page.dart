@@ -16,11 +16,18 @@ import '../../domain/entities/suit.dart';
 import '../../domain/repositories/game_repository.dart';
 import '../state/game_controller.dart';
 
+class GamePageArgs {
+  const GamePageArgs({required this.room, required this.currentPlayerId});
+
+  final Room room;
+  final String currentPlayerId;
+}
+
 class GamePage extends StatefulWidget {
-  const GamePage({super.key, required this.gameRepository, required this.room});
+  const GamePage({super.key, required this.gameRepository, required this.args});
 
   final GameRepository gameRepository;
-  final Room room;
+  final GamePageArgs args;
 
   @override
   State<GamePage> createState() => _GamePageState();
@@ -44,7 +51,8 @@ class _GamePageState extends State<GamePage> {
     super.initState();
     _controller = GameController(
       gameRepository: widget.gameRepository,
-      roomId: widget.room.id,
+      roomId: widget.args.room.id,
+      currentPlayerId: widget.args.currentPlayerId,
     );
     _controller.initialize();
     _resolveCardBackAsset();
@@ -74,7 +82,7 @@ class _GamePageState extends State<GamePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Mesa ${widget.room.name}')),
+      appBar: AppBar(title: Text('Mesa ${widget.args.room.name}')),
       body: AnimatedBuilder(
         animation: _controller,
         builder: (context, _) {
@@ -123,7 +131,7 @@ class _GamePageState extends State<GamePage> {
                           delay: const Duration(milliseconds: 50),
                           beginOffset: const Offset(0, 0.03),
                           child: _TopHud(
-                            room: widget.room,
+                            room: widget.args.room,
                             state: state,
                             isBusy: _controller.isLoading,
                           ),

@@ -20,10 +20,31 @@ type EventBus struct {
 	subscribers []Observer
 }
 
+var (
+	defaultBusMu sync.RWMutex
+	defaultBus   = NewEventBus()
+)
+
 func NewEventBus() *EventBus {
 	return &EventBus{
 		subscribers: make([]Observer, 0),
 	}
+}
+
+func DefaultBus() *EventBus {
+	defaultBusMu.RLock()
+	defer defaultBusMu.RUnlock()
+	return defaultBus
+}
+
+func SetDefaultBus(bus *EventBus) {
+	if bus == nil {
+		return
+	}
+
+	defaultBusMu.Lock()
+	defaultBus = bus
+	defaultBusMu.Unlock()
 }
 
 func (b *EventBus) Subscribe(observer Observer) {

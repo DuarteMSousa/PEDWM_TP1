@@ -7,6 +7,7 @@ import (
 	"backend/internal/domain/round"
 	"backend/internal/domain/team"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -78,7 +79,7 @@ func NewGame(teams []*team.Team, scoringStrategy IGameScoringStrategy, botStrate
 		g.Teams[t.ID] = t
 	}
 	g.events = []events.Event{}
-	g.eventBus = events.NewEventBus()
+	g.eventBus = events.DefaultBus()
 
 	g.State = NewGameStartingState(g)
 	return g
@@ -87,6 +88,15 @@ func NewGame(teams []*team.Team, scoringStrategy IGameScoringStrategy, botStrate
 func (g *Game) AddEvent(e events.Event) {
 	if g == nil {
 		return
+	}
+
+	if g.ID != uuid.Nil {
+		e.GameID = g.ID.String()
+	}
+
+	roomID := strings.TrimSpace(g.RoomID)
+	if roomID != "" {
+		e.RoomID = roomID
 	}
 
 	g.events = append(g.events, e)

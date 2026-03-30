@@ -23,9 +23,12 @@ class RoomWaitingController extends ChangeNotifier {
   RoomDetails? room;
   bool roomUnavailable = false;
   StreamSubscription<LobbyRealtimeEvent>? _eventsSubscription;
+  bool _isRefreshingFromEvent = false;
+  bool _hasPendingEventRefresh = false;
 
   bool get hasAllPlayers => room?.hasRequiredPlayers == true;
   bool get isHost => room?.hostPlayerId == currentPlayerId;
+  bool get hasGameStarted => room?.status == 'IN_GAME';
 
   Future<void> initialize() async {
     isLoading = true;
@@ -87,20 +90,26 @@ class RoomWaitingController extends ChangeNotifier {
     }
   }
 
-  Future<bool> deleteRoom() async {
+  Future<bool> startGame() async {
+    if (!isHost) {
+      errorMessage = 'Apenas o host pode iniciar o jogo.';
+      notifyListeners();
+      return false;
+    }
+    if (!hasAllPlayers) {
+      errorMessage = 'Sao precisos 4 jogadores para iniciar.';
+      notifyListeners();
+      return false;
+    }
+
     isActionLoading = true;
     errorMessage = null;
     notifyListeners();
 
     try {
-      final deleted = await _lobbyRepository.deleteRoom(
-        roomId: roomId,
-        requesterId: currentPlayerId,
-      );
-      if (!deleted) {
-        errorMessage = 'Nao foi possivel eliminar a sala.';
-      }
-      return deleted;
+      room = await _lobbyRepository.startGame(roomId: roomId);
+      roomUnavailable = false;
+      return true;
     } catch (error) {
       errorMessage = error.toString();
       return false;
@@ -114,14 +123,10 @@ class RoomWaitingController extends ChangeNotifier {
     await _eventsSubscription?.cancel();
     _eventsSubscription = _lobbyRepository.watchRealtimeEvents().listen(
       (event) {
-        final sameRoom = event.roomId == roomId;
-        final roomDeleted =
-            event.isRoomDeleted &&
-            event.payload['roomId']?.toString() == roomId;
-        if (!sameRoom && !roomDeleted) {
+        if (event.roomId != roomId) {
           return;
         }
-        unawaited(refreshRoom());
+        unawaited(_refreshFromRealtimeEvent());
       },
       onError: (Object error) {
         errorMessage = error.toString();
@@ -130,10 +135,26 @@ class RoomWaitingController extends ChangeNotifier {
     );
   }
 
+  Future<void> _refreshFromRealtimeEvent() async {
+    if (_isRefreshingFromEvent) {
+      _hasPendingEventRefresh = true;
+      return;
+    }
+
+    _isRefreshingFromEvent = true;
+    try {
+      do {
+        _hasPendingEventRefresh = false;
+        await refreshRoom();
+      } while (_hasPendingEventRefresh);
+    } finally {
+      _isRefreshingFromEvent = false;
+    }
+  }
+
   @override
   void dispose() {
     _eventsSubscription?.cancel();
-    unawaited(_lobbyRepository.disconnect());
     super.dispose();
   }
 }

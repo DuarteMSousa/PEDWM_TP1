@@ -6,9 +6,9 @@ class RoomDetails {
     required this.name,
     required this.hostPlayerId,
     required this.status,
-    required this.maxPlayers,
-    required this.isPrivate,
     required this.players,
+    this.maxPlayers = 4,
+    this.isPrivate = false,
   });
 
   final String id;

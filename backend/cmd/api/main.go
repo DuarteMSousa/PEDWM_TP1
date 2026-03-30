@@ -31,6 +31,7 @@ func main() {
 	hub := wstransport.NewHub()
 
 	eventBus := events.NewEventBus()
+	events.SetDefaultBus(eventBus)
 	eventBus.Subscribe(wstransport.NewWebSocketObserver(hub))
 
 	// ========================

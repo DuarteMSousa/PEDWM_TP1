@@ -32,20 +32,8 @@ class LobbyRepositoryImpl implements LobbyRepository {
   Future<List<Room>> fetchRooms() => _remoteDataSource.fetchRooms();
 
   @override
-  Future<Room> createRoom({
-    required String name,
-    required String hostPlayerId,
-    int maxPlayers = 4,
-    bool isPrivate = false,
-    String? password,
-  }) {
-    return _remoteDataSource.createRoom(
-      name: name,
-      hostPlayerId: hostPlayerId,
-      maxPlayers: maxPlayers,
-      isPrivate: isPrivate,
-      password: password,
-    );
+  Future<Room> createRoom({required String hostPlayerId}) {
+    return _remoteDataSource.createRoom(hostPlayerId: hostPlayerId);
   }
 
   @override
@@ -54,16 +42,8 @@ class LobbyRepositoryImpl implements LobbyRepository {
   }
 
   @override
-  Future<Room> joinRoom({
-    required String roomId,
-    required String playerId,
-    String? password,
-  }) {
-    return _remoteDataSource.joinRoom(
-      roomId: roomId,
-      playerId: playerId,
-      password: password,
-    );
+  Future<Room> joinRoom({required String roomId, required String playerId}) {
+    return _remoteDataSource.joinRoom(roomId: roomId, playerId: playerId);
   }
 
   @override
@@ -75,13 +55,7 @@ class LobbyRepositoryImpl implements LobbyRepository {
   }
 
   @override
-  Future<bool> deleteRoom({
-    required String roomId,
-    required String requesterId,
-  }) {
-    return _remoteDataSource.deleteRoom(
-      roomId: roomId,
-      requesterId: requesterId,
-    );
+  Future<RoomDetails> startGame({required String roomId}) {
+    return _remoteDataSource.startGame(roomId: roomId);
   }
 }

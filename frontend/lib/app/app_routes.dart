@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../features/auth/domain/entities/user.dart';
 import '../features/auth/presentation/pages/nickname_page.dart';
 import '../features/game/presentation/pages/game_page.dart';
-import '../features/lobby/domain/entities/room.dart';
 import '../features/lobby/presentation/pages/lobby_page.dart';
 import '../features/lobby/presentation/pages/room_waiting_page.dart';
 import '../features/profile/presentation/pages/profile_page.dart';
@@ -60,15 +59,16 @@ class AppRouter {
           ),
         );
       case AppRoutes.game:
-        if (settings.arguments is! Room) {
-          return _errorRoute('Missing Room argument for /game');
+        if (settings.arguments is! GamePageArgs) {
+          return _errorRoute('Missing GamePageArgs argument for /game');
         }
+        final gameArgs = settings.arguments! as GamePageArgs;
         return _buildAnimatedRoute(
           settings: settings,
           beginOffset: const Offset(0, 0.07),
           builder: (_) => GamePage(
             gameRepository: _dependencies.gameRepository,
-            room: settings.arguments! as Room,
+            args: gameArgs,
           ),
         );
       case AppRoutes.profile:

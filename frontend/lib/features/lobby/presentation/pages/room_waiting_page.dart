@@ -6,6 +6,7 @@ import '../../../../app/app_routes.dart';
 import '../../../../core/shared_widgets/section_card.dart';
 import '../../../../core/shared_widgets/table_background.dart';
 import '../../../auth/domain/entities/user.dart';
+import '../../../game/presentation/pages/game_page.dart';
 import '../../domain/entities/room.dart';
 import '../../domain/entities/room_member.dart';
 import '../../domain/repositories/lobby_repository.dart';
@@ -34,6 +35,7 @@ class RoomWaitingPage extends StatefulWidget {
 
 class _RoomWaitingPageState extends State<RoomWaitingPage> {
   late final RoomWaitingController _controller;
+  bool _didNavigateToGame = false;
 
   @override
   void initState() {
@@ -70,48 +72,54 @@ class _RoomWaitingPageState extends State<RoomWaitingPage> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _deleteRoom() async {
-    final deleteConfirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Eliminar sala'),
-          content: const Text(
-            'Esta acao remove a sala para todos os jogadores. Continuar?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Eliminar'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (deleteConfirmed != true) {
-      return;
-    }
-
-    final deleted = await _controller.deleteRoom();
+  Future<void> _startGame() async {
+    final started = await _controller.startGame();
     if (!mounted) {
       return;
     }
-
-    if (deleted) {
-      Navigator.of(context).pop();
+    if (started) {
+      await _controller.refreshRoom();
+      _maybeNavigateToGame();
       return;
     }
-
     final message =
-        _controller.errorMessage ?? 'Nao foi possivel eliminar a sala.';
+        _controller.errorMessage ?? 'Nao foi possivel iniciar o jogo.';
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _maybeNavigateToGame() {
+    if (!mounted || _didNavigateToGame || !_controller.hasGameStarted) {
+      return;
+    }
+
+    final room = _controller.room;
+    if (room == null) {
+      return;
+    }
+
+    _didNavigateToGame = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pushReplacementNamed(
+        AppRoutes.game,
+        arguments: GamePageArgs(
+          room: Room(
+            id: room.id,
+            name: room.name,
+            playersCount: room.playersCount,
+            maxPlayers: room.maxPlayers,
+            status: room.status,
+            isPrivate: room.isPrivate,
+          ),
+          currentPlayerId: widget.args.currentUser.id,
+        ),
+      );
+    });
   }
 
   @override
@@ -131,25 +139,12 @@ class _RoomWaitingPageState extends State<RoomWaitingPage> {
             onPressed: _controller.isActionLoading ? null : _leaveRoom,
             icon: const Icon(Icons.arrow_back_rounded),
           ),
-          actions: [
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                if (!_controller.isHost) {
-                  return const SizedBox.shrink();
-                }
-                return IconButton(
-                  tooltip: 'Eliminar sala',
-                  onPressed: _controller.isActionLoading ? null : _deleteRoom,
-                  icon: const Icon(Icons.delete_outline),
-                );
-              },
-            ),
-          ],
         ),
         body: AnimatedBuilder(
           animation: _controller,
           builder: (context, _) {
+            _maybeNavigateToGame();
+
             if (_controller.isLoading && _controller.room == null) {
               return const TableBackground(
                 child: Center(child: CircularProgressIndicator()),
@@ -299,22 +294,20 @@ class _RoomWaitingPageState extends State<RoomWaitingPage> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: _controller.hasAllPlayers
-                                ? () {
-                                    Navigator.of(context).pushNamed(
-                                      AppRoutes.game,
-                                      arguments: Room(
-                                        id: room.id,
-                                        name: room.name,
-                                        playersCount: room.playersCount,
-                                        maxPlayers: room.maxPlayers,
-                                        isPrivate: room.isPrivate,
-                                      ),
-                                    );
-                                  }
-                                : null,
+                            onPressed: _controller.hasGameStarted
+                                ? _maybeNavigateToGame
+                                : (!_controller.hasAllPlayers ||
+                                          !_controller.isHost
+                                      ? null
+                                      : _startGame),
                             icon: const Icon(Icons.play_arrow_rounded),
-                            label: const Text('Ir para jogo'),
+                            label: Text(
+                              _controller.hasGameStarted
+                                  ? 'Entrar no jogo'
+                                  : (_controller.isHost
+                                        ? 'Iniciar jogo'
+                                        : 'Aguardar host'),
+                            ),
                           ),
                         ),
                       ],

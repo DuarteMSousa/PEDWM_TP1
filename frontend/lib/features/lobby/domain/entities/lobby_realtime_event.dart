@@ -13,9 +13,5 @@ class LobbyRealtimeEvent {
   final String timestamp;
   final Map<String, dynamic> payload;
 
-  bool get isRoomDeleted => type == 'ROOM_DELETED';
-  bool get isRoomUpdated =>
-      type == 'ROOM_UPDATED' ||
-      type == 'PLAYER_JOINED' ||
-      type == 'PLAYER_LEFT';
+  bool get isGameStarted => type == 'GAME_STARTED';
 }

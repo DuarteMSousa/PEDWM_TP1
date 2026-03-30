@@ -10,8 +10,11 @@ class GameRepositoryImpl implements GameRepository {
   final GameRemoteDataSource _remoteDataSource;
 
   @override
-  Future<SuecaGameState> loadGame(String roomId) {
-    return _remoteDataSource.loadGame(roomId);
+  Future<SuecaGameState> loadGame({
+    required String roomId,
+    required String playerId,
+  }) {
+    return _remoteDataSource.loadGame(roomId: roomId, playerId: playerId);
   }
 
   @override
