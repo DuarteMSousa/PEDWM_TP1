@@ -7,10 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// NOTE: Event model kept intentionally minimal so websocket transport can be
-// developed independently. Event payload design and complete event catalog are
-// owned by another teammate.
-
 type EventType string
 
 const (

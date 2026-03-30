@@ -4,6 +4,7 @@ import (
 	"backend/internal/domain/game"
 	game_factory "backend/internal/domain/game/gameFactory"
 	domainplayer "backend/internal/domain/player"
+	bot_strategy "backend/internal/domain/player/botStrategy"
 	"errors"
 	"math/rand"
 	"strings"
@@ -137,11 +138,7 @@ func (r *Room) CanStartGame() bool {
 	return r.Status == OPEN && len(r.Players) == 4
 }
 
-func (r *Room) StartGame() error {
-	if !r.CanStartGame() {
-		return ErrCannotStartGamePlayers
-	}
-
+func (r *Room) StartGame(botStrategy bot_strategy.IBotStrategy) error {
 	gamePlayers := make(map[string]*domainplayer.Player)
 	seq := 0
 	for _, rp := range r.Players {
@@ -150,7 +147,7 @@ func (r *Room) StartGame() error {
 		seq++
 	}
 
-	r.Game = game_factory.CreateSuecaGame(gamePlayers)
+	r.Game = game_factory.CreateSuecaGame(gamePlayers, botStrategy)
 	r.Game.RoomID = r.ID
 	r.Status = IN_GAME
 

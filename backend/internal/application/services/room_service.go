@@ -2,6 +2,7 @@ package application
 
 import (
 	"backend/internal/application/interfaces"
+	bot_strategy "backend/internal/domain/player/botStrategy"
 	"backend/internal/domain/room"
 )
 
@@ -60,13 +61,13 @@ func (s *RoomService) LeaveRoom(roomID, userID string) (*room.Room, error) {
 	return r, s.repo.Save(r)
 }
 
-func (s *RoomService) StartGame(roomID string) (*room.Room, error) {
+func (s *RoomService) StartGame(roomID string, botStrategy bot_strategy.IBotStrategy) (*room.Room, error) {
 	r, err := s.repo.FindByID(roomID)
 	if err != nil || r == nil {
 		return nil, err
 	}
 
-	if err := r.StartGame(); err != nil {
+	if err := r.StartGame(botStrategy); err != nil {
 		return nil, err
 	}
 
