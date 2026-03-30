@@ -42,11 +42,13 @@ func NewTrick(leaderID string, TrumpSuit card.Suit, teams map[string]*team.Team)
 	}
 
 	return &Trick{
-		LeaderID:  leaderID,
-		TurnOrder: turnorder,
-		TrumpSuit: TrumpSuit,
-		Plays:     make([]Play, 0),
-		Teams:     teams,
+		LeaderID:        leaderID,
+		TurnOrder:       turnorder,
+		TrumpSuit:       TrumpSuit,
+		Plays:           make([]Play, 0),
+		Teams:           teams,
+		ScoringStrategy: SuecaTrickScoring{},
+		RuleStrategy:    SuecaTrickRules{},
 	}
 }
 

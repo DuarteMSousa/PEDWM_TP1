@@ -59,6 +59,7 @@ func NewGame(teams []*team.Team, scoringStrategy IGameScoringStrategy, botStrate
 		ID:              uuid.New(),
 		Status:          IN_PROGRESS,
 		players:         make(map[string]*player.Player),
+		Score:           make(map[string]int),
 		scoringStrategy: scoringStrategy,
 		botStrategy:     botStrategy,
 		Teams:           make(map[string]*team.Team),

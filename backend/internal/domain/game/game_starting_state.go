@@ -16,6 +16,9 @@ func NewGameStartingState(g *Game) *GameStartingState {
 
 func (s *GameStartingState) Enter() {
 	s.game.AddEvent(events.NewGameStartedEvent(s.game.ID.String()))
+	if s.game.Score == nil {
+		s.game.Score = make(map[string]int)
+	}
 	for _, t := range s.game.Teams {
 		s.game.Score[t.ID] = 0
 	}

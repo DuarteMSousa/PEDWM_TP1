@@ -36,9 +36,14 @@ type Round struct {
 
 func NewRound(gameId uuid.UUID, teams map[string]*team.Team, botStrategy bot_strategy.IBotStrategy) *Round {
 	round := &Round{
-		gameId:      gameId,
-		Teams:       teams,
-		BotStrategy: botStrategy,
+		gameId:       gameId,
+		Teams:        teams,
+		BotStrategy:  botStrategy,
+		RuleStrategy: NewSuecaRoundRuleStrategy(),
+		score:        make(map[string]int),
+	}
+	for teamID := range teams {
+		round.score[teamID] = 0
 	}
 
 	round.State = NewRoundSetupState(round)
@@ -90,7 +95,7 @@ func (r *Round) PlayCard(playerID string, cardId string) error {
 	play := trick.NewPlay(player.ID, card)
 
 	r.CurrentTrick.AddPlay(play)
-	r.AddEvent(events.NewCardPlayedEvent(r.CurrentTrick.LeaderID, player.ID, card))
+	r.AddEvent(events.NewCardPlayedEvent(r.gameId.String(), player.ID, card))
 
 	r.State.Update()
 

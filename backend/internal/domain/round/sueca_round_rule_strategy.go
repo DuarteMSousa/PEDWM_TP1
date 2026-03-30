@@ -45,13 +45,13 @@ func (s *SuecaRoundRuleStrategy) HasEnded(Round *Round) bool {
 	return endedHands == totalPlayers
 }
 
-func (s *SuecaRoundRuleStrategy) CalculateCurrentTrickRoundPoints(Round *Round) (map[string]int, error) {
+func (s *SuecaRoundRuleStrategy) CalculateCurrentTrickRoundPoints(Round *Round) map[string]int {
 	points := make(map[string]int)
 
 	winner, winnerErr := Round.CurrentTrick.RuleStrategy.WinningTeam(*Round.CurrentTrick)
 
 	if winnerErr != nil {
-		return nil, winnerErr
+		return points
 	}
 
 	for teamID := range Round.Teams {
@@ -62,5 +62,5 @@ func (s *SuecaRoundRuleStrategy) CalculateCurrentTrickRoundPoints(Round *Round) 
 		points[teamID] = teamPoints
 	}
 
-	return points, nil
+	return points
 }
