@@ -2,18 +2,26 @@ package application
 
 import (
 	"backend/internal/application/interfaces"
-	bot_strategy "backend/internal/domain/player/botStrategy"
 	"backend/internal/domain/room"
+	"backend/internal/infrastructure/websocket"
+	"errors"
+
+	"github.com/google/uuid"
+)
+
+var (
+	ErrRoomNotFound = errors.New("room not found")
 )
 
 type RoomService struct {
 	repo     interfaces.RoomRepository
 	gameRepo interfaces.GameRepository
 	userRepo interfaces.UserRepository
+	hub      *websocket.Hub
 }
 
-func NewRoomService(repo interfaces.RoomRepository, gameRepo interfaces.GameRepository, userRepo interfaces.UserRepository) *RoomService {
-	return &RoomService{repo: repo, gameRepo: gameRepo, userRepo: userRepo}
+func NewRoomService(repo interfaces.RoomRepository, gameRepo interfaces.GameRepository, userRepo interfaces.UserRepository, hub *websocket.Hub) *RoomService {
+	return &RoomService{repo: repo, gameRepo: gameRepo, userRepo: userRepo, hub: hub}
 }
 
 func (s *RoomService) CreateRoom(hostID string) (*room.Room, error) {
@@ -22,10 +30,13 @@ func (s *RoomService) CreateRoom(hostID string) (*room.Room, error) {
 		return nil, err
 	}
 
-	r, err := room.NewRoom(hostID, user.Username)
+	r, err := room.NewRoom(uuid.New().String(), hostID, user.Username)
 	if err != nil {
 		return nil, err
 	}
+
+	// Create a RoomHub for the new room
+	s.hub.CreateRoomHub(r.ID, hostID, user.Username)
 
 	return r, s.repo.Save(r)
 }
@@ -45,6 +56,20 @@ func (s *RoomService) JoinRoom(roomID, userID string) (*room.Room, error) {
 		return nil, err
 	}
 
+	roomHub := s.hub.GetRoomHub(roomID)
+
+	if roomHub == nil {
+		return nil, ErrRoomNotFound
+	}
+
+	room := roomHub.GetRoom()
+
+	if room == nil {
+		return nil, ErrRoomNotFound
+	}
+
+	room.AddPlayer(userID, user.Username)
+
 	return r, s.repo.Save(r)
 }
 
@@ -58,30 +83,40 @@ func (s *RoomService) LeaveRoom(roomID, userID string) (*room.Room, error) {
 		return nil, err
 	}
 
+	roomHub := s.hub.GetRoomHub(roomID)
+
+	if roomHub == nil {
+		return nil, ErrRoomNotFound
+	}
+
+	room := roomHub.GetRoom()
+
+	if room == nil {
+		return nil, ErrRoomNotFound
+	}
+
+	room.RemovePlayer(userID)
+
 	return r, s.repo.Save(r)
 }
 
-func (s *RoomService) StartGame(roomID string, botStrategy bot_strategy.IBotStrategy) (*room.Room, error) {
-	r, err := s.repo.FindByID(roomID)
-	if err != nil || r == nil {
-		return nil, err
+func (s *RoomService) StartGame(roomID string) (*room.Room, error) {
+
+	roomHub := s.hub.GetRoomHub(roomID)
+
+	if roomHub == nil {
+		return nil, ErrRoomNotFound
 	}
 
-	if err := r.StartGame(botStrategy); err != nil {
-		return nil, err
+	room := roomHub.GetRoom()
+
+	if room == nil {
+		return nil, ErrRoomNotFound
 	}
 
-	if err := s.repo.Save(r); err != nil {
-		return nil, err
-	}
+	room.StartGame()
 
-	if r.Game != nil {
-		if err := s.gameRepo.Save(r.Game); err != nil {
-			return nil, err
-		}
-	}
-
-	return r, nil
+	return room, nil
 }
 
 func (s *RoomService) GetRoom(id string) (*room.Room, error) {

@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync"
 )
 
 // CommandHandler define a assinatura de uma função capaz de processar
@@ -33,15 +34,22 @@ type CommandContext struct {
 // CommandDispatcher mantém um registo de handlers indexados pelo tipo
 // de mensagem e encaminha cada mensagem recebida para o handler adequado.
 type CommandDispatcher struct {
+	mu       sync.RWMutex
 	handlers map[string]CommandHandler
 }
 
-// NewCommandDispatcher cria uma nova instância do dispatcher sem handlers
-// registados.
-func NewCommandDispatcher() *CommandDispatcher {
-	return &CommandDispatcher{
-		handlers: make(map[string]CommandHandler),
-	}
+var (
+	commandDispatcherInstance *CommandDispatcher
+	onceCommandDispatcher     sync.Once
+)
+
+func GetCommandDispatcherInstance() *CommandDispatcher {
+	onceCommandDispatcher.Do(func() {
+		commandDispatcherInstance = &CommandDispatcher{
+			handlers: make(map[string]CommandHandler),
+		}
+	})
+	return commandDispatcherInstance
 }
 
 // Register associa um tipo de mensagem a um CommandHandler. Se já existir

@@ -2,16 +2,11 @@ package postgres
 
 import (
 	"context"
-	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
-	if err := cleanupLegacyLobbySchema(ctx, pool); err != nil {
-		return err
-	}
-
 	statements := []string{
 
 		// =========================
@@ -143,92 +138,4 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 	}
 
 	return nil
-}
-
-func cleanupLegacyLobbySchema(ctx context.Context, pool *pgxpool.Pool) error {
-	isLegacy, err := hasLegacyLobbySchema(ctx, pool)
-	if err != nil || !isLegacy {
-		return err
-	}
-
-	tx, err := pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-
-	statements := []string{
-		`DROP TABLE IF EXISTS events`,
-		`DROP TABLE IF EXISTS games`,
-		`DROP TABLE IF EXISTS room_players`,
-		`DROP TABLE IF EXISTS rooms`,
-		`DROP TYPE IF EXISTS room_status`,
-		`DROP TYPE IF EXISTS game_status`,
-	}
-
-	for _, stmt := range statements {
-		if _, err := tx.Exec(ctx, stmt); err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit(ctx)
-}
-
-func hasLegacyLobbySchema(ctx context.Context, pool *pgxpool.Pool) (bool, error) {
-	var roomsExists bool
-	if err := pool.QueryRow(ctx, `SELECT to_regclass('public.rooms') IS NOT NULL`).Scan(&roomsExists); err != nil {
-		return false, err
-	}
-	if !roomsExists {
-		return false, nil
-	}
-
-	var roomsIDType string
-	if err := pool.QueryRow(ctx, `
-		SELECT data_type
-		FROM information_schema.columns
-		WHERE table_schema = 'public'
-		  AND table_name = 'rooms'
-		  AND column_name = 'id'
-	`).Scan(&roomsIDType); err != nil {
-		return false, err
-	}
-	if strings.TrimSpace(strings.ToLower(roomsIDType)) != "uuid" {
-		return true, nil
-	}
-
-	var hasLegacyRoomColumns bool
-	if err := pool.QueryRow(ctx, `
-		SELECT EXISTS (
-			SELECT 1
-			FROM information_schema.columns
-			WHERE table_schema = 'public'
-			  AND table_name = 'rooms'
-			  AND column_name IN ('name', 'max_players', 'is_private', 'password')
-		)
-	`).Scan(&hasLegacyRoomColumns); err != nil {
-		return false, err
-	}
-	if hasLegacyRoomColumns {
-		return true, nil
-	}
-
-	var hasLegacyRoomPlayersColumns bool
-	if err := pool.QueryRow(ctx, `
-		SELECT EXISTS (
-			SELECT 1
-			FROM information_schema.columns
-			WHERE table_schema = 'public'
-			  AND table_name = 'room_players'
-			  AND column_name IN ('player_id', 'joined_at')
-		)
-	`).Scan(&hasLegacyRoomPlayersColumns); err != nil {
-		return false, err
-	}
-	if hasLegacyRoomPlayersColumns {
-		return true, nil
-	}
-
-	return false, nil
 }

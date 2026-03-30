@@ -6,7 +6,6 @@ package websocket
 // JSON, e interage com os repositórios e comandos de domínio adequados.
 
 import (
-	"backend/internal/application/interfaces"
 	command "backend/internal/domain/commands"
 	"backend/internal/domain/game"
 	"encoding/json"
@@ -26,7 +25,7 @@ type PlayCardPayload struct {
 // NewPlayCardHandler cria um handler para o comando "play_card".
 // O handler localiza o jogo ativo na sala do cliente, cria um
 // PlayCardCommand e executa-o sobre o jogo.
-func NewPlayCardHandler(gameRepo interfaces.GameRepository) CommandHandler {
+func NewPlayCardHandler(hub *Hub) CommandHandler {
 	return func(ctx *CommandContext, payload json.RawMessage) error {
 		var p PlayCardPayload
 		if err := json.Unmarshal(payload, &p); err != nil {
@@ -36,7 +35,7 @@ func NewPlayCardHandler(gameRepo interfaces.GameRepository) CommandHandler {
 			return ErrMissingCard
 		}
 
-		activeGame, err := findActiveGame(gameRepo, ctx.RoomID)
+		activeGame, err := findGame(hub, ctx.RoomID)
 		if err != nil {
 			return err
 		}
@@ -44,21 +43,20 @@ func NewPlayCardHandler(gameRepo interfaces.GameRepository) CommandHandler {
 		cmd := command.NewPlayCardCommand(ctx.PlayerID, p.CardID)
 		cmd.Execute(activeGame)
 
-		return gameRepo.Save(activeGame)
+		return nil
 	}
 }
 
-// findActiveGame procura o jogo com estado IN_PROGRESS associado a uma sala.
-func findActiveGame(gameRepo interfaces.GameRepository, roomID string) (*game.Game, error) {
-	games, err := gameRepo.FindByRoomID(roomID)
-	if err != nil {
-		return nil, err
+// findGame procura o jogo.
+func findGame(hub *Hub, roomID string) (*game.Game, error) {
+	roomHub := hub.GetRoomHub(roomID)
+	if roomHub == nil {
+		return nil, ErrNoActiveGame
 	}
 
-	for _, g := range games {
-		if g.Status == game.IN_PROGRESS {
-			return g, nil
-		}
+	game := roomHub.room.Game
+	if game != nil {
+		return game, nil
 	}
 
 	return nil, ErrNoActiveGame

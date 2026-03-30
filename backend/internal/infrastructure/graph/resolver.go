@@ -12,4 +12,5 @@ type Resolver struct {
 	UserService       *application.UserService
 	FriendshipService *application.FriendshipService
 	UserStatsService  *application.UserStatsService
+	EventService      *application.EventService
 }

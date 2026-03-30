@@ -17,8 +17,8 @@ type Player struct {
 	Hand     *hand.Hand `json:"hand"`
 }
 
-func NewPlayer(id, name string, sequence int) Player {
-	return Player{
+func NewPlayer(id, name string, sequence int) *Player {
+	return &Player{
 		ID:       id,
 		Name:     name,
 		Type:     HUMAN,

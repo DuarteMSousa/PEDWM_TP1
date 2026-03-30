@@ -3,14 +3,13 @@ package room
 import (
 	"backend/internal/domain/game"
 	game_factory "backend/internal/domain/game/gameFactory"
+	"backend/internal/domain/player"
 	domainplayer "backend/internal/domain/player"
 	bot_strategy "backend/internal/domain/player/botStrategy"
 	"errors"
 	"math/rand"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type RoomStatus string
@@ -39,31 +38,36 @@ type RoomPlayer struct {
 }
 
 type Room struct {
-	ID      string                 `json:"id"`
-	HostID  string                 `json:"hostId"`
-	Players map[string]*RoomPlayer `json:"players"`
-	Status  RoomStatus             `json:"status"`
-	Game    *game.Game             `json:"game,omitempty"`
+	ID      string                    `json:"id"`
+	HostID  string                    `json:"hostId"`
+	Players map[string]*player.Player `json:"players"`
+	Status  RoomStatus                `json:"status"`
+	Game    *game.Game                `json:"game,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-func NewRoom(hostID string, hostUsername string) (*Room, error) {
-	hostID = strings.TrimSpace(hostID)
-	if hostID == "" {
+func NewRoom(id string, hostId string, hostUsername string) (*Room, error) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil, ErrInvalidRoomID
+	}
+
+	hostId = strings.TrimSpace(hostId)
+	if hostId == "" {
+		return nil, ErrInvalidHost
+	}
+	if hostUsername == "" {
 		return nil, ErrInvalidHost
 	}
 
-	players := map[string]*RoomPlayer{
-		hostID: {
-			UserID:   hostID,
-			Username: hostUsername,
-		},
+	players := map[string]*player.Player{
+		hostId: player.NewPlayer(hostId, hostUsername, 1),
 	}
 
 	return &Room{
-		ID:        uuid.New().String(),
-		HostID:    hostID,
+		ID:        id,
+		HostID:    hostId,
 		Players:   players,
 		Status:    OPEN,
 		CreatedAt: time.Now().UTC(),
@@ -88,10 +92,7 @@ func (r *Room) AddPlayer(userID, username string) error {
 		return ErrPlayerAlreadyInRoom
 	}
 
-	r.Players[userID] = &RoomPlayer{
-		UserID:   userID,
-		Username: username,
-	}
+	r.Players[userID] = player.NewPlayer(userID, username, len(r.Players)+1)
 	return nil
 }
 
@@ -138,16 +139,10 @@ func (r *Room) CanStartGame() bool {
 	return r.Status == OPEN && len(r.Players) == 4
 }
 
-func (r *Room) StartGame(botStrategy bot_strategy.IBotStrategy) error {
+func (r *Room) StartGame() error {
 	gamePlayers := make(map[string]*domainplayer.Player)
-	seq := 0
-	for _, rp := range r.Players {
-		p := domainplayer.NewPlayer(rp.UserID, rp.Username, seq)
-		gamePlayers[rp.UserID] = &p
-		seq++
-	}
 
-	r.Game = game_factory.CreateSuecaGame(gamePlayers, botStrategy)
+	r.Game = game_factory.CreateSuecaGame(gamePlayers, bot_strategy.NewEasyBotStrategy())
 	r.Game.RoomID = r.ID
 	r.Status = IN_GAME
 

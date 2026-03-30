@@ -28,20 +28,30 @@ package websocket
 // no canal de envio), este pode ser automaticamente desconectado para
 // preservar o desempenho e a estabilidade da comunicação em tempo real.
 
-import "sync"
+import (
+	"backend/internal/domain/room"
+	"sync"
+)
 
 // RoomHub manages clients for a single room.
 type RoomHub struct {
-	roomID  string
+	room    *room.Room
 	mu      sync.RWMutex
 	clients map[*Client]struct{}
 }
 
-func NewRoomHub(roomID string) *RoomHub {
+func NewRoomHub(room *room.Room) *RoomHub {
 	return &RoomHub{
-		roomID:  roomID,
+		room:    room,
 		clients: make(map[*Client]struct{}),
 	}
+}
+
+func (r *RoomHub) GetRoom() *room.Room {
+	if r == nil {
+		return nil
+	}
+	return r.room
 }
 
 func (r *RoomHub) AddClient(client *Client) {

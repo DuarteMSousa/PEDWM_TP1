@@ -31,6 +31,7 @@ type Event struct {
 	GameID    string    `json:"gameId,omitempty"`
 	RoomID    string    `json:"roomId,omitempty"`
 	Timestamp time.Time `json:"timestamp"`
+	Sequence  int       `json:"sequence,omitempty"`
 	Payload   any       `json:"payload,omitempty"`
 }
 

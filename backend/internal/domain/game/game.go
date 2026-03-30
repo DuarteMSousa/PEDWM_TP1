@@ -131,6 +131,9 @@ func (g *Game) UpdateRoundState() {
 	g.round.State.Update()
 	events := g.round.CollectEvents()
 	for _, event := range events {
+		event.GameID = g.ID.String()
+		event.RoomID = g.RoomID
+
 		g.AddEvent(event)
 	}
 }

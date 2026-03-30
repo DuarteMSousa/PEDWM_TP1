@@ -28,7 +28,7 @@ func main() {
 	// ========================
 	// Infra base
 	// ========================
-	hub := wstransport.NewHub()
+	hub := wstransport.GetHubInstance()
 
 	eventBus := events.NewEventBus()
 	events.SetDefaultBus(eventBus)
@@ -51,17 +51,19 @@ func main() {
 	friendshipRepo := repositories.NewFriendshipPostgresRepository(pool)
 	userStatsRepo := repositories.NewUserStatsPostgresRepository(pool)
 	gameRepo := repositories.NewGamePostgresRepository(pool)
+	eventRepo := repositories.NewEventPostgresRepository(pool)
 
 	// ========================
 	// Command Dispatcher
 	// ========================
-	dispatcher := wstransport.NewCommandDispatcher()
-	dispatcher.Register("play_card", wstransport.NewPlayCardHandler(gameRepo))
+	dispatcher := wstransport.GetCommandDispatcherInstance()
+	dispatcher.Register("play_card", wstransport.NewPlayCardHandler(hub))
 
 	// ========================
 	// Application
 	// ========================
-	roomService := application.NewRoomService(repo, gameRepo, userRepo)
+	eventService := application.NewEventService(eventRepo)
+	roomService := application.NewRoomService(repo, gameRepo, userRepo, hub)
 	userService := application.NewUserService(userRepo, userStatsRepo)
 	friendshipService := application.NewFriendshipService(friendshipRepo, userRepo)
 	userStatsService := application.NewUserStatsService(userStatsRepo, userRepo)
@@ -76,6 +78,7 @@ func main() {
 		UserService:       userService,
 		FriendshipService: friendshipService,
 		UserStatsService:  userStatsService,
+		EventService:      eventService,
 	}
 
 	srv := handler.New(graph.NewExecutableSchema(

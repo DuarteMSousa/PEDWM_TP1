@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"backend/internal/domain/room"
 	"strings"
 	"sync"
 )
@@ -11,20 +12,38 @@ type Hub struct {
 }
 
 var (
-	instance *Hub
-	once     sync.Once
+	hubInstance *Hub
+	onceHub     sync.Once
 )
 
-func GetInstance() *Hub {
-	once.Do(func() {
-		instance = &Hub{
+func GetHubInstance() *Hub {
+	onceHub.Do(func() {
+		hubInstance = &Hub{
 			rooms: make(map[string]*RoomHub),
 		}
 	})
-	return instance
+	return hubInstance
 }
 
-func (h *Hub) GetOrCreateRoom(roomID string) *RoomHub {
+func (h *Hub) CreateRoomHub(roomID string, hostId string, hostUserName string) *RoomHub {
+	roomID = strings.TrimSpace(roomID)
+	if roomID == "" {
+		return nil
+	}
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	room, err := room.NewRoom(roomID, hostId, hostUserName)
+	if err != nil {
+		return nil
+	}
+
+	roomHub := NewRoomHub(room)
+	h.rooms[roomID] = roomHub
+	return roomHub
+}
+
+func (h *Hub) GetRoomHub(roomID string) *RoomHub {
 	roomID = strings.TrimSpace(roomID)
 	if roomID == "" {
 		return nil
@@ -37,9 +56,7 @@ func (h *Hub) GetOrCreateRoom(roomID string) *RoomHub {
 		return room
 	}
 
-	room := NewRoomHub(roomID)
-	h.rooms[roomID] = room
-	return room
+	return nil
 }
 
 func (h *Hub) AddClient(roomID string, client *Client) {
@@ -47,12 +64,12 @@ func (h *Hub) AddClient(roomID string, client *Client) {
 		return
 	}
 
-	room := h.GetOrCreateRoom(roomID)
-	if room == nil {
+	roomHub := h.GetRoomHub(roomID)
+	if roomHub == nil {
 		return
 	}
 
-	room.AddClient(client)
+	roomHub.AddClient(client)
 }
 
 func (h *Hub) RemoveClient(roomID string, client *Client) {
