@@ -33,11 +33,6 @@ var (
 	ErrInvalidPlayerID        = errors.New("invalid player id")
 )
 
-type RoomPlayer struct {
-	UserID   string `json:"userId"`
-	Username string `json:"username"`
-}
-
 type Room struct {
 	ID       string                    `json:"id"`
 	HostID   string                    `json:"hostId"`

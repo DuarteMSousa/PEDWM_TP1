@@ -38,8 +38,8 @@ func mapRoom(r *room.Room) *model.Room {
 
 	for _, p := range r.Players {
 		players = append(players, &model.RoomPlayer{
-			ID:       p.UserID,
-			Username: p.Username,
+			ID:       p.ID,
+			Username: p.Name,
 		})
 	}
 

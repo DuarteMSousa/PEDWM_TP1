@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"backend/internal/domain/player"
 	"backend/internal/domain/room"
 	"context"
 
@@ -52,7 +53,7 @@ func (r *RoomPostgresRepository) Save(rm *room.Room) error {
 			VALUES ($1, $2)
 		`,
 			rm.ID,
-			p.UserID,
+			p.ID,
 		)
 		if err != nil {
 			return err
@@ -91,14 +92,14 @@ func (r *RoomPostgresRepository) FindByID(id string) (*room.Room, error) {
 	}
 	defer rows.Close()
 
-	rm.Players = make(map[string]*room.RoomPlayer)
+	rm.Players = make(map[string]*player.Player)
 
 	for rows.Next() {
-		var p room.RoomPlayer
-		if err := rows.Scan(&p.UserID, &p.Username); err != nil {
+		var p player.Player
+		if err := rows.Scan(&p.ID, &p.Name); err != nil {
 			return nil, err
 		}
-		rm.Players[p.UserID] = &p
+		rm.Players[p.ID] = &p
 	}
 
 	return &rm, nil
