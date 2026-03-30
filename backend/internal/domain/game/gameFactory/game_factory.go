@@ -1,6 +1,7 @@
 package game_factory
 
 import (
+	"backend/internal/domain/events"
 	"backend/internal/domain/game"
 	"backend/internal/domain/player"
 	bot_strategy "backend/internal/domain/player/botStrategy"
@@ -8,7 +9,7 @@ import (
 	"sort"
 )
 
-func CreateSuecaGame(players map[string]*player.Player, botStrategy bot_strategy.IBotStrategy) *game.Game {
+func CreateSuecaGame(players map[string]*player.Player, botStrategy bot_strategy.IBotStrategy, eventBus *events.EventBus) *game.Game {
 	roomPlayers := make([]*player.Player, 0, len(players))
 	for _, p := range players {
 		roomPlayers = append(roomPlayers, p)
@@ -29,5 +30,10 @@ func CreateSuecaGame(players map[string]*player.Player, botStrategy bot_strategy
 	}
 
 	game := game.NewGame([]*team.Team{&team1, &team2}, game.NewSuecaGameScoringStrategy(), botStrategy)
+	game.SetEventBus(eventBus)
+
+	//por service
+	persistenceObserver := events.NewPersistenceObserver()
+	eventBus.Subscribe(persistenceObserver)
 	return game
 }

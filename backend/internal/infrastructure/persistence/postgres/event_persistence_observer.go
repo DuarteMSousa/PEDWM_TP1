@@ -21,9 +21,9 @@ func (o *EventPersistanceObserver) Update(event domain.Event) {
 		return
 	}
 
-	roomID := strings.TrimSpace(event.RoomID)
+	gameId := strings.TrimSpace(event.GameID)
 
-	if roomID == "" {
+	if gameId == "" {
 		return
 	}
 

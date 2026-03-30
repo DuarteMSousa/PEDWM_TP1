@@ -2,6 +2,7 @@ package application
 
 import (
 	"backend/internal/application/interfaces"
+	"backend/internal/domain/events"
 	"backend/internal/domain/room"
 	"backend/internal/infrastructure/websocket"
 	"errors"
@@ -35,8 +36,14 @@ func (s *RoomService) CreateRoom(hostID string) (*room.Room, error) {
 		return nil, err
 	}
 
-	// Create a RoomHub for the new room
+	//Ligar observers ao event bus da sala
 	s.hub.CreateRoomHub(r.ID, hostID, user.Username)
+
+	eventBus := events.NewEventBus()
+	r.SetEventBus(eventBus)
+
+	wsObserver := websocket.NewWebSocketObserver(s.hub)
+	eventBus.Subscribe(wsObserver)
 
 	return r, s.repo.Save(r)
 }

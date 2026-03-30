@@ -47,7 +47,9 @@ type Game struct {
 	scoringStrategy IGameScoringStrategy
 	botStrategy     bot_strategy.IBotStrategy
 
-	events   []events.Event
+	events               []events.Event
+	currentEventSequence int
+
 	eventBus *events.EventBus
 
 	CreatedAt time.Time
@@ -56,16 +58,17 @@ type Game struct {
 
 func NewGame(teams []*team.Team, scoringStrategy IGameScoringStrategy, botStrategy bot_strategy.IBotStrategy) *Game {
 	g := &Game{
-		ID:              uuid.New(),
-		Status:          IN_PROGRESS,
-		players:         make(map[string]*player.Player),
-		Score:           make(map[string]int),
-		scoringStrategy: scoringStrategy,
-		botStrategy:     botStrategy,
-		Teams:           make(map[string]*team.Team),
-		events:          []events.Event{},
-		CreatedAt:       time.Now().UTC(),
-		UpdatedAt:       time.Now().UTC(),
+		ID:                   uuid.New(),
+		Status:               IN_PROGRESS,
+		players:              make(map[string]*player.Player),
+		Score:                make(map[string]int),
+		scoringStrategy:      scoringStrategy,
+		botStrategy:          botStrategy,
+		Teams:                make(map[string]*team.Team),
+		events:               []events.Event{},
+		currentEventSequence: 1,
+		CreatedAt:            time.Now().UTC(),
+		UpdatedAt:            time.Now().UTC(),
 	}
 
 	for _, t := range teams {
@@ -99,6 +102,9 @@ func (g *Game) AddEvent(e events.Event) {
 	if roomID != "" {
 		e.RoomID = roomID
 	}
+
+	e.Sequence = g.currentEventSequence
+	g.currentEventSequence++
 
 	g.events = append(g.events, e)
 	if g.eventBus != nil {
@@ -138,16 +144,6 @@ func (g *Game) UpdateRoundState() {
 	}
 }
 
-// func (g *Game) SwitchPlayer(player player.Player) error {
-// 	if g == nil {
-// 		return ErrGameDoesNotExist
-// 	}
-
-// 	for _, qplayer := range g.players {
-// 		if player.Sequence == qplayer.Sequence {
-// 			g.players[qplayer.ID] = &player
-// 		}
-// 	}
-
-// 	return nil
-// }
+func (g *Game) SetEventBus(eventBus *events.EventBus) {
+	g.eventBus = eventBus
+}

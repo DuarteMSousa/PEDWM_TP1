@@ -1,6 +1,7 @@
 package room
 
 import (
+	"backend/internal/domain/events"
 	"backend/internal/domain/game"
 	game_factory "backend/internal/domain/game/gameFactory"
 	"backend/internal/domain/player"
@@ -38,11 +39,12 @@ type RoomPlayer struct {
 }
 
 type Room struct {
-	ID      string                    `json:"id"`
-	HostID  string                    `json:"hostId"`
-	Players map[string]*player.Player `json:"players"`
-	Status  RoomStatus                `json:"status"`
-	Game    *game.Game                `json:"game,omitempty"`
+	ID       string                    `json:"id"`
+	HostID   string                    `json:"hostId"`
+	Players  map[string]*player.Player `json:"players"`
+	Status   RoomStatus                `json:"status"`
+	Game     *game.Game                `json:"game,omitempty"`
+	EventBus *events.EventBus          `json:"-"`
 
 	CreatedAt time.Time `json:"createdAt"`
 }
@@ -142,13 +144,17 @@ func (r *Room) CanStartGame() bool {
 func (r *Room) StartGame() error {
 	gamePlayers := make(map[string]*domainplayer.Player)
 
-	r.Game = game_factory.CreateSuecaGame(gamePlayers, bot_strategy.NewEasyBotStrategy())
+	r.Game = game_factory.CreateSuecaGame(gamePlayers, bot_strategy.NewEasyBotStrategy(), r.EventBus)
 	r.Game.RoomID = r.ID
 	r.Status = IN_GAME
 
 	r.Game.State.Enter()
 
 	return nil
+}
+
+func (r *Room) SetEventBus(eventBus *events.EventBus) {
+	r.EventBus = eventBus
 }
 
 func (r *Room) Close() {
