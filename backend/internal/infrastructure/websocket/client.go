@@ -50,21 +50,23 @@ const (
 
 // Client wraps one websocket connection.
 type Client struct {
-	id     string
-	roomID string
-	hub    *Hub
-	conn   *gws.Conn
-	send   chan []byte
-	once   sync.Once
+	id         string
+	roomID     string
+	hub        *Hub
+	conn       *gws.Conn
+	send       chan []byte
+	once       sync.Once
+	dispatcher *CommandDispatcher
 }
 
-func NewClient(id string, roomID string, conn *gws.Conn, hub *Hub) *Client {
+func NewClient(id string, roomID string, conn *gws.Conn, hub *Hub, dispatcher *CommandDispatcher) *Client {
 	return &Client{
-		id:     id,
-		roomID: roomID,
-		hub:    hub,
-		conn:   conn,
-		send:   make(chan []byte, 32),
+		id:         id,
+		roomID:     roomID,
+		hub:        hub,
+		conn:       conn,
+		send:       make(chan []byte, 32),
+		dispatcher: dispatcher,
 	}
 }
 
@@ -107,9 +109,13 @@ func (c *Client) ReadPump() {
 	})
 
 	for {
-		_, _, err := c.conn.ReadMessage()
+		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			return
+		}
+
+		if c.dispatcher != nil {
+			c.dispatcher.HandleMessage(c, message)
 		}
 	}
 }

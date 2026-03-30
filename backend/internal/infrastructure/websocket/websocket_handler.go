@@ -9,13 +9,15 @@ import (
 )
 
 type Handler struct {
-	Hub      *Hub
-	Upgrader gws.Upgrader
+	Hub        *Hub
+	Upgrader   gws.Upgrader
+	Dispatcher *CommandDispatcher
 }
 
-func NewHandler(hub *Hub) *Handler {
+func NewHandler(hub *Hub, dispatcher *CommandDispatcher) *Handler {
 	return &Handler{
-		Hub: hub,
+		Hub:        hub,
+		Dispatcher: dispatcher,
 		Upgrader: gws.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -52,7 +54,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := NewClient(playerID, roomID, conn, h.Hub)
+	client := NewClient(playerID, roomID, conn, h.Hub, h.Dispatcher)
 	h.Hub.AddClient(roomID, client)
 
 	go client.WritePump()

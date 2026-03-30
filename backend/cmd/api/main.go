@@ -53,6 +53,12 @@ func main() {
 	gameRepo := repositories.NewGamePostgresRepository(pool)
 
 	// ========================
+	// Command Dispatcher
+	// ========================
+	dispatcher := wstransport.NewCommandDispatcher()
+	dispatcher.Register("play_card", wstransport.NewPlayCardHandler(gameRepo))
+
+	// ========================
 	// Application
 	// ========================
 	roomService := application.NewRoomService(repo, gameRepo, userRepo)
@@ -92,7 +98,7 @@ func main() {
 	// ========================
 	mux := http.NewServeMux()
 
-	mux.Handle("/ws", wstransport.NewHandler(hub))
+	mux.Handle("/ws", wstransport.NewHandler(hub, dispatcher))
 	mux.Handle("/graphql", srv)
 	mux.Handle("/", playground.Handler("GraphQL playground", "/graphql"))
 
