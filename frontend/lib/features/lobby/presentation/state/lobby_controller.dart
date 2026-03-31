@@ -94,9 +94,6 @@ class LobbyController extends ChangeNotifier {
     _connectedPlayerId = playerId;
     _eventsSubscription = _lobbyRepository.watchRealtimeEvents().listen(
       (event) {
-        if (event.roomId != 'lobby') {
-          return;
-        }
         unawaited(_refreshFromRealtimeEvent());
       },
       onError: (Object error) {

@@ -5,7 +5,6 @@ import (
 	"backend/internal/domain/game"
 	game_factory "backend/internal/domain/game/gameFactory"
 	"backend/internal/domain/player"
-	domainplayer "backend/internal/domain/player"
 	bot_strategy "backend/internal/domain/player/botStrategy"
 	"errors"
 	"math/rand"
@@ -89,7 +88,20 @@ func (r *Room) AddPlayer(userID, username string) error {
 		return ErrPlayerAlreadyInRoom
 	}
 
-	r.Players[userID] = player.NewPlayer(userID, username, len(r.Players)+1)
+	joinedPlayer := player.NewPlayer(userID, username, len(r.Players)+1)
+	r.Players[userID] = joinedPlayer
+
+	if r.EventBus != nil {
+		event := events.NewPlayerJoinedEvent(
+			"",
+			joinedPlayer.ID,
+			joinedPlayer.Name,
+			joinedPlayer.Sequence,
+		)
+		event.RoomID = r.ID
+		r.EventBus.Publish(event)
+	}
+
 	return nil
 }
 
@@ -109,7 +121,14 @@ func (r *Room) RemovePlayer(playerID string) error {
 		return ErrPlayerNotFoundInRoom
 	}
 
+	removedPlayer := r.Players[playerID]
 	delete(r.Players, playerID)
+
+	if r.EventBus != nil {
+		event := events.NewPlayerLeftEvent("", removedPlayer.ID)
+		event.RoomID = r.ID
+		r.EventBus.Publish(event)
+	}
 
 	if r.HostID == playerID {
 		r.HostID = ""
@@ -137,7 +156,14 @@ func (r *Room) CanStartGame() bool {
 }
 
 func (r *Room) StartGame() error {
-	gamePlayers := make(map[string]*domainplayer.Player)
+	if !r.CanStartGame() {
+		return ErrCannotStartGamePlayers
+	}
+
+	gamePlayers := make(map[string]*player.Player, len(r.Players))
+	for id, p := range r.Players {
+		gamePlayers[id] = p
+	}
 
 	r.Game = game_factory.CreateSuecaGame(gamePlayers, bot_strategy.NewEasyBotStrategy(), r.EventBus)
 	r.Game.RoomID = r.ID

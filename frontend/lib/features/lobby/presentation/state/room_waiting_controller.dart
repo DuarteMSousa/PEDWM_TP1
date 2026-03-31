@@ -40,8 +40,8 @@ class RoomWaitingController extends ChangeNotifier {
         roomId: roomId,
         playerId: currentPlayerId,
       );
-      await refreshRoom();
       await _startRealtimeSync();
+      await refreshRoom();
     } catch (error) {
       errorMessage = error.toString();
     } finally {

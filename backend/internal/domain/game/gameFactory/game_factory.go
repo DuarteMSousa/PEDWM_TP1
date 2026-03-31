@@ -30,10 +30,9 @@ func CreateSuecaGame(players map[string]*player.Player, botStrategy bot_strategy
 	}
 
 	game := game.NewGame([]*team.Team{&team1, &team2}, game.NewSuecaGameScoringStrategy(), botStrategy)
-	game.SetEventBus(eventBus)
+	if eventBus != nil {
+		game.SetEventBus(eventBus)
+	}
 
-	//por service
-	persistenceObserver := events.NewPersistenceObserver()
-	eventBus.Subscribe(persistenceObserver)
 	return game
 }

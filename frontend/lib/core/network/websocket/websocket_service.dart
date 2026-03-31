@@ -77,14 +77,14 @@ class WebSocketService {
     _connectedPlayerId = null;
   }
 
-  Future<void> send(String channel, Map<String, dynamic> payload) async {
+  Future<void> send(String type, Map<String, dynamic> payload) async {
     if (!_isConnected || _channel == null) {
       throw AppException('WebSocket is not connected.');
     }
 
-    final message = <String, dynamic>{'channel': channel, 'payload': payload};
+    final message = <String, dynamic>{'type': type, 'payload': payload};
 
-    Logger.info('WebSocket send [$channel] payload=$payload');
+    Logger.info('WebSocket send [$type] payload=$payload');
     _channel!.sink.add(jsonEncode(message));
   }
 

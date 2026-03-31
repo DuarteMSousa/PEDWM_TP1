@@ -11,6 +11,8 @@ type Hub struct {
 	rooms map[string]*RoomHub
 }
 
+const lobbyRoomID = "lobby"
+
 var (
 	hubInstance *Hub
 	onceHub     sync.Once
@@ -19,24 +21,26 @@ var (
 func GetHubInstance() *Hub {
 	onceHub.Do(func() {
 		hubInstance = &Hub{
-			rooms: make(map[string]*RoomHub),
+			rooms: map[string]*RoomHub{
+				lobbyRoomID: NewRoomHub(nil),
+			},
 		}
 	})
 	return hubInstance
 }
 
-func (h *Hub) CreateRoomHub(roomID string, hostId string, hostUserName string) *RoomHub {
-	roomID = strings.TrimSpace(roomID)
+func (h *Hub) CreateRoomHub(room *room.Room) *RoomHub {
+	if h == nil || room == nil {
+		return nil
+	}
+
+	roomID := strings.TrimSpace(room.ID)
 	if roomID == "" {
 		return nil
 	}
 
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	room, err := room.NewRoom(roomID, hostId, hostUserName)
-	if err != nil {
-		return nil
-	}
 
 	roomHub := NewRoomHub(room)
 	h.rooms[roomID] = roomHub
@@ -49,8 +53,8 @@ func (h *Hub) GetRoomHub(roomID string) *RoomHub {
 		return nil
 	}
 
-	h.mu.Lock()
-	defer h.mu.Unlock()
+	h.mu.RLock()
+	defer h.mu.RUnlock()
 
 	if room, ok := h.rooms[roomID]; ok {
 		return room
@@ -64,7 +68,22 @@ func (h *Hub) AddClient(roomID string, client *Client) {
 		return
 	}
 
+	roomID = strings.TrimSpace(roomID)
+	if roomID == "" {
+		return
+	}
+
 	roomHub := h.GetRoomHub(roomID)
+	if roomHub == nil && roomID == lobbyRoomID {
+		h.mu.Lock()
+		roomHub = h.rooms[lobbyRoomID]
+		if roomHub == nil {
+			roomHub = NewRoomHub(nil)
+			h.rooms[lobbyRoomID] = roomHub
+		}
+		h.mu.Unlock()
+	}
+
 	if roomHub == nil {
 		return
 	}
@@ -91,6 +110,9 @@ func (h *Hub) RemoveClient(roomID string, client *Client) {
 
 	isEmpty := room.RemoveClient(client)
 	if !isEmpty {
+		return
+	}
+	if roomID == lobbyRoomID {
 		return
 	}
 
