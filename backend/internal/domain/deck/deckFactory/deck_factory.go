@@ -10,7 +10,11 @@ func CreateSuecaDeck() *deck.Deck {
 	cards := make([]card.Card, 0, 40)
 	for _, suit := range card.Suits {
 		for _, rank := range card.Ranks {
-			cards = append(cards, card.Card{Suit: suit, Rank: rank})
+			createdCard, err := card.NewCard(suit, rank)
+			if err != nil {
+				panic(err)
+			}
+			cards = append(cards, createdCard)
 		}
 	}
 

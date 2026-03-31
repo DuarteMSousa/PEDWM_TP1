@@ -21,6 +21,15 @@ func (h *Hand) AddCard(c card.Card) {
 	h.Cards = append(h.Cards, c)
 }
 
+func (h *Hand) GetCard(cardId string) (card.Card, error) {
+	for _, card := range h.Cards {
+		if card.ID == cardId {
+			return card, nil
+		}
+	}
+	return card.Card{}, ErrCardNotInHand
+}
+
 func (h *Hand) RemoveCard(cardId string) (card.Card, error) {
 	for i, card := range h.Cards {
 		if card.ID == cardId {

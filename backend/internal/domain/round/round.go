@@ -18,6 +18,7 @@ var (
 	ErrRoundFinished         = errors.New("round finished")
 	ErrWinningPlayerNotFound = errors.New("winning player not found in any team")
 	ErrPlayerNotFound        = errors.New("player not found in any team")
+	ErrInvalidPlay           = errors.New("invalid play")
 )
 
 type Round struct {
@@ -87,14 +88,23 @@ func (r *Round) PlayCard(playerID string, cardId string) error {
 		return err
 	}
 
-	card, err := player.Hand.RemoveCard(cardId)
+	card, err := player.Hand.GetCard(cardId)
 	if err != nil {
 		return err
 	}
 
 	play := trick.NewPlay(player.ID, card)
+	if !r.CurrentTrick.RuleStrategy.ValidatePlay(*r.CurrentTrick, play) {
+		return ErrInvalidPlay
+	}
 
-	r.CurrentTrick.AddPlay(play)
+	if err := r.CurrentTrick.AddPlay(play); err != nil {
+		return err
+	}
+
+	if _, err := player.Hand.RemoveCard(cardId); err != nil {
+		return err
+	}
 	r.AddEvent(events.NewCardPlayedEvent(r.gameId.String(), player.ID, card))
 
 	r.State.Update()

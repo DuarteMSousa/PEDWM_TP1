@@ -78,11 +78,6 @@ func (t *Trick) AddPlay(play Play) error {
 		return ErrPlayerAlreadyPlay
 	}
 
-	if t.IsEmpty() {
-		ls := play.Card.Suit
-		t.LeadSuit = &ls
-	}
-
 	nextPlayerID, err := t.TurnOrder.Next()
 
 	if err != nil {
@@ -93,7 +88,16 @@ func (t *Trick) AddPlay(play Play) error {
 		return ErrPlayerOutOfTurn
 	}
 
+	if t.IsEmpty() {
+		ls := play.Card.Suit
+		t.LeadSuit = &ls
+	}
+
 	t.Plays = append(t.Plays, play)
+	_, err = t.TurnOrder.Advance()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

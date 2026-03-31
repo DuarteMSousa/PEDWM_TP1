@@ -72,6 +72,10 @@ func (s SuecaTrickRules) ValidatePlay(trick Trick, play Play) bool {
 		return false
 	}
 
+	if trick.LeadSuit == nil {
+		return true
+	}
+
 	if play.Card.Suit != *trick.LeadSuit {
 
 		if play.Card.Suit != trick.TrumpSuit {
