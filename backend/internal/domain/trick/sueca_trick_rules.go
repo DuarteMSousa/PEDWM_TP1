@@ -108,28 +108,15 @@ func (s SuecaTrickRules) ValidatePlay(trick Trick, play Play) bool {
 
 	if play.Card.Suit != *trick.LeadSuit {
 
-		if play.Card.Suit != trick.TrumpSuit {
-			for _, t := range trick.Teams {
-				for _, p := range t.Players {
-					if p.ID == play.PlayerID {
-						if p.Hand.HasSuit(*trick.LeadSuit) || p.Hand.HasSuit(trick.TrumpSuit) {
-							return false
-						}
-					}
-				}
-			}
-		} else {
-			for _, t := range trick.Teams {
-				for _, p := range t.Players {
-					if p.ID == play.PlayerID {
-						if p.Hand.HasSuit(*trick.LeadSuit) {
-							return false
-						}
+		for _, t := range trick.Teams {
+			for _, p := range t.Players {
+				if p.ID == play.PlayerID {
+					if p.Hand.HasSuit(*trick.LeadSuit) {
+						return false
 					}
 				}
 			}
 		}
-
 	}
 
 	return true

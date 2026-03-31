@@ -63,6 +63,16 @@ func (h *Hub) GetRoomHub(roomID string) *RoomHub {
 	return nil
 }
 
+func (h *Hub) GetRoom(roomID string) *room.Room {
+	roomHub := h.GetRoomHub(roomID)
+	if roomHub == nil {
+		return nil
+	}
+
+	return roomHub.GetRoom()
+
+}
+
 func (h *Hub) AddClient(roomID string, client *Client) {
 	if h == nil || client == nil {
 		return

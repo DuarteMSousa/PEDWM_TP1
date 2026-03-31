@@ -63,9 +63,9 @@ func (s *RoomService) CreateRoom(hostID string) (*room.Room, error) {
 }
 
 func (s *RoomService) JoinRoom(roomID, userID string) (*room.Room, error) {
-	room, err := s.ensureRealtimeRoom(roomID)
-	if err != nil || room == nil {
-		return nil, err
+	room := s.hub.GetRoom(roomID)
+	if room == nil {
+		return nil, ErrRoomNotFound
 	}
 
 	user, err := s.userRepo.FindByID(userID)
@@ -86,9 +86,9 @@ func (s *RoomService) JoinRoom(roomID, userID string) (*room.Room, error) {
 }
 
 func (s *RoomService) LeaveRoom(roomID, userID string) (*room.Room, error) {
-	room, err := s.ensureRealtimeRoom(roomID)
-	if err != nil || room == nil {
-		return nil, err
+	room := s.hub.GetRoom(roomID)
+	if room == nil {
+		return nil, ErrRoomNotFound
 	}
 
 	if err := room.RemovePlayer(userID); err != nil {
@@ -104,8 +104,8 @@ func (s *RoomService) LeaveRoom(roomID, userID string) (*room.Room, error) {
 }
 
 func (s *RoomService) StartGame(roomID string) (*room.Room, error) {
-	room, err := s.ensureRealtimeRoom(roomID)
-	if err != nil || room == nil {
+	room := s.hub.GetRoom(roomID)
+	if room == nil {
 		return nil, ErrRoomNotFound
 	}
 
@@ -123,33 +123,6 @@ func (s *RoomService) StartGame(roomID string) (*room.Room, error) {
 	}
 	s.publishRoomSyncedEvent(room)
 
-	return room, nil
-}
-
-func (s *RoomService) ensureRealtimeRoom(roomID string) (*room.Room, error) {
-	roomHub := s.hub.GetRoomHub(roomID)
-	if roomHub != nil {
-		room := roomHub.GetRoom()
-		if room != nil {
-			if room.EventBus == nil {
-				eventBus := events.NewEventBus()
-				eventBus.Subscribe(websocket.NewWebSocketObserver(s.hub))
-				room.SetEventBus(eventBus)
-			}
-			return room, nil
-		}
-	}
-
-	room, err := s.repo.FindByID(roomID)
-	if err != nil || room == nil {
-		return nil, ErrRoomNotFound
-	}
-
-	eventBus := events.NewEventBus()
-	eventBus.Subscribe(websocket.NewWebSocketObserver(s.hub))
-	room.SetEventBus(eventBus)
-
-	s.hub.CreateRoomHub(room)
 	return room, nil
 }
 
@@ -179,8 +152,8 @@ func (s *RoomService) GetRooms() ([]*room.Room, error) {
 }
 
 func (s *RoomService) GetGameSnapshot(roomID, playerID string) (*GameSnapshot, error) {
-	room, err := s.ensureRealtimeRoom(roomID)
-	if err != nil || room == nil {
+	room := s.hub.GetRoom(roomID)
+	if room == nil {
 		return nil, ErrRoomNotFound
 	}
 	if room.Game == nil {
