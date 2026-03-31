@@ -171,6 +171,15 @@ func (r *queryResolver) Rooms(ctx context.Context) ([]*model.Room, error) {
 	return result, nil
 }
 
+// GameSnapshot is the resolver for the gameSnapshot field.
+func (r *queryResolver) GameSnapshot(ctx context.Context, roomID string, playerID string) (*model.GameSnapshot, error) {
+	snapshot, err := r.RoomService.GetGameSnapshot(roomID, playerID)
+	if err != nil {
+		return nil, err
+	}
+	return mapGameSnapshot(snapshot), nil
+}
+
 // UserStats is the resolver for the userStats field.
 func (r *queryResolver) UserStats(ctx context.Context, userID string) (*model.UserStats, error) {
 	userStats, err := r.UserStatsService.GetByUserID(userID)
@@ -188,19 +197,3 @@ func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-/*
-	func (r *mutationResolver) RecordGame(ctx context.Context, input model.RecordGameInput) (*model.UserStats, error) {
-	userStats, err := r.UserStatsService.RecordGame(input.UserID, input.Won)
-	if err != nil {
-		return nil, err
-	}
-	return mapUserStats(userStats), nil
-}
-*/

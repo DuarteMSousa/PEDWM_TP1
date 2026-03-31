@@ -2,8 +2,10 @@ package application
 
 import (
 	"backend/internal/application/interfaces"
+	"backend/internal/domain/card"
 	"backend/internal/domain/events"
 	"backend/internal/domain/room"
+	"backend/internal/domain/trick"
 	"backend/internal/infrastructure/websocket"
 	"errors"
 	"time"
@@ -13,7 +15,19 @@ import (
 
 var (
 	ErrRoomNotFound = errors.New("room not found")
+	ErrGameNotFound = errors.New("game not found")
 )
+
+type GameSnapshot struct {
+	RoomID          string
+	GameID          string
+	Status          string
+	TrumpSuit       string
+	CurrentPlayerID string
+	MyHand          []card.Card
+	TablePlays      []trick.Play
+	Scores          map[string]int
+}
 
 type RoomService struct {
 	repo     interfaces.RoomRepository
@@ -162,4 +176,56 @@ func (s *RoomService) GetRoom(id string) (*room.Room, error) {
 
 func (s *RoomService) GetRooms() ([]*room.Room, error) {
 	return s.repo.FindAll()
+}
+
+func (s *RoomService) GetGameSnapshot(roomID, playerID string) (*GameSnapshot, error) {
+	room, err := s.ensureRealtimeRoom(roomID)
+	if err != nil || room == nil {
+		return nil, ErrRoomNotFound
+	}
+	if room.Game == nil {
+		return nil, ErrGameNotFound
+	}
+
+	g := room.Game
+	currentRound := g.CurrentRound()
+	if currentRound == nil {
+		return nil, ErrGameNotFound
+	}
+
+	requestedPlayer, err := g.GetPlayer(playerID)
+	if err != nil {
+		return nil, err
+	}
+
+	scores := make(map[string]int, len(g.Score))
+	for teamID, value := range g.Score {
+		scores[teamID] = value
+	}
+
+	myHand := make([]card.Card, 0)
+	if requestedPlayer.Hand != nil {
+		myHand = append(myHand, requestedPlayer.Hand.Cards...)
+	}
+
+	tablePlays := make([]trick.Play, 0)
+	currentPlayerID := ""
+	if currentRound.CurrentTrick != nil {
+		tablePlays = append(tablePlays, currentRound.CurrentTrick.Plays...)
+		nextPlayerID, nextErr := currentRound.CurrentTrick.TurnOrder.Next()
+		if nextErr == nil {
+			currentPlayerID = nextPlayerID
+		}
+	}
+
+	return &GameSnapshot{
+		RoomID:          room.ID,
+		GameID:          g.ID.String(),
+		Status:          string(g.Status),
+		TrumpSuit:       string(currentRound.TrumpSuit),
+		CurrentPlayerID: currentPlayerID,
+		MyHand:          myHand,
+		TablePlays:      tablePlays,
+		Scores:          scores,
+	}, nil
 }

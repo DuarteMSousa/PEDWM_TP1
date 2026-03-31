@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../domain/entities/card.dart';
+import '../../domain/entities/game_phase.dart';
 import '../../domain/entities/sueca_game_state.dart';
 import '../../domain/repositories/game_repository.dart';
 
@@ -21,6 +22,16 @@ class GameController extends ChangeNotifier {
   String? errorMessage;
   SuecaGameState? gameState;
   StreamSubscription<SuecaGameState>? _subscription;
+
+  bool get canPlayCard {
+    final state = gameState;
+    if (state == null) {
+      return false;
+    }
+    return state.phase == GamePhase.playingTrick &&
+        state.currentPlayerId == state.myPlayerId &&
+        !isLoading;
+  }
 
   Future<void> initialize() async {
     isLoading = true;
@@ -53,7 +64,9 @@ class GameController extends ChangeNotifier {
   }
 
   Future<void> playCard(SuecaCard card) async {
-    if (isLoading) {
+    if (!canPlayCard) {
+      errorMessage = 'Ainda não é a tua vez.';
+      notifyListeners();
       return;
     }
 

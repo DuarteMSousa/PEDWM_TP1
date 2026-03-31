@@ -33,15 +33,20 @@ class AppRouter {
               NicknamePage(authRepository: _dependencies.authRepository),
         );
       case AppRoutes.lobby:
-        final user = settings.arguments is User
-            ? settings.arguments! as User
-            : const User(id: 'guest', nickname: 'Guest');
+        final arguments = settings.arguments;
+        final lobbyArgs = arguments is LobbyPageArgs ? arguments : null;
+        final user =
+            lobbyArgs?.currentUser ??
+            (arguments is User
+                ? arguments
+                : const User(id: 'guest', nickname: 'Guest'));
         return _buildAnimatedRoute(
           settings: settings,
           beginOffset: const Offset(0.06, 0),
           builder: (_) => LobbyPage(
             lobbyRepository: _dependencies.lobbyRepository,
             currentUser: user,
+            autoCreateRoom: lobbyArgs?.autoCreateRoom ?? false,
           ),
         );
       case AppRoutes.roomWaiting:

@@ -41,7 +41,9 @@ func NewPlayCardHandler(hub *Hub) CommandHandler {
 		}
 
 		cmd := command.NewPlayCardCommand(ctx.PlayerID, p.CardID)
-		cmd.Execute(activeGame)
+		if err := cmd.Execute(activeGame); err != nil {
+			return err
+		}
 
 		return nil
 	}

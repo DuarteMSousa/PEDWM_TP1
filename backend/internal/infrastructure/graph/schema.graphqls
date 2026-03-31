@@ -69,6 +69,33 @@ type Room {
   createdAt: Time!
 }
 
+type GameCard {
+  id: ID!
+  suit: String!
+  rank: String!
+}
+
+type GameTablePlay {
+  playerId: ID!
+  card: GameCard!
+}
+
+type TeamScore {
+  teamId: ID!
+  points: Int!
+}
+
+type GameSnapshot {
+  roomId: ID!
+  gameId: ID!
+  status: String!
+  trumpSuit: String
+  currentPlayerId: ID
+  myHand: [GameCard!]!
+  tablePlays: [GameTablePlay!]!
+  scores: [TeamScore!]!
+}
+
 # =========================
 # Inputs
 # =========================
@@ -132,6 +159,7 @@ type Query {
   # Rooms
   room(id: ID!): Room
   rooms: [Room!]!
+  gameSnapshot(roomId: ID!, playerId: ID!): GameSnapshot
 
   # User Stats
   userStats(userId: ID!): UserStats

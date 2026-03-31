@@ -85,16 +85,3 @@ func (o *TurnOrder) Advance() (string, error) {
 	o.players = append(o.players[1:], first)
 	return first.ID, nil
 }
-
-func (o *TurnOrder) Enqueue(player *player.Player) {
-	o.players = append(o.players, player)
-}
-
-func (o *TurnOrder) Dequeue() (string, error) {
-	if len(o.players) == 0 {
-		return "", errors.New("turn order is empty")
-	}
-	first := o.players[0]
-	o.players = o.players[1:]
-	return first.ID, nil
-}

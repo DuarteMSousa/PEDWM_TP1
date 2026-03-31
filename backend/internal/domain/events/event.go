@@ -20,6 +20,7 @@ const (
 	EventPlayerJoined EventType = "PLAYER_JOINED"
 	EventPlayerLeft   EventType = "PLAYER_LEFT"
 	EventGameStarted  EventType = "GAME_STARTED"
+	EventTurnChanged  EventType = "TURN_CHANGED"
 	EventCardPlayed   EventType = "CARD_PLAYED"
 	EventTrickEnded   EventType = "TRICK_ENDED"
 	EventGameEnded    EventType = "GAME_ENDED"
@@ -72,6 +73,10 @@ type CardDealtPayload struct {
 type CardPlayedPayload struct {
 	PlayerID string    `json:"playerId"`
 	Card     card.Card `json:"card"`
+}
+
+type TurnChangedPayload struct {
+	PlayerID string `json:"playerId"`
 }
 
 type TrickEndedPayload struct {
@@ -139,6 +144,10 @@ func NewCardDealtEvent(gameID string, playerID string, card card.Card) Event {
 
 func NewCardPlayedEvent(gameID string, playerID string, playedCard card.Card) Event {
 	return newEvent(EventCardPlayed, gameID, CardPlayedPayload{PlayerID: playerID, Card: playedCard})
+}
+
+func NewTurnChangedEvent(gameID string, playerID string) Event {
+	return newEvent(EventTurnChanged, gameID, TurnChangedPayload{PlayerID: playerID})
 }
 
 func NewTrickEndedEvent(gameID string, winnerID string, points int) Event {

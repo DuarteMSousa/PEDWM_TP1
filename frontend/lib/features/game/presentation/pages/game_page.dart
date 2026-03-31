@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../../app/app_routes.dart';
 import '../../../../core/shared_widgets/motion.dart';
 import '../../../../core/shared_widgets/section_card.dart';
 import '../../../../core/shared_widgets/table_background.dart';
+import '../../../auth/domain/entities/user.dart';
 import '../../../lobby/domain/entities/room.dart';
+import '../../../lobby/presentation/pages/lobby_page.dart';
 import '../../domain/entities/card.dart';
 import '../../domain/entities/game_phase.dart';
 import '../../domain/entities/player.dart';
@@ -22,6 +25,8 @@ class GamePageArgs {
   final Room room;
   final String currentPlayerId;
 }
+
+enum _PostGameAction { rematch, lobby }
 
 class GamePage extends StatefulWidget {
   const GamePage({super.key, required this.gameRepository, required this.args});
@@ -45,6 +50,7 @@ class _GamePageState extends State<GamePage> {
 
   late final GameController _controller;
   String? _cardBackAssetPath;
+  bool _didHandleMatchEnd = false;
 
   @override
   void initState() {
@@ -79,6 +85,137 @@ class _GamePageState extends State<GamePage> {
     super.dispose();
   }
 
+  void _onMatchFinished(SuecaGameState state) {
+    if (_didHandleMatchEnd) {
+      return;
+    }
+    _didHandleMatchEnd = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        return;
+      }
+
+      final action = await _showPostGameSheet(state);
+      if (!mounted) {
+        return;
+      }
+
+      final user = _currentUserFromState(state);
+      switch (action ?? _PostGameAction.lobby) {
+        case _PostGameAction.rematch:
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            AppRoutes.lobby,
+            (_) => false,
+            arguments: LobbyPageArgs(currentUser: user, autoCreateRoom: true),
+          );
+          break;
+        case _PostGameAction.lobby:
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            AppRoutes.lobby,
+            (_) => false,
+            arguments: user,
+          );
+          break;
+      }
+    });
+  }
+
+  Future<_PostGameAction?> _showPostGameSheet(SuecaGameState state) {
+    final winner = _winnerLabel(state);
+
+    return showModalBottomSheet<_PostGameAction>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      useSafeArea: true,
+      backgroundColor: const Color(0xFF0F4B37),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Partida terminada',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: const Color(0xFFF8F0DB),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                winner == null ? 'Empate técnico.' : 'Vencedor: $winner.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: const Color(0xFFF8F0DB)),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _ScorePill(
+                      label: 'Equipa A',
+                      score: state.teamAScore,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _ScorePill(
+                      label: 'Equipa B',
+                      score: state.teamBScore,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () =>
+                          Navigator.of(context).pop(_PostGameAction.lobby),
+                      icon: const Icon(Icons.home_outlined),
+                      label: const Text('Lobby'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () =>
+                          Navigator.of(context).pop(_PostGameAction.rematch),
+                      icon: const Icon(Icons.replay_rounded),
+                      label: const Text('Revanche'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  User _currentUserFromState(SuecaGameState state) {
+    Player? me;
+    for (final player in state.players) {
+      if (player.id == state.myPlayerId) {
+        me = player;
+        break;
+      }
+    }
+    return User(id: state.myPlayerId, nickname: me?.nickname ?? 'Jogador');
+  }
+
+  String? _winnerLabel(SuecaGameState state) {
+    if (state.teamAScore == state.teamBScore) {
+      return null;
+    }
+    return state.teamAScore > state.teamBScore ? 'Equipa A' : 'Equipa B';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,6 +247,10 @@ class _GamePageState extends State<GamePage> {
                 ),
               ),
             );
+          }
+
+          if (state.phase == GamePhase.finished) {
+            _onMatchFinished(state);
           }
 
           final players = _orderedPlayers(state);
@@ -180,6 +321,7 @@ class _GamePageState extends State<GamePage> {
                                         me: me,
                                         hand: state.hand,
                                         isBusy: _controller.isLoading,
+                                        canPlay: _controller.canPlayCard,
                                         onPlayCard: _controller.playCard,
                                       ),
                                     ),
@@ -865,12 +1007,14 @@ class _MyHandArea extends StatelessWidget {
     required this.me,
     required this.hand,
     required this.isBusy,
+    required this.canPlay,
     required this.onPlayCard,
   });
 
   final Player? me;
   final List<SuecaCard> hand;
   final bool isBusy;
+  final bool canPlay;
   final Future<void> Function(SuecaCard card) onPlayCard;
 
   @override
@@ -911,7 +1055,7 @@ class _MyHandArea extends StatelessWidget {
             Expanded(
               child: _FannedHand(
                 hand: hand,
-                isBusy: isBusy,
+                canInteract: canPlay && !isBusy,
                 onPlayCard: onPlayCard,
               ),
             ),
@@ -925,12 +1069,12 @@ class _MyHandArea extends StatelessWidget {
 class _FannedHand extends StatelessWidget {
   const _FannedHand({
     required this.hand,
-    required this.isBusy,
+    required this.canInteract,
     required this.onPlayCard,
   });
 
   final List<SuecaCard> hand;
-  final bool isBusy;
+  final bool canInteract;
   final Future<void> Function(SuecaCard card) onPlayCard;
 
   @override
@@ -977,7 +1121,7 @@ class _FannedHand extends StatelessWidget {
                   angle: angle,
                   child: _HandCard(
                     card: card,
-                    isBusy: isBusy,
+                    isBusy: !canInteract,
                     onPressed: () => onPlayCard(card),
                   ),
                 ),

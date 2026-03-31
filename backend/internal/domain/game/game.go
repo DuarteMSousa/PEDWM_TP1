@@ -117,19 +117,28 @@ func (g *Game) GetEvents() []events.Event {
 	return g.events
 }
 
-func (g *Game) PlayCard(playerId string, cardId string) {
+func (g *Game) PlayCard(playerId string, cardId string) error {
+	if g == nil {
+		return ErrGameDoesNotExist
+	}
 	if g.State == nil {
-		panic(ErrGameNotPlaying)
+		return ErrGameNotPlaying
+	}
+	if g.round == nil {
+		return ErrRoundNotConfigured
 	}
 
 	_, ok := g.players[playerId]
 	if !ok {
-		panic(ErrPlayerNotFound)
+		return ErrPlayerNotFound
 	}
 
-	g.round.PlayCard(playerId, cardId)
+	if err := g.round.PlayCard(playerId, cardId); err != nil {
+		return err
+	}
 
 	g.State.Update()
+	return nil
 
 }
 
@@ -146,4 +155,22 @@ func (g *Game) UpdateRoundState() {
 
 func (g *Game) SetEventBus(eventBus *events.EventBus) {
 	g.eventBus = eventBus
+}
+
+func (g *Game) CurrentRound() *round.Round {
+	if g == nil {
+		return nil
+	}
+	return g.round
+}
+
+func (g *Game) GetPlayer(playerID string) (*player.Player, error) {
+	if g == nil {
+		return nil, ErrGameDoesNotExist
+	}
+	p, ok := g.players[playerID]
+	if !ok {
+		return nil, ErrPlayerNotFound
+	}
+	return p, nil
 }

@@ -49,6 +49,28 @@ type ComplexityRoot struct {
 		UpdatedAt   func(childComplexity int) int
 	}
 
+	GameCard struct {
+		ID   func(childComplexity int) int
+		Rank func(childComplexity int) int
+		Suit func(childComplexity int) int
+	}
+
+	GameSnapshot struct {
+		CurrentPlayerID func(childComplexity int) int
+		GameID          func(childComplexity int) int
+		MyHand          func(childComplexity int) int
+		RoomID          func(childComplexity int) int
+		Scores          func(childComplexity int) int
+		Status          func(childComplexity int) int
+		TablePlays      func(childComplexity int) int
+		TrumpSuit       func(childComplexity int) int
+	}
+
+	GameTablePlay struct {
+		Card     func(childComplexity int) int
+		PlayerID func(childComplexity int) int
+	}
+
 	Mutation struct {
 		AcceptFriendRequest func(childComplexity int, input model.RespondFriendRequestInput) int
 		CreateRoom          func(childComplexity int, input model.CreateRoomInput) int
@@ -71,6 +93,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Friends               func(childComplexity int, userID string) int
+		GameSnapshot          func(childComplexity int, roomID string, playerID string) int
 		PendingFriendRequests func(childComplexity int, userID string) int
 		Room                  func(childComplexity int, id string) int
 		Rooms                 func(childComplexity int) int
@@ -90,6 +113,11 @@ type ComplexityRoot struct {
 	RoomPlayer struct {
 		ID       func(childComplexity int) int
 		Username func(childComplexity int) int
+	}
+
+	TeamScore struct {
+		Points func(childComplexity int) int
+		TeamID func(childComplexity int) int
 	}
 
 	User struct {
@@ -124,6 +152,7 @@ type QueryResolver interface {
 	PendingFriendRequests(ctx context.Context, userID string) ([]*model.Friendship, error)
 	Room(ctx context.Context, id string) (*model.Room, error)
 	Rooms(ctx context.Context) ([]*model.Room, error)
+	GameSnapshot(ctx context.Context, roomID string, playerID string) (*model.GameSnapshot, error)
 	UserStats(ctx context.Context, userID string) (*model.UserStats, error)
 }
 
@@ -178,6 +207,87 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Friendship.UpdatedAt(childComplexity), true
+
+	case "GameCard.id":
+		if e.ComplexityRoot.GameCard.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameCard.ID(childComplexity), true
+	case "GameCard.rank":
+		if e.ComplexityRoot.GameCard.Rank == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameCard.Rank(childComplexity), true
+	case "GameCard.suit":
+		if e.ComplexityRoot.GameCard.Suit == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameCard.Suit(childComplexity), true
+
+	case "GameSnapshot.currentPlayerId":
+		if e.ComplexityRoot.GameSnapshot.CurrentPlayerID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameSnapshot.CurrentPlayerID(childComplexity), true
+	case "GameSnapshot.gameId":
+		if e.ComplexityRoot.GameSnapshot.GameID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameSnapshot.GameID(childComplexity), true
+	case "GameSnapshot.myHand":
+		if e.ComplexityRoot.GameSnapshot.MyHand == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameSnapshot.MyHand(childComplexity), true
+	case "GameSnapshot.roomId":
+		if e.ComplexityRoot.GameSnapshot.RoomID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameSnapshot.RoomID(childComplexity), true
+	case "GameSnapshot.scores":
+		if e.ComplexityRoot.GameSnapshot.Scores == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameSnapshot.Scores(childComplexity), true
+	case "GameSnapshot.status":
+		if e.ComplexityRoot.GameSnapshot.Status == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameSnapshot.Status(childComplexity), true
+	case "GameSnapshot.tablePlays":
+		if e.ComplexityRoot.GameSnapshot.TablePlays == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameSnapshot.TablePlays(childComplexity), true
+	case "GameSnapshot.trumpSuit":
+		if e.ComplexityRoot.GameSnapshot.TrumpSuit == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameSnapshot.TrumpSuit(childComplexity), true
+
+	case "GameTablePlay.card":
+		if e.ComplexityRoot.GameTablePlay.Card == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameTablePlay.Card(childComplexity), true
+	case "GameTablePlay.playerId":
+		if e.ComplexityRoot.GameTablePlay.PlayerID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameTablePlay.PlayerID(childComplexity), true
 
 	case "Mutation.acceptFriendRequest":
 		if e.ComplexityRoot.Mutation.AcceptFriendRequest == nil {
@@ -326,6 +436,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Friends(childComplexity, args["userId"].(string)), true
+	case "Query.gameSnapshot":
+		if e.ComplexityRoot.Query.GameSnapshot == nil {
+			break
+		}
+
+		args, err := ec.field_Query_gameSnapshot_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.GameSnapshot(childComplexity, args["roomId"].(string), args["playerId"].(string)), true
 
 	case "Query.pendingFriendRequests":
 		if e.ComplexityRoot.Query.PendingFriendRequests == nil {
@@ -432,6 +553,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.RoomPlayer.Username(childComplexity), true
+
+	case "TeamScore.points":
+		if e.ComplexityRoot.TeamScore.Points == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TeamScore.Points(childComplexity), true
+	case "TeamScore.teamId":
+		if e.ComplexityRoot.TeamScore.TeamID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TeamScore.TeamID(childComplexity), true
 
 	case "User.id":
 		if e.ComplexityRoot.User.ID == nil {
@@ -711,6 +845,22 @@ func (ec *executionContext) field_Query_friends_args(ctx context.Context, rawArg
 		return nil, err
 	}
 	args["userId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_gameSnapshot_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "roomId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["roomId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "playerId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["playerId"] = arg1
 	return args, nil
 }
 
@@ -996,6 +1146,411 @@ func (ec *executionContext) fieldContext_Friendship_updatedAt(_ context.Context,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameCard_id(ctx context.Context, field graphql.CollectedField, obj *model.GameCard) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameCard_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameCard_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameCard",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameCard_suit(ctx context.Context, field graphql.CollectedField, obj *model.GameCard) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameCard_suit,
+		func(ctx context.Context) (any, error) {
+			return obj.Suit, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameCard_suit(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameCard",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameCard_rank(ctx context.Context, field graphql.CollectedField, obj *model.GameCard) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameCard_rank,
+		func(ctx context.Context) (any, error) {
+			return obj.Rank, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameCard_rank(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameCard",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameSnapshot_roomId(ctx context.Context, field graphql.CollectedField, obj *model.GameSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameSnapshot_roomId,
+		func(ctx context.Context) (any, error) {
+			return obj.RoomID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameSnapshot_roomId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameSnapshot_gameId(ctx context.Context, field graphql.CollectedField, obj *model.GameSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameSnapshot_gameId,
+		func(ctx context.Context) (any, error) {
+			return obj.GameID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameSnapshot_gameId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameSnapshot_status(ctx context.Context, field graphql.CollectedField, obj *model.GameSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameSnapshot_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameSnapshot_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameSnapshot_trumpSuit(ctx context.Context, field graphql.CollectedField, obj *model.GameSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameSnapshot_trumpSuit,
+		func(ctx context.Context) (any, error) {
+			return obj.TrumpSuit, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameSnapshot_trumpSuit(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameSnapshot_currentPlayerId(ctx context.Context, field graphql.CollectedField, obj *model.GameSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameSnapshot_currentPlayerId,
+		func(ctx context.Context) (any, error) {
+			return obj.CurrentPlayerID, nil
+		},
+		nil,
+		ec.marshalOID2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameSnapshot_currentPlayerId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameSnapshot_myHand(ctx context.Context, field graphql.CollectedField, obj *model.GameSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameSnapshot_myHand,
+		func(ctx context.Context) (any, error) {
+			return obj.MyHand, nil
+		},
+		nil,
+		ec.marshalNGameCard2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameCardᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameSnapshot_myHand(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_GameCard_id(ctx, field)
+			case "suit":
+				return ec.fieldContext_GameCard_suit(ctx, field)
+			case "rank":
+				return ec.fieldContext_GameCard_rank(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type GameCard", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameSnapshot_tablePlays(ctx context.Context, field graphql.CollectedField, obj *model.GameSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameSnapshot_tablePlays,
+		func(ctx context.Context) (any, error) {
+			return obj.TablePlays, nil
+		},
+		nil,
+		ec.marshalNGameTablePlay2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameTablePlayᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameSnapshot_tablePlays(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "playerId":
+				return ec.fieldContext_GameTablePlay_playerId(ctx, field)
+			case "card":
+				return ec.fieldContext_GameTablePlay_card(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type GameTablePlay", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameSnapshot_scores(ctx context.Context, field graphql.CollectedField, obj *model.GameSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameSnapshot_scores,
+		func(ctx context.Context) (any, error) {
+			return obj.Scores, nil
+		},
+		nil,
+		ec.marshalNTeamScore2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐTeamScoreᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameSnapshot_scores(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "teamId":
+				return ec.fieldContext_TeamScore_teamId(ctx, field)
+			case "points":
+				return ec.fieldContext_TeamScore_points(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TeamScore", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameTablePlay_playerId(ctx context.Context, field graphql.CollectedField, obj *model.GameTablePlay) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameTablePlay_playerId,
+		func(ctx context.Context) (any, error) {
+			return obj.PlayerID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameTablePlay_playerId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameTablePlay",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameTablePlay_card(ctx context.Context, field graphql.CollectedField, obj *model.GameTablePlay) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameTablePlay_card,
+		func(ctx context.Context) (any, error) {
+			return obj.Card, nil
+		},
+		nil,
+		ec.marshalNGameCard2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameCard,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameTablePlay_card(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameTablePlay",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_GameCard_id(ctx, field)
+			case "suit":
+				return ec.fieldContext_GameCard_suit(ctx, field)
+			case "rank":
+				return ec.fieldContext_GameCard_rank(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type GameCard", field.Name)
 		},
 	}
 	return fc, nil
@@ -1913,6 +2468,65 @@ func (ec *executionContext) fieldContext_Query_rooms(_ context.Context, field gr
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_gameSnapshot(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_gameSnapshot,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().GameSnapshot(ctx, fc.Args["roomId"].(string), fc.Args["playerId"].(string))
+		},
+		nil,
+		ec.marshalOGameSnapshot2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameSnapshot,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_gameSnapshot(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "roomId":
+				return ec.fieldContext_GameSnapshot_roomId(ctx, field)
+			case "gameId":
+				return ec.fieldContext_GameSnapshot_gameId(ctx, field)
+			case "status":
+				return ec.fieldContext_GameSnapshot_status(ctx, field)
+			case "trumpSuit":
+				return ec.fieldContext_GameSnapshot_trumpSuit(ctx, field)
+			case "currentPlayerId":
+				return ec.fieldContext_GameSnapshot_currentPlayerId(ctx, field)
+			case "myHand":
+				return ec.fieldContext_GameSnapshot_myHand(ctx, field)
+			case "tablePlays":
+				return ec.fieldContext_GameSnapshot_tablePlays(ctx, field)
+			case "scores":
+				return ec.fieldContext_GameSnapshot_scores(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type GameSnapshot", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_gameSnapshot_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_userStats(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2276,6 +2890,64 @@ func (ec *executionContext) fieldContext_RoomPlayer_username(_ context.Context, 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TeamScore_teamId(ctx context.Context, field graphql.CollectedField, obj *model.TeamScore) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TeamScore_teamId,
+		func(ctx context.Context) (any, error) {
+			return obj.TeamID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TeamScore_teamId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TeamScore",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TeamScore_points(ctx context.Context, field graphql.CollectedField, obj *model.TeamScore) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TeamScore_points,
+		func(ctx context.Context) (any, error) {
+			return obj.Points, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TeamScore_points(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TeamScore",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -4326,6 +4998,167 @@ func (ec *executionContext) _Friendship(ctx context.Context, sel ast.SelectionSe
 	return out
 }
 
+var gameCardImplementors = []string{"GameCard"}
+
+func (ec *executionContext) _GameCard(ctx context.Context, sel ast.SelectionSet, obj *model.GameCard) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, gameCardImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("GameCard")
+		case "id":
+			out.Values[i] = ec._GameCard_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "suit":
+			out.Values[i] = ec._GameCard_suit(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "rank":
+			out.Values[i] = ec._GameCard_rank(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var gameSnapshotImplementors = []string{"GameSnapshot"}
+
+func (ec *executionContext) _GameSnapshot(ctx context.Context, sel ast.SelectionSet, obj *model.GameSnapshot) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, gameSnapshotImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("GameSnapshot")
+		case "roomId":
+			out.Values[i] = ec._GameSnapshot_roomId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "gameId":
+			out.Values[i] = ec._GameSnapshot_gameId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._GameSnapshot_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "trumpSuit":
+			out.Values[i] = ec._GameSnapshot_trumpSuit(ctx, field, obj)
+		case "currentPlayerId":
+			out.Values[i] = ec._GameSnapshot_currentPlayerId(ctx, field, obj)
+		case "myHand":
+			out.Values[i] = ec._GameSnapshot_myHand(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "tablePlays":
+			out.Values[i] = ec._GameSnapshot_tablePlays(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "scores":
+			out.Values[i] = ec._GameSnapshot_scores(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var gameTablePlayImplementors = []string{"GameTablePlay"}
+
+func (ec *executionContext) _GameTablePlay(ctx context.Context, sel ast.SelectionSet, obj *model.GameTablePlay) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, gameTablePlayImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("GameTablePlay")
+		case "playerId":
+			out.Values[i] = ec._GameTablePlay_playerId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "card":
+			out.Values[i] = ec._GameTablePlay_card(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -4634,6 +5467,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "gameSnapshot":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_gameSnapshot(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "userStats":
 			field := field
 
@@ -4761,6 +5613,50 @@ func (ec *executionContext) _RoomPlayer(ctx context.Context, sel ast.SelectionSe
 			}
 		case "username":
 			out.Values[i] = ec._RoomPlayer_username(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var teamScoreImplementors = []string{"TeamScore"}
+
+func (ec *executionContext) _TeamScore(ctx context.Context, sel ast.SelectionSet, obj *model.TeamScore) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, teamScoreImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TeamScore")
+		case "teamId":
+			out.Values[i] = ec._TeamScore_teamId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "points":
+			out.Values[i] = ec._TeamScore_points(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -5295,6 +6191,58 @@ func (ec *executionContext) marshalNFriendshipStatus2backendᚋinternalᚋinfras
 	return v
 }
 
+func (ec *executionContext) marshalNGameCard2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameCardᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.GameCard) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNGameCard2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameCard(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNGameCard2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameCard(ctx context.Context, sel ast.SelectionSet, v *model.GameCard) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._GameCard(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNGameTablePlay2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameTablePlayᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.GameTablePlay) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNGameTablePlay2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameTablePlay(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNGameTablePlay2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameTablePlay(ctx context.Context, sel ast.SelectionSet, v *model.GameTablePlay) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._GameTablePlay(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalID(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -5457,6 +6405,32 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNTeamScore2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐTeamScoreᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TeamScore) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNTeamScore2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐTeamScore(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNTeamScore2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐTeamScore(ctx context.Context, sel ast.SelectionSet, v *model.TeamScore) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TeamScore(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v any) (time.Time, error) {
@@ -5653,6 +6627,31 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	_ = sel
 	_ = ctx
 	res := graphql.MarshalBoolean(*v)
+	return res
+}
+
+func (ec *executionContext) marshalOGameSnapshot2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameSnapshot(ctx context.Context, sel ast.SelectionSet, v *model.GameSnapshot) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._GameSnapshot(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalID(*v)
 	return res
 }
 

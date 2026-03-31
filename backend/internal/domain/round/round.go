@@ -19,6 +19,7 @@ var (
 	ErrWinningPlayerNotFound = errors.New("winning player not found in any team")
 	ErrPlayerNotFound        = errors.New("player not found in any team")
 	ErrInvalidPlay           = errors.New("invalid play")
+	ErrTrickNotStarted       = errors.New("trick not started")
 )
 
 type Round struct {
@@ -54,6 +55,7 @@ func NewRound(gameId uuid.UUID, teams map[string]*team.Team, botStrategy bot_str
 func (r *Round) StartNewTrick(leaderID string) {
 	r.CurrentTrick = trick.NewTrick(leaderID, r.TrumpSuit, r.Teams)
 	r.AddEvent(events.NewTrickStartedEvent(r.gameId.String(), leaderID))
+	r.AddEvent(events.NewTurnChangedEvent(r.gameId.String(), leaderID))
 }
 
 func (r *Round) GetPlayerTeamId(playerID string) (string, error) {
@@ -80,7 +82,10 @@ func (r *Round) GetPlayer(playerID string) (*player.Player, error) {
 
 func (r *Round) PlayCard(playerID string, cardId string) error {
 	if r.State == nil {
-		panic(ErrRoundNotStarted)
+		return ErrRoundNotStarted
+	}
+	if r.CurrentTrick == nil {
+		return ErrTrickNotStarted
 	}
 
 	player, err := r.GetPlayer(playerID)
@@ -108,6 +113,12 @@ func (r *Round) PlayCard(playerID string, cardId string) error {
 	r.AddEvent(events.NewCardPlayedEvent(r.gameId.String(), player.ID, card))
 
 	r.State.Update()
+	if r.CurrentTrick != nil && !r.RuleStrategy.HasEnded(r) {
+		nextPlayerID, err := r.CurrentTrick.TurnOrder.Next()
+		if err == nil {
+			r.AddEvent(events.NewTurnChangedEvent(r.gameId.String(), nextPlayerID))
+		}
+	}
 
 	return nil
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../../../../core/error/app_exception.dart';
 import '../../../../core/network/graphql/graphql_service.dart';
 import '../../../../core/network/websocket/websocket_service.dart';
 import '../../domain/entities/card.dart';
@@ -29,7 +30,13 @@ class GameRemoteDataSource {
     required String playerId,
   }) async {
     await _webSocketService.connect(roomId: roomId, playerId: playerId);
-    final room = await _fetchRoom(roomId: roomId);
+    final roomFuture = _fetchRoom(roomId: roomId);
+    final snapshotFuture = _fetchGameSnapshot(
+      roomId: roomId,
+      playerId: playerId,
+    );
+    final room = await roomFuture;
+    final snapshot = await snapshotFuture;
 
     final players = _parsePlayers(room['players']);
     final currentPlayer = players.firstWhere(
@@ -40,19 +47,13 @@ class GameRemoteDataSource {
       players.add(currentPlayer);
     }
 
-    final existing = _cachedGames[roomId];
-    final roomStatus = room['status']?.toString() ?? 'OPEN';
-    final state = SuecaGameState(
+    final state = _stateFromSnapshot(
       roomId: roomId,
-      phase: _phaseFromRoomStatus(roomStatus),
+      playerId: playerId,
+      roomStatus: room['status']?.toString() ?? 'OPEN',
       players: players,
-      hand: existing?.hand ?? const <SuecaCard>[],
-      tableCards: existing?.tableCards ?? const <String, SuecaCard>{},
-      trumpSuit: existing?.trumpSuit ?? Suit.hearts,
-      currentPlayerId: existing?.currentPlayerId ?? currentPlayer.id,
-      myPlayerId: playerId,
-      teamAScore: existing?.teamAScore ?? 0,
-      teamBScore: existing?.teamBScore ?? 0,
+      snapshot: snapshot,
+      fallbackCurrentPlayerId: currentPlayer.id,
     );
 
     _cachedGames[roomId] = state;
@@ -69,21 +70,20 @@ class GameRemoteDataSource {
     if (currentState == null || !currentState.hand.contains(card)) {
       return currentState ?? _initialState(roomId: roomId, playerId: 'guest');
     }
+    if (currentState.currentPlayerId != currentState.myPlayerId) {
+      throw AppException('Ainda não é a tua vez.');
+    }
+    if (currentState.phase != GamePhase.playingTrick) {
+      throw AppException('A ronda ainda não está pronta para jogar carta.');
+    }
 
-    final updatedHand = List<SuecaCard>.from(currentState.hand)..remove(card);
-    final updatedTableCards = Map<String, SuecaCard>.from(
-      currentState.tableCards,
-    )..[currentState.myPlayerId] = card;
+    await _webSocketService.send('play_card', <String, dynamic>{
+      'cardId': card.backendId,
+    });
+    await _awaitCommandResult('play_card');
 
-    final nextState = currentState.copyWith(
-      hand: updatedHand,
-      tableCards: updatedTableCards,
-      phase: updatedHand.isEmpty ? GamePhase.finished : GamePhase.playingTrick,
-    );
-
-    _cachedGames[roomId] = nextState;
-    _emit(roomId, nextState);
-    return nextState;
+    // O estado é atualizado por eventos do backend (CARD_PLAYED, TURN_CHANGED, etc).
+    return _cachedGames[roomId] ?? currentState;
   }
 
   Stream<SuecaGameState> watchGame(String roomId) {
@@ -152,6 +152,15 @@ class GameRemoteDataSource {
           phase: GamePhase.playingTrick,
           tableCards: <String, SuecaCard>{},
           currentPlayerId: leaderId ?? current.currentPlayerId,
+        );
+      case 'TURN_CHANGED':
+        final playerId = payloadMap['playerId']?.toString();
+        if (playerId == null || playerId.isEmpty) {
+          return current;
+        }
+        return current.copyWith(
+          phase: GamePhase.playingTrick,
+          currentPlayerId: playerId,
         );
       case 'TRUMP_REVEALED':
         final trumpSuitRaw =
@@ -251,6 +260,122 @@ class GameRemoteDataSource {
     return room;
   }
 
+  Future<Map<String, dynamic>> _fetchGameSnapshot({
+    required String roomId,
+    required String playerId,
+  }) async {
+    final response = await _graphqlService.query(
+      document: '''
+        query GameSnapshot(\$roomId: ID!, \$playerId: ID!) {
+          gameSnapshot(roomId: \$roomId, playerId: \$playerId) {
+            roomId
+            gameId
+            status
+            trumpSuit
+            currentPlayerId
+            myHand {
+              id
+              suit
+              rank
+            }
+            tablePlays {
+              playerId
+              card {
+                id
+                suit
+                rank
+              }
+            }
+            scores {
+              teamId
+              points
+            }
+          }
+        }
+      ''',
+      variables: <String, dynamic>{'roomId': roomId, 'playerId': playerId},
+    );
+
+    final data = response['data'];
+    if (data is! Map<String, dynamic>) {
+      throw AppException('Invalid GraphQL response for gameSnapshot.');
+    }
+
+    final snapshot = data['gameSnapshot'];
+    if (snapshot is! Map<String, dynamic>) {
+      throw AppException('gameSnapshot not found.');
+    }
+
+    return snapshot;
+  }
+
+  SuecaGameState _stateFromSnapshot({
+    required String roomId,
+    required String playerId,
+    required String roomStatus,
+    required List<Player> players,
+    required Map<String, dynamic> snapshot,
+    required String fallbackCurrentPlayerId,
+  }) {
+    final myHandRaw = snapshot['myHand'];
+    final tablePlaysRaw = snapshot['tablePlays'];
+    final scoresRaw = snapshot['scores'];
+    final trumpSuitRaw = snapshot['trumpSuit']?.toString();
+    final currentPlayerRaw = snapshot['currentPlayerId']?.toString();
+    final statusRaw = snapshot['status']?.toString();
+
+    final hand = <SuecaCard>[];
+    if (myHandRaw is List) {
+      for (final item in myHandRaw) {
+        final parsed = _parseCard(item);
+        if (parsed != null) {
+          hand.add(parsed);
+        }
+      }
+    }
+
+    final tableCards = <String, SuecaCard>{};
+    if (tablePlaysRaw is List) {
+      for (final item in tablePlaysRaw) {
+        if (item is! Map) {
+          continue;
+        }
+        final mapped = Map<String, dynamic>.from(item);
+        final pId = mapped['playerId']?.toString() ?? '';
+        final parsedCard = _parseCard(mapped['card']);
+        if (pId.isEmpty || parsedCard == null) {
+          continue;
+        }
+        tableCards[pId] = parsedCard;
+      }
+    }
+
+    final scoreTuple = _parseSnapshotScores(scoresRaw);
+    final trumpSuit = _parseSuit(trumpSuitRaw) ?? Suit.hearts;
+    final currentPlayerId =
+        (currentPlayerRaw == null || currentPlayerRaw.isEmpty)
+        ? fallbackCurrentPlayerId
+        : currentPlayerRaw;
+    final phase = _phaseFromStatus(
+      roomStatus: roomStatus,
+      gameStatus: statusRaw,
+      hasCards: hand.isNotEmpty || tableCards.isNotEmpty,
+    );
+
+    return SuecaGameState(
+      roomId: roomId,
+      phase: phase,
+      players: players,
+      hand: hand,
+      tableCards: tableCards,
+      trumpSuit: trumpSuit,
+      currentPlayerId: currentPlayerId,
+      myPlayerId: playerId,
+      teamAScore: scoreTuple.$1,
+      teamBScore: scoreTuple.$2,
+    );
+  }
+
   List<Player> _parsePlayers(dynamic rawPlayers) {
     if (rawPlayers is! List) {
       return <Player>[];
@@ -281,6 +406,21 @@ class GameRemoteDataSource {
     }
   }
 
+  GamePhase _phaseFromStatus({
+    required String roomStatus,
+    required String? gameStatus,
+    required bool hasCards,
+  }) {
+    final normalizedGameStatus = gameStatus?.trim().toUpperCase() ?? '';
+    if (normalizedGameStatus == 'FINISHED') {
+      return GamePhase.finished;
+    }
+    if (normalizedGameStatus == 'IN_PROGRESS' || roomStatus == 'IN_GAME') {
+      return hasCards ? GamePhase.playingTrick : GamePhase.dealingCards;
+    }
+    return _phaseFromRoomStatus(roomStatus);
+  }
+
   (int, int) _parseScoreTuple(dynamic rawScore) {
     if (rawScore is! Map) {
       return (0, 0);
@@ -304,6 +444,71 @@ class GameRemoteDataSource {
       return (numericScores[0], 0);
     }
     return (0, 0);
+  }
+
+  (int, int) _parseSnapshotScores(dynamic rawScores) {
+    if (rawScores is! List) {
+      return (0, 0);
+    }
+
+    int? team1;
+    int? team2;
+    final collected = <int>[];
+
+    for (final item in rawScores) {
+      if (item is! Map) {
+        continue;
+      }
+      final mapped = Map<String, dynamic>.from(item);
+      final points = _toInt(mapped['points']);
+      if (points == null) {
+        continue;
+      }
+      collected.add(points);
+
+      final teamId = mapped['teamId']?.toString().toLowerCase() ?? '';
+      if (teamId.contains('1') && team1 == null) {
+        team1 = points;
+      } else if (teamId.contains('2') && team2 == null) {
+        team2 = points;
+      }
+    }
+
+    if (team1 != null || team2 != null) {
+      return (team1 ?? 0, team2 ?? 0);
+    }
+    if (collected.length >= 2) {
+      return (collected[0], collected[1]);
+    }
+    if (collected.length == 1) {
+      return (collected[0], 0);
+    }
+    return (0, 0);
+  }
+
+  Future<void> _awaitCommandResult(String commandType) async {
+    final Map<String, dynamic> response = await _webSocketService.events
+        .firstWhere(
+          (event) =>
+              event['type']?.toString() == commandType &&
+              event.containsKey('success'),
+        )
+        .timeout(
+          const Duration(seconds: 4),
+          onTimeout: () => throw AppException(
+            'Sem confirmação do servidor para $commandType.',
+          ),
+        );
+
+    final success = response['success'] == true;
+    if (success) {
+      return;
+    }
+
+    final error = response['error']?.toString();
+    throw AppException(
+      error == null || error.isEmpty ? 'A jogada falhou.' : error,
+    );
   }
 
   SuecaCard? _parseCard(dynamic rawCard) {

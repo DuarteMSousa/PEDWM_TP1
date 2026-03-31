@@ -5,5 +5,5 @@ import (
 )
 
 type ICommand interface {
-	Execute(game *game.Game)
+	Execute(game *game.Game) error
 }

@@ -10,15 +10,24 @@ import '../../domain/repositories/lobby_repository.dart';
 import 'room_waiting_page.dart';
 import '../state/lobby_controller.dart';
 
+class LobbyPageArgs {
+  const LobbyPageArgs({required this.currentUser, this.autoCreateRoom = false});
+
+  final User currentUser;
+  final bool autoCreateRoom;
+}
+
 class LobbyPage extends StatefulWidget {
   const LobbyPage({
     super.key,
     required this.lobbyRepository,
     required this.currentUser,
+    this.autoCreateRoom = false,
   });
 
   final LobbyRepository lobbyRepository;
   final User currentUser;
+  final bool autoCreateRoom;
 
   @override
   State<LobbyPage> createState() => _LobbyPageState();
@@ -32,6 +41,14 @@ class _LobbyPageState extends State<LobbyPage> {
     super.initState();
     _controller = LobbyController(lobbyRepository: widget.lobbyRepository);
     _controller.loadRooms(playerId: widget.currentUser.id);
+    if (widget.autoCreateRoom) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        _createRoom();
+      });
+    }
   }
 
   @override

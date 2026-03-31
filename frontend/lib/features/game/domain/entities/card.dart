@@ -40,6 +40,24 @@ class SuecaCard {
 
   String get compactLabel => '$rankLabel${suit.shortLabel}';
 
+  String get backendId =>
+      '${_backendRankToken(rank)}_${suit.name.toUpperCase()}';
+
+  static String _backendRankToken(int rank) {
+    switch (rank) {
+      case 1:
+        return 'A';
+      case 11:
+        return 'J';
+      case 12:
+        return 'Q';
+      case 13:
+        return 'K';
+      default:
+        return rank.toString();
+    }
+  }
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) {

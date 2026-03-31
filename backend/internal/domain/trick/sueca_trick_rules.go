@@ -18,7 +18,7 @@ func (s SuecaTrickRules) WinningPlayer(trick Trick) (string, error) {
 
 	for _, play := range trick.Plays[1:] {
 		if play.Card.Suit == winningPlay.Card.Suit {
-			if play.Card.Rank > winningPlay.Card.Rank {
+			if play.Card.Rank.TrickStrength() > winningPlay.Card.Rank.TrickStrength() {
 				winningPlay = play
 			}
 		} else if play.Card.Suit == trick.TrumpSuit && winningPlay.Card.Suit != trick.TrumpSuit {

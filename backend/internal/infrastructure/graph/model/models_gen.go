@@ -26,6 +26,28 @@ type Friendship struct {
 	UpdatedAt   time.Time        `json:"updatedAt"`
 }
 
+type GameCard struct {
+	ID   string `json:"id"`
+	Suit string `json:"suit"`
+	Rank string `json:"rank"`
+}
+
+type GameSnapshot struct {
+	RoomID          string           `json:"roomId"`
+	GameID          string           `json:"gameId"`
+	Status          string           `json:"status"`
+	TrumpSuit       *string          `json:"trumpSuit,omitempty"`
+	CurrentPlayerID *string          `json:"currentPlayerId,omitempty"`
+	MyHand          []*GameCard      `json:"myHand"`
+	TablePlays      []*GameTablePlay `json:"tablePlays"`
+	Scores          []*TeamScore     `json:"scores"`
+}
+
+type GameTablePlay struct {
+	PlayerID string    `json:"playerId"`
+	Card     *GameCard `json:"card"`
+}
+
 type JoinRoomInput struct {
 	RoomID string `json:"roomId"`
 	UserID string `json:"userId"`
@@ -89,6 +111,11 @@ type SendFriendRequestInput struct {
 
 type StartGameInput struct {
 	RoomID string `json:"roomId"`
+}
+
+type TeamScore struct {
+	TeamID string `json:"teamId"`
+	Points int32  `json:"points"`
 }
 
 type User struct {
