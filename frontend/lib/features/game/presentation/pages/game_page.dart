@@ -1019,6 +1019,10 @@ class _MyHandArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final statusText = canPlay
+        ? 'A tua vez: seleciona uma carta e joga.'
+        : 'Aguarda a tua vez para jogar.';
+
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -1051,6 +1055,19 @@ class _MyHandArea extends StatelessWidget {
                   ),
               ],
             ),
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                statusText,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: canPlay
+                      ? const Color(0xFFF8F0DB)
+                      : const Color(0xA6F8F0DB),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
             const SizedBox(height: 8),
             Expanded(
               child: _FannedHand(
@@ -1066,7 +1083,7 @@ class _MyHandArea extends StatelessWidget {
   }
 }
 
-class _FannedHand extends StatelessWidget {
+class _FannedHand extends StatefulWidget {
   const _FannedHand({
     required this.hand,
     required this.canInteract,
@@ -1078,8 +1095,50 @@ class _FannedHand extends StatelessWidget {
   final Future<void> Function(SuecaCard card) onPlayCard;
 
   @override
+  State<_FannedHand> createState() => _FannedHandState();
+}
+
+class _FannedHandState extends State<_FannedHand> {
+  int? _selectedIndex;
+  bool _isSubmitting = false;
+
+  @override
+  void didUpdateWidget(covariant _FannedHand oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.canInteract) {
+      _selectedIndex = null;
+    } else if (_selectedIndex != null && _selectedIndex! >= widget.hand.length) {
+      _selectedIndex = null;
+    }
+  }
+
+  Future<void> _onCardTap(int index) async {
+    if (!widget.canInteract || _isSubmitting || index >= widget.hand.length) {
+      return;
+    }
+
+    if (_selectedIndex != index) {
+      setState(() => _selectedIndex = index);
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      await widget.onPlayCard(widget.hand[index]);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _selectedIndex = null);
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (hand.isEmpty) {
+    if (widget.hand.isEmpty) {
       return Center(
         child: Text(
           'Sem cartas na mao.',
@@ -1092,79 +1151,95 @@ class _FannedHand extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cardWidth = 84.0;
-        final maxSpread = hand.length > 1
-            ? (constraints.maxWidth - cardWidth) / (hand.length - 1)
-            : 0.0;
-        final spread = hand.length > 1
-            ? math.max(16.0, math.min(42.0, maxSpread))
-            : 0.0;
-        final totalWidth = cardWidth + ((hand.length - 1) * spread);
-        final startLeft = (constraints.maxWidth - totalWidth) / 2;
+        const cardWidth = 84.0;
+        final overlap = widget.hand.length >= 8 ? 14.0 : 10.0;
+        final step = math.max(66.0, cardWidth - overlap);
+        final totalWidth = cardWidth + ((widget.hand.length - 1) * step);
+        final sidePadding = math.max(
+          0.0,
+          (constraints.maxWidth - totalWidth) / 2,
+        );
+        const baseTop = 10.0;
 
-        return Stack(
-          clipBehavior: Clip.none,
-          children: List.generate(hand.length, (index) {
-            final card = hand[index];
-            final midpoint = (hand.length - 1) / 2;
-            final delta = index - midpoint;
-            final angle = delta * 0.07;
+        final visualOrder = List<int>.generate(
+          widget.hand.length,
+          (index) => index,
+        )..sort((a, b) {
+          final aIsSelected = a == _selectedIndex;
+          final bIsSelected = b == _selectedIndex;
+          if (aIsSelected && !bIsSelected) {
+            return 1;
+          }
+          if (bIsSelected && !aIsSelected) {
+            return -1;
+          }
+          return a.compareTo(b);
+        });
 
-            return Positioned(
-              left: startLeft + (index * spread),
-              bottom: math.max(0.0, 6 - delta.abs() * 1.4),
-              child: RevealSlideFade(
-                key: ValueKey<String>('hand_${card.compactLabel}_$index'),
-                delay: Duration(milliseconds: 80 + (index * 45)),
-                beginOffset: const Offset(0, 0.06),
-                child: Transform.rotate(
-                  angle: angle,
-                  child: _HandCard(
-                    card: card,
-                    isBusy: !canInteract,
-                    onPressed: () => onPlayCard(card),
-                  ),
-                ),
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: sidePadding),
+            child: SizedBox(
+              width: totalWidth,
+              height: 138,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: visualOrder.map((index) {
+                  final card = widget.hand[index];
+                  final isSelected = _selectedIndex == index;
+
+                  return Positioned(
+                    left: index * step,
+                    top: isSelected ? 0 : baseTop,
+                    child: RevealSlideFade(
+                      key: ValueKey<String>('hand_${card.compactLabel}_$index'),
+                      delay: Duration(milliseconds: 80 + (index * 45)),
+                      beginOffset: const Offset(0, 0.04),
+                      child: _HandCard(
+                        card: card,
+                        isDisabled: !widget.canInteract || _isSubmitting,
+                        isSelected: isSelected,
+                        onPressed: () => _onCardTap(index),
+                      ),
+                    ),
+                  );
+                }).toList(growable: false),
               ),
-            );
-          }),
+            ),
+          ),
         );
       },
     );
   }
 }
 
-class _HandCard extends StatefulWidget {
+class _HandCard extends StatelessWidget {
   const _HandCard({
     required this.card,
-    required this.isBusy,
+    required this.isDisabled,
+    required this.isSelected,
     required this.onPressed,
   });
 
   final SuecaCard card;
-  final bool isBusy;
+  final bool isDisabled;
+  final bool isSelected;
   final VoidCallback onPressed;
 
   @override
-  State<_HandCard> createState() => _HandCardState();
-}
-
-class _HandCardState extends State<_HandCard> {
-  bool _isHovered = false;
-
-  @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        curve: Curves.easeOutCubic,
-        transform: Matrix4.translationValues(0, _isHovered ? -10 : 0, 0),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 170),
+      curve: Curves.easeOutCubic,
+      transform: Matrix4.translationValues(0, isSelected ? -10 : 0, 0),
+      child: Opacity(
+        opacity: isDisabled ? 0.86 : 1,
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: widget.isBusy ? null : widget.onPressed,
+            onTap: isDisabled ? null : onPressed,
             borderRadius: BorderRadius.circular(13),
             child: Ink(
               width: 84,
@@ -1172,19 +1247,26 @@ class _HandCardState extends State<_HandCard> {
               decoration: BoxDecoration(
                 color: const Color(0xFFFFFAEE),
                 borderRadius: BorderRadius.circular(13),
-                border: Border.all(color: const Color(0xFFB08D49), width: 1.2),
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFFF8F0DB)
+                      : const Color(0xFFB08D49),
+                  width: isSelected ? 2 : 1.2,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0x2A000000),
-                    blurRadius: _isHovered ? 15 : 10,
-                    offset: Offset(0, _isHovered ? 9 : 6),
+                    color: isSelected
+                        ? const Color(0x53F2D082)
+                        : const Color(0x2A000000),
+                    blurRadius: isSelected ? 18 : 10,
+                    offset: Offset(0, isSelected ? 12 : 6),
                   ),
                 ],
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(11.8),
                 child: SvgPicture.asset(
-                  _cardFrontAssetPath(widget.card),
+                  _cardFrontAssetPath(card),
                   fit: BoxFit.cover,
                 ),
               ),
