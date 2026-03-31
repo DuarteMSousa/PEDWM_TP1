@@ -63,7 +63,7 @@ func main() {
 	// Application
 	// ========================
 	eventService := application.NewEventService(eventRepo)
-	roomService := application.NewRoomService(repo, gameRepo, userRepo, hub)
+	roomService := application.NewRoomService(repo, gameRepo, userRepo, eventService, hub)
 	userService := application.NewUserService(userRepo, userStatsRepo)
 	friendshipService := application.NewFriendshipService(friendshipRepo, userRepo)
 	userStatsService := application.NewUserStatsService(userStatsRepo, userRepo)
