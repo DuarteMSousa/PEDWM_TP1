@@ -1,18 +1,18 @@
-package postgres
+package persistence
 
 import (
 	"strings"
 
-	application "backend/internal/application/services"
+	"backend/internal/application/interfaces"
 	domain "backend/internal/domain/events"
 )
 
 // Minimal bridge EventBus -> WebSocket room broadcast.
 type EventPersistanceObserver struct {
-	eventService *application.EventService
+	eventService interfaces.EventService
 }
 
-func NewEventPersistanceObserver(eventService *application.EventService) *EventPersistanceObserver {
+func NewEventPersistanceObserver(eventService interfaces.EventService) *EventPersistanceObserver {
 	return &EventPersistanceObserver{eventService: eventService}
 }
 

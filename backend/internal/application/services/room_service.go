@@ -6,6 +6,7 @@ import (
 	"backend/internal/domain/events"
 	"backend/internal/domain/room"
 	"backend/internal/domain/trick"
+	"backend/internal/infrastructure/persistence"
 	"backend/internal/infrastructure/websocket"
 	"errors"
 	"time"
@@ -30,14 +31,15 @@ type GameSnapshot struct {
 }
 
 type RoomService struct {
-	repo     interfaces.RoomRepository
-	gameRepo interfaces.GameRepository
-	userRepo interfaces.UserRepository
-	hub      *websocket.Hub
+	repo         interfaces.RoomRepository
+	gameRepo     interfaces.GameRepository
+	userRepo     interfaces.UserRepository
+	eventService *EventService
+	hub          *websocket.Hub
 }
 
-func NewRoomService(repo interfaces.RoomRepository, gameRepo interfaces.GameRepository, userRepo interfaces.UserRepository, hub *websocket.Hub) *RoomService {
-	return &RoomService{repo: repo, gameRepo: gameRepo, userRepo: userRepo, hub: hub}
+func NewRoomService(repo interfaces.RoomRepository, gameRepo interfaces.GameRepository, userRepo interfaces.UserRepository, eventService *EventService, hub *websocket.Hub) *RoomService {
+	return &RoomService{repo: repo, gameRepo: gameRepo, userRepo: userRepo, eventService: eventService, hub: hub}
 }
 
 func (s *RoomService) CreateRoom(hostID string) (*room.Room, error) {
@@ -56,6 +58,9 @@ func (s *RoomService) CreateRoom(hostID string) (*room.Room, error) {
 
 	wsObserver := websocket.NewWebSocketObserver(s.hub)
 	eventBus.Subscribe(wsObserver)
+
+	persistenceObserver := persistence.NewEventPersistanceObserver(s.eventService)
+	eventBus.Subscribe(persistenceObserver)
 
 	s.hub.CreateRoomHub(r)
 

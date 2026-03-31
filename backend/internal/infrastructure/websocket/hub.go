@@ -11,8 +11,6 @@ type Hub struct {
 	rooms map[string]*RoomHub
 }
 
-const lobbyRoomID = "lobby"
-
 var (
 	hubInstance *Hub
 	onceHub     sync.Once
@@ -21,9 +19,7 @@ var (
 func GetHubInstance() *Hub {
 	onceHub.Do(func() {
 		hubInstance = &Hub{
-			rooms: map[string]*RoomHub{
-				lobbyRoomID: NewRoomHub(nil),
-			},
+			rooms: make(map[string]*RoomHub),
 		}
 	})
 	return hubInstance
@@ -84,15 +80,6 @@ func (h *Hub) AddClient(roomID string, client *Client) {
 	}
 
 	roomHub := h.GetRoomHub(roomID)
-	if roomHub == nil && roomID == lobbyRoomID {
-		h.mu.Lock()
-		roomHub = h.rooms[lobbyRoomID]
-		if roomHub == nil {
-			roomHub = NewRoomHub(nil)
-			h.rooms[lobbyRoomID] = roomHub
-		}
-		h.mu.Unlock()
-	}
 
 	if roomHub == nil {
 		return
@@ -120,9 +107,6 @@ func (h *Hub) RemoveClient(roomID string, client *Client) {
 
 	isEmpty := room.RemoveClient(client)
 	if !isEmpty {
-		return
-	}
-	if roomID == lobbyRoomID {
 		return
 	}
 
