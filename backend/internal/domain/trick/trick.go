@@ -57,7 +57,12 @@ func (t *Trick) IsEmpty() bool {
 }
 
 func (t *Trick) IsComplete() bool {
-	return len(t.Plays) >= 4
+	numPlayers := 0
+	for _, team := range t.Teams {
+		numPlayers += len(team.Players)
+	}
+
+	return len(t.Plays) == numPlayers
 }
 
 func (t *Trick) HasPlayed(playerID string) bool {
@@ -94,7 +99,7 @@ func (t *Trick) AddPlay(play Play) error {
 	}
 
 	t.Plays = append(t.Plays, play)
-	_, err = t.TurnOrder.Advance()
+	_, err = t.TurnOrder.Dequeue()
 	if err != nil {
 		return err
 	}

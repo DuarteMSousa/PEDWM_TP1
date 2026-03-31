@@ -56,35 +56,6 @@ func (r Rank) Valid() bool {
 	}
 }
 
-// TrickStrength returns the Sueca trick order strength.
-// Higher value means stronger card for deciding trick winner.
-func (r Rank) TrickStrength() int {
-	switch r {
-	case A:
-		return 10
-	case Seven:
-		return 9
-	case K:
-		return 8
-	case J:
-		return 7
-	case Q:
-		return 6
-	case Six:
-		return 5
-	case Five:
-		return 4
-	case Four:
-		return 3
-	case Three:
-		return 2
-	case Two:
-		return 1
-	default:
-		return 0
-	}
-}
-
 type Card struct {
 	ID   string `json:"id"`
 	Suit Suit   `json:"suit"`

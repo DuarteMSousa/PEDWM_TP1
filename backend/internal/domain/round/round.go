@@ -103,13 +103,15 @@ func (r *Round) PlayCard(playerID string, cardId string) error {
 		return ErrInvalidPlay
 	}
 
-	if err := r.CurrentTrick.AddPlay(play); err != nil {
-		return err
-	}
-
 	if _, err := player.Hand.RemoveCard(cardId); err != nil {
 		return err
 	}
+
+	if err := r.CurrentTrick.AddPlay(play); err != nil {
+		player.Hand.AddCard(card)
+		return err
+	}
+
 	r.AddEvent(events.NewCardPlayedEvent(r.gameId.String(), player.ID, card))
 
 	r.State.Update()

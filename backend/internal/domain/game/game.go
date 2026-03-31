@@ -139,7 +139,6 @@ func (g *Game) PlayCard(playerId string, cardId string) error {
 
 	g.State.Update()
 	return nil
-
 }
 
 func (g *Game) UpdateRoundState() {

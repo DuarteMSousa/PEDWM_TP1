@@ -1,6 +1,9 @@
 package trick
 
-import "errors"
+import (
+	"backend/internal/domain/card"
+	"errors"
+)
 
 type SuecaTrickRules struct{}
 
@@ -18,7 +21,7 @@ func (s SuecaTrickRules) WinningPlayer(trick Trick) (string, error) {
 
 	for _, play := range trick.Plays[1:] {
 		if play.Card.Suit == winningPlay.Card.Suit {
-			if play.Card.Rank.TrickStrength() > winningPlay.Card.Rank.TrickStrength() {
+			if s.TrickStrength(play.Card.Rank) > s.TrickStrength(winningPlay.Card.Rank) {
 				winningPlay = play
 			}
 		} else if play.Card.Suit == trick.TrumpSuit && winningPlay.Card.Suit != trick.TrumpSuit {
@@ -27,6 +30,33 @@ func (s SuecaTrickRules) WinningPlayer(trick Trick) (string, error) {
 	}
 
 	return winningPlay.PlayerID, nil
+}
+
+func (s SuecaTrickRules) TrickStrength(r card.Rank) int {
+	switch r {
+	case card.A:
+		return 10
+	case card.Seven:
+		return 9
+	case card.K:
+		return 8
+	case card.J:
+		return 7
+	case card.Q:
+		return 6
+	case card.Six:
+		return 5
+	case card.Five:
+		return 4
+	case card.Four:
+		return 3
+	case card.Three:
+		return 2
+	case card.Two:
+		return 1
+	default:
+		return 0
+	}
 }
 
 func (s SuecaTrickRules) WinningTeam(trick Trick) (string, error) {
@@ -79,18 +109,27 @@ func (s SuecaTrickRules) ValidatePlay(trick Trick, play Play) bool {
 	if play.Card.Suit != *trick.LeadSuit {
 
 		if play.Card.Suit != trick.TrumpSuit {
-			return false
-		}
-
-		for _, t := range trick.Teams {
-			for _, p := range t.Players {
-				if p.ID == play.PlayerID {
-					if p.Hand.HasSuit(*trick.LeadSuit) {
-						return false
+			for _, t := range trick.Teams {
+				for _, p := range t.Players {
+					if p.ID == play.PlayerID {
+						if p.Hand.HasSuit(*trick.LeadSuit) || p.Hand.HasSuit(trick.TrumpSuit) {
+							return false
+						}
+					}
+				}
+			}
+		} else {
+			for _, t := range trick.Teams {
+				for _, p := range t.Players {
+					if p.ID == play.PlayerID {
+						if p.Hand.HasSuit(*trick.LeadSuit) {
+							return false
+						}
 					}
 				}
 			}
 		}
+
 	}
 
 	return true
