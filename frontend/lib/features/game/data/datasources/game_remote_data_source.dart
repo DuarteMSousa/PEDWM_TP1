@@ -209,7 +209,13 @@ class GameRemoteDataSource {
           phase: GamePhase.playingTrick,
         );
       case 'TRICK_ENDED':
-        return current.copyWith(phase: GamePhase.scoring);
+        final scoreTuple = _parseScoreTuple(payloadMap['score']);
+        return current.copyWith(
+          tableCards: <String, SuecaCard>{},
+          roundTeamAScore: current.roundTeamAScore + scoreTuple.$1,
+          roundTeamBScore: current.roundTeamBScore + scoreTuple.$2,
+          phase: GamePhase.scoring,
+        );
       case 'ROUND_ENDED':
         final scoreTuple = _parseScoreTuple(payloadMap['score']);
         return current.copyWith(

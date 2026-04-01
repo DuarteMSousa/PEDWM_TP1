@@ -41,4 +41,10 @@ func (s *GamePlayingState) Update() {
 		s.game.round.State.Enter()
 		s.game.UpdateRoundState()
 	}
+
+	if s.game.scoringStrategy.HasGameEnded(s.game) {
+		s.game.State = NewGameFinishedState(s.game)
+		s.game.State.Enter()
+		return
+	}
 }

@@ -7,8 +7,8 @@ type Bot struct {
 	Strategy bot_strategy.IBotStrategy
 }
 
-func NewBot(id, name string, sequence int, strategy bot_strategy.IBotStrategy) Bot {
-	return Bot{
+func NewBot(id, name string, sequence int, strategy bot_strategy.IBotStrategy) *Bot {
+	return &Bot{
 		Player: Player{
 			ID:       id,
 			Name:     name,

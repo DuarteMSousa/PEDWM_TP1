@@ -125,7 +125,11 @@ func (r *Room) RemovePlayer(playerID string) error {
 	delete(r.Players, playerID)
 
 	if r.EventBus != nil {
-		event := events.NewPlayerLeftEvent("", removedPlayer.ID)
+		gameID := ""
+		if r.Game != nil {
+			gameID = r.Game.ID.String()
+		}
+		event := events.NewPlayerLeftEvent(gameID, removedPlayer.ID, r.ID)
 		event.RoomID = r.ID
 		r.EventBus.Publish(event)
 	}
@@ -143,6 +147,11 @@ func (r *Room) RemovePlayer(playerID string) error {
 
 	if len(r.Players) == 0 {
 		r.Status = CLOSED
+		if r.EventBus != nil {
+			event := events.NewRoomClosedEvent(r.ID)
+			event.RoomID = r.ID
+			r.EventBus.Publish(event)
+		}
 	}
 
 	return nil
@@ -152,7 +161,7 @@ func (r *Room) CanStartGame() bool {
 	if r == nil {
 		return false
 	}
-	return r.Status == OPEN && len(r.Players) == 4
+	return r.Status == OPEN
 }
 
 func (r *Room) StartGame() error {

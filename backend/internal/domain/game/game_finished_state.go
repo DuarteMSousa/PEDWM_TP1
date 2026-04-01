@@ -2,6 +2,7 @@ package game
 
 import (
 	"backend/internal/domain/events"
+	"backend/internal/domain/team"
 )
 
 // GameFinishedState implementa GameState
@@ -20,6 +21,11 @@ func (s *GameFinishedState) Enter() {
 
 func (s *GameFinishedState) Update() {
 	winner := s.game.scoringStrategy.Winner(s.game)
-	event := events.NewGameEndedEvent(s.game.ID.String(), s.game.Score, winner)
+	teams := make(map[string]team.Team)
+	for _, team := range s.game.Teams {
+		teams[team.ID] = *team
+	}
+
+	event := events.NewGameEndedEvent(s.game.ID.String(), s.game.Score, winner, teams)
 	s.game.AddEvent(event)
 }

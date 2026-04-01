@@ -1,9 +1,9 @@
 package main
 
 import (
-	application "backend/internal/application/services"
+	"backend/internal/application/services"
 	"backend/internal/domain/events"
-	infraevents "backend/internal/infrastructure/events"
+	events_infrastructure "backend/internal/infrastructure/events"
 	"backend/internal/infrastructure/graph"
 	"backend/internal/infrastructure/persistence/postgres"
 	"backend/internal/infrastructure/persistence/postgres/repositories"
@@ -62,13 +62,18 @@ func main() {
 	// ========================
 	// Application
 	// ========================
-	eventService := application.NewEventService(eventRepo)
-	roomService := application.NewRoomService(repo, gameRepo, userRepo, eventService, hub)
-	userService := application.NewUserService(userRepo, userStatsRepo)
-	friendshipService := application.NewFriendshipService(friendshipRepo, userRepo)
-	userStatsService := application.NewUserStatsService(userStatsRepo, userRepo)
+	eventService := services.NewEventService(eventRepo)
+	roomService := services.NewRoomService(repo, gameRepo, userRepo, eventService, hub)
+	userService := services.NewUserService(userRepo, userStatsRepo)
+	friendshipService := services.NewFriendshipService(friendshipRepo, userRepo)
+	userStatsService := services.NewUserStatsService(userStatsRepo, userRepo)
 
-	_ = infraevents.NewEventBusPublisher(eventBus)
+	// ========================
+	// Event Dispatcher
+	// ========================
+	eventDispatcher := events_infrastructure.GetEventDispatcherInstance()
+	eventDispatcher.Register("PLAYER_LEFT", events_infrastructure.NewPlayerLeftEventHandler(roomService))
+	eventDispatcher.Register("GAME_ENDED", events_infrastructure.NewGameEndedEventHandler(userStatsService))
 
 	// ========================
 	// GraphQL

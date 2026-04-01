@@ -2,6 +2,7 @@ package events
 
 import (
 	"backend/internal/domain/card"
+	"backend/internal/domain/team"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,6 +26,7 @@ const (
 	EventCardPlayed   EventType = "CARD_PLAYED"
 	EventTrickEnded   EventType = "TRICK_ENDED"
 	EventGameEnded    EventType = "GAME_ENDED"
+	EventRoomClosed   EventType = "ROOM_CLOSED"
 )
 
 type Event struct {
@@ -50,6 +52,7 @@ type PlayerJoinedPayload struct {
 
 type PlayerLeftPayload struct {
 	PlayerID string `json:"playerId"`
+	RoomID   string `json:"roomId"`
 }
 
 type RoundStartedPayload struct {
@@ -95,8 +98,13 @@ type GameScorePayload struct {
 }
 
 type GameEndedPayload struct {
-	FinalScores map[string]int `json:"finalScores"`
-	WinnerTeam  string         `json:"winnerTeam"`
+	FinalScores map[string]int       `json:"finalScores"`
+	Winner      string               `json:"winner"`
+	Teams       map[string]team.Team `json:"teams,omitempty"`
+}
+
+type RoomClosedPayload struct {
+	RoomID string `json:"roomId"`
 }
 
 func (e Event) WithPayload(payload any) Event {
@@ -123,8 +131,8 @@ func NewPlayerJoinedEvent(gameID string, playerID string, name string, slot int)
 	return newEvent(EventPlayerJoined, gameID, PlayerJoinedPayload{PlayerID: playerID, Name: name, Slot: slot})
 }
 
-func NewPlayerLeftEvent(gameID string, playerID string) Event {
-	return newEvent(EventPlayerLeft, gameID, PlayerLeftPayload{PlayerID: playerID})
+func NewPlayerLeftEvent(gameID string, playerID string, roomID string) Event {
+	return newEvent(EventPlayerLeft, gameID, PlayerLeftPayload{PlayerID: playerID, RoomID: roomID})
 }
 
 func NewGameStartedEvent(gameID string) Event {
@@ -167,6 +175,10 @@ func NewGameScoreUpdatedEvent(gameID string, score map[string]int) Event {
 	return newEvent(EventGameScore, gameID, GameScorePayload{Score: score})
 }
 
-func NewGameEndedEvent(gameID string, finalScores map[string]int, winnerTeam string) Event {
-	return newEvent(EventGameEnded, gameID, GameEndedPayload{FinalScores: finalScores, WinnerTeam: winnerTeam})
+func NewGameEndedEvent(gameID string, finalScores map[string]int, winner string, teams map[string]team.Team) Event {
+	return newEvent(EventGameEnded, gameID, GameEndedPayload{FinalScores: finalScores, Winner: winner, Teams: teams})
+}
+
+func NewRoomClosedEvent(roomID string) Event {
+	return newEvent(EventRoomClosed, "", RoomClosedPayload{RoomID: roomID})
 }

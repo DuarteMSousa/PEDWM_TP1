@@ -7,12 +7,27 @@ import (
 	bot_strategy "backend/internal/domain/player/botStrategy"
 	"backend/internal/domain/team"
 	"sort"
+	"strconv"
 )
 
 func CreateSuecaGame(players map[string]*player.Player, botStrategy bot_strategy.IBotStrategy, eventBus *events.EventBus) *game.Game {
 	roomPlayers := make([]*player.Player, 0, len(players))
 	for _, p := range players {
 		roomPlayers = append(roomPlayers, p)
+	}
+
+	if len(roomPlayers) < 4 {
+		for i := len(roomPlayers); i < 4; i++ {
+			currentSequence := 1
+			for _, p := range roomPlayers {
+				if p.Sequence == currentSequence {
+					currentSequence = p.Sequence + 1
+				}
+			}
+			botPlayer := player.NewPlayer("bot"+strconv.Itoa(i), "Bot "+strconv.Itoa(i), currentSequence)
+			botPlayer.Type = player.BOT
+			roomPlayers = append(roomPlayers, botPlayer)
+		}
 	}
 
 	sort.Slice(roomPlayers, func(i, j int) bool {

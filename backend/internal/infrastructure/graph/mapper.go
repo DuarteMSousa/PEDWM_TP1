@@ -1,7 +1,7 @@
 package graph
 
 import (
-	application "backend/internal/application/services"
+	"backend/internal/application/services"
 	"backend/internal/domain/card"
 	"backend/internal/domain/friendship"
 	"backend/internal/domain/player"
@@ -82,7 +82,7 @@ func mapGameTablePlay(p trick.Play) *model.GameTablePlay {
 	}
 }
 
-func mapGameSnapshot(snapshot *application.GameSnapshot) *model.GameSnapshot {
+func mapGameSnapshot(snapshot *services.GameSnapshot) *model.GameSnapshot {
 	if snapshot == nil {
 		return nil
 	}

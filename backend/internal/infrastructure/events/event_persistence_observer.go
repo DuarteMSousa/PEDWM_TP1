@@ -1,4 +1,4 @@
-package persistence
+package events_infrastructure
 
 import (
 	"strings"
@@ -9,11 +9,12 @@ import (
 
 // Minimal bridge EventBus -> WebSocket room broadcast.
 type EventPersistanceObserver struct {
-	eventService interfaces.EventService
+	eventService    interfaces.EventService
+	eventDispatcher *EventDispatcher
 }
 
-func NewEventPersistanceObserver(eventService interfaces.EventService) *EventPersistanceObserver {
-	return &EventPersistanceObserver{eventService: eventService}
+func NewEventPersistanceObserver(eventService interfaces.EventService, eventDispatcher *EventDispatcher) *EventPersistanceObserver {
+	return &EventPersistanceObserver{eventService: eventService, eventDispatcher: eventDispatcher}
 }
 
 func (o *EventPersistanceObserver) Update(event domain.Event) {
@@ -28,4 +29,8 @@ func (o *EventPersistanceObserver) Update(event domain.Event) {
 	}
 
 	o.eventService.SaveEvent(event)
+
+	if o.eventDispatcher != nil {
+		o.eventDispatcher.Dispatch(event)
+	}
 }

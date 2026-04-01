@@ -16,7 +16,7 @@ func (s SuecaGameScoringStrategy) CalculateCurrentRoundGamePoints(round *round.R
 
 	roundScore := round.GetScore()
 
-	for teamID, _ := range round.Teams {
+	for teamID := range round.Teams {
 		teamGamePoints := 0
 
 		if roundScore[teamID] == 120 {
@@ -35,7 +35,7 @@ func (s SuecaGameScoringStrategy) CalculateCurrentRoundGamePoints(round *round.R
 
 func (s SuecaGameScoringStrategy) HasGameEnded(game *Game) bool {
 	for _, team := range game.Teams {
-		if game.Score[team.ID] >= 4 {
+		if game.Score[team.ID] >= 5 {
 			return true
 		}
 	}

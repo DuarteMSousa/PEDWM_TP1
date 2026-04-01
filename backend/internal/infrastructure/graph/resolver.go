@@ -1,6 +1,6 @@
 package graph
 
-import application "backend/internal/application/services"
+import "backend/internal/application/services"
 
 // This file will not be regenerated automatically.
 //
@@ -8,9 +8,9 @@ import application "backend/internal/application/services"
 // here.
 
 type Resolver struct {
-	RoomService       *application.RoomService
-	UserService       *application.UserService
-	FriendshipService *application.FriendshipService
-	UserStatsService  *application.UserStatsService
-	EventService      *application.EventService
+	RoomService       *services.RoomService
+	UserService       *services.UserService
+	FriendshipService *services.FriendshipService
+	UserStatsService  *services.UserStatsService
+	EventService      *services.EventService
 }

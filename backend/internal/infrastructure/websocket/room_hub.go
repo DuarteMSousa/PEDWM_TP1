@@ -70,6 +70,8 @@ func (r *RoomHub) RemoveClient(client *Client) bool {
 		return true
 	}
 
+	//Por aqui a lancar evento de player left
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.clients, client)
