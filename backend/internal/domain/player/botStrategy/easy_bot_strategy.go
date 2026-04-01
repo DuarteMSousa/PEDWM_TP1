@@ -11,7 +11,7 @@ func NewEasyBotStrategy() *EasyBotStrategy {
 	return &EasyBotStrategy{}
 }
 
-func (e *EasyBotStrategy) ChooseCard(hand hand.Hand, leadSuit card.Suit) card.Card {
+func (e *EasyBotStrategy) ChooseCard(hand hand.Hand, leadSuit card.Suit, cardStrengthProvider CardStrengthProvider) card.Card {
 	if len(hand.Cards) == 0 {
 		return card.Card{}
 	}

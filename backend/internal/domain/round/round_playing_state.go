@@ -4,6 +4,7 @@ import (
 	"backend/internal/domain/card"
 	"backend/internal/domain/events"
 	"backend/internal/domain/player"
+	"errors"
 	"math/rand"
 )
 
@@ -11,6 +12,12 @@ import (
 type RoundPlayingState struct {
 	round *Round
 }
+
+var (
+	ErrHandNotFound      = errors.New("player hand not found")
+	ErrBotStrategyNotSet = errors.New("bot strategy not set")
+	ErrBotCardNotFound   = errors.New("bot card not found")
+)
 
 func NewRoundPlayingState(r *Round) *RoundPlayingState {
 	return &RoundPlayingState{round: r}
@@ -77,19 +84,28 @@ func (s *RoundPlayingState) Update() {
 		}
 
 		if nextPlayer.Type == player.BOT {
-			if s.round.BotStrategy == nil || nextPlayer.Hand == nil {
-				return
+			if s.round.BotStrategy == nil {
+				panic(ErrBotStrategyNotSet)
+			}
+
+			if nextPlayer.Hand == nil {
+				panic(ErrHandNotFound)
 			}
 
 			leadSuit := card.Suit("")
 			if s.round.CurrentTrick.LeadSuit != nil {
 				leadSuit = *s.round.CurrentTrick.LeadSuit
 			}
-			chosenCard := s.round.BotStrategy.ChooseCard(*nextPlayer.Hand, leadSuit)
+			chosenCard := s.round.BotStrategy.ChooseCard(*nextPlayer.Hand, leadSuit, s.round.CurrentTrick.RuleStrategy)
 			if chosenCard.ID == "" {
-				return
+				panic(ErrBotCardNotFound)
 			}
-			_ = s.round.PlayCard(nextPlayer.ID, chosenCard.ID)
+
+			err = s.round.PlayCard(nextPlayer.ID, chosenCard.ID)
+
+			if err != nil {
+				panic(err)
+			}
 		}
 
 	}

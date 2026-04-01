@@ -59,7 +59,7 @@ type Game struct {
 func NewGame(teams []*team.Team, scoringStrategy IGameScoringStrategy, botStrategy bot_strategy.IBotStrategy) *Game {
 	g := &Game{
 		ID:                   uuid.New(),
-		Status:               IN_PROGRESS,
+		Status:               PENDING,
 		players:              make(map[string]*player.Player),
 		Score:                make(map[string]int),
 		scoringStrategy:      scoringStrategy,

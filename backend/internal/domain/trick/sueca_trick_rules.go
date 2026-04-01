@@ -21,7 +21,7 @@ func (s SuecaTrickRules) WinningPlayer(trick Trick) (string, error) {
 
 	for _, play := range trick.Plays[1:] {
 		if play.Card.Suit == winningPlay.Card.Suit {
-			if s.TrickStrength(play.Card.Rank) > s.TrickStrength(winningPlay.Card.Rank) {
+			if s.CardStrength(play.Card.Rank) > s.CardStrength(winningPlay.Card.Rank) {
 				winningPlay = play
 			}
 		} else if play.Card.Suit == trick.TrumpSuit && winningPlay.Card.Suit != trick.TrumpSuit {
@@ -32,7 +32,7 @@ func (s SuecaTrickRules) WinningPlayer(trick Trick) (string, error) {
 	return winningPlay.PlayerID, nil
 }
 
-func (s SuecaTrickRules) TrickStrength(r card.Rank) int {
+func (s SuecaTrickRules) CardStrength(r card.Rank) int {
 	switch r {
 	case card.A:
 		return 10
