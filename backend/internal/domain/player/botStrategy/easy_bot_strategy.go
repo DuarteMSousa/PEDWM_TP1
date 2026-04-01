@@ -12,6 +12,15 @@ func NewEasyBotStrategy() *EasyBotStrategy {
 }
 
 func (e *EasyBotStrategy) ChooseCard(hand hand.Hand, leadSuit card.Suit) card.Card {
+	if len(hand.Cards) == 0 {
+		return card.Card{}
+	}
 
-	panic("chooose card not implemented yet")
+	for _, c := range hand.Cards {
+		if c.Suit == leadSuit {
+			return c
+		}
+	}
+
+	return hand.Cards[0]
 }

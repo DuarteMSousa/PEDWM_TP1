@@ -4,6 +4,7 @@ import (
 	"backend/internal/domain/player"
 	"backend/internal/domain/room"
 	"context"
+	"sort"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -47,13 +48,30 @@ func (r *RoomPostgresRepository) Save(rm *room.Room) error {
 		return err
 	}
 
+	orderedPlayers := make([]*player.Player, 0, len(rm.Players))
 	for _, p := range rm.Players {
+		orderedPlayers = append(orderedPlayers, p)
+	}
+	sort.Slice(orderedPlayers, func(i, j int) bool {
+		if orderedPlayers[i].Sequence == orderedPlayers[j].Sequence {
+			return orderedPlayers[i].ID < orderedPlayers[j].ID
+		}
+		return orderedPlayers[i].Sequence < orderedPlayers[j].Sequence
+	})
+
+	for idx, p := range orderedPlayers {
+		seat := p.Sequence
+		if seat <= 0 {
+			seat = idx + 1
+		}
+
 		_, err := tx.Exec(ctx, `
-			INSERT INTO room_players (room_id, user_id)
-			VALUES ($1, $2)
+			INSERT INTO room_players (room_id, user_id, seat)
+			VALUES ($1, $2, $3)
 		`,
 			rm.ID,
 			p.ID,
+			seat,
 		)
 		if err != nil {
 			return err
@@ -82,10 +100,11 @@ func (r *RoomPostgresRepository) FindByID(id string) (*room.Room, error) {
 	rm.Status = room.RoomStatus(status)
 
 	rows, err := r.pool.Query(ctx, `
-		SELECT rp.user_id, u.username
+		SELECT rp.user_id, u.username, rp.seat
 		FROM room_players rp
 		JOIN users u ON u.id = rp.user_id
 		WHERE rp.room_id = $1
+		ORDER BY rp.seat ASC, rp.created_at ASC
 	`, id)
 	if err != nil {
 		return nil, err
@@ -95,11 +114,15 @@ func (r *RoomPostgresRepository) FindByID(id string) (*room.Room, error) {
 	rm.Players = make(map[string]*player.Player)
 
 	for rows.Next() {
-		var p player.Player
-		if err := rows.Scan(&p.ID, &p.Name); err != nil {
+		var (
+			id       string
+			username string
+			seat     int
+		)
+		if err := rows.Scan(&id, &username, &seat); err != nil {
 			return nil, err
 		}
-		rm.Players[p.ID] = &p
+		rm.Players[id] = player.NewPlayer(id, username, seat)
 	}
 
 	return &rm, nil

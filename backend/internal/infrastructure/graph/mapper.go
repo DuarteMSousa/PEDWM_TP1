@@ -4,10 +4,12 @@ import (
 	application "backend/internal/application/services"
 	"backend/internal/domain/card"
 	"backend/internal/domain/friendship"
+	"backend/internal/domain/player"
 	"backend/internal/domain/room"
 	"backend/internal/domain/trick"
 	"backend/internal/domain/user"
 	"backend/internal/infrastructure/graph/model"
+	"sort"
 )
 
 func mapUser(u *user.User) *model.User {
@@ -37,9 +39,19 @@ func mapFriendship(f *friendship.Friendship) *model.Friendship {
 }
 
 func mapRoom(r *room.Room) *model.Room {
-	players := make([]*model.RoomPlayer, 0, len(r.Players))
-
+	orderedPlayers := make([]*player.Player, 0, len(r.Players))
 	for _, p := range r.Players {
+		orderedPlayers = append(orderedPlayers, p)
+	}
+	sort.Slice(orderedPlayers, func(i, j int) bool {
+		if orderedPlayers[i].Sequence == orderedPlayers[j].Sequence {
+			return orderedPlayers[i].ID < orderedPlayers[j].ID
+		}
+		return orderedPlayers[i].Sequence < orderedPlayers[j].Sequence
+	})
+
+	players := make([]*model.RoomPlayer, 0, len(orderedPlayers))
+	for _, p := range orderedPlayers {
 		players = append(players, &model.RoomPlayer{
 			ID:       p.ID,
 			Username: p.Name,

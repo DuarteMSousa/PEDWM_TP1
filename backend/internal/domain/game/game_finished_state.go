@@ -14,6 +14,7 @@ func NewGameFinishedState(game *Game) *GameFinishedState {
 }
 
 func (s *GameFinishedState) Enter() {
+	s.game.Status = FINISHED
 	s.game.State.Update()
 }
 

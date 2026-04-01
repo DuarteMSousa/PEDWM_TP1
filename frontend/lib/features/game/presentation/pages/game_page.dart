@@ -255,9 +255,9 @@ class _GamePageState extends State<GamePage> {
 
           final players = _orderedPlayers(state);
           final me = _playerAt(players, 0);
-          final left = _playerAt(players, 1);
+          final right = _playerAt(players, 1);
           final top = _playerAt(players, 2);
-          final right = _playerAt(players, 3);
+          final left = _playerAt(players, 3);
 
           return TableBackground(
             child: SafeArea(
@@ -383,8 +383,10 @@ class _TopHud extends StatelessWidget {
               label: 'Trunfo ${_suitLabel(state.trumpSuit)}',
               icon: Icons.style_outlined,
             ),
-            _ScorePill(label: 'Equipa A', score: state.teamAScore),
-            _ScorePill(label: 'Equipa B', score: state.teamBScore),
+            _ScorePill(label: 'Jogo A', score: state.teamAScore),
+            _ScorePill(label: 'Jogo B', score: state.teamBScore),
+            _ScorePill(label: 'Ronda A', score: state.roundTeamAScore),
+            _ScorePill(label: 'Ronda B', score: state.roundTeamBScore),
             if (isBusy)
               const SizedBox(
                 width: 16,

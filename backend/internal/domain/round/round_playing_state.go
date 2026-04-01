@@ -1,6 +1,7 @@
 package round
 
 import (
+	"backend/internal/domain/card"
 	"backend/internal/domain/events"
 	"backend/internal/domain/player"
 	"math/rand"
@@ -76,9 +77,19 @@ func (s *RoundPlayingState) Update() {
 		}
 
 		if nextPlayer.Type == player.BOT {
-			// choosenCard := s.round.BotStrategy.ChooseCard(*nextPlayer.Hand, s.round.TrumpSuit)
+			if s.round.BotStrategy == nil || nextPlayer.Hand == nil {
+				return
+			}
 
-			// s.round.PlayCard(*nextPlayer, choosenCard.ID)
+			leadSuit := card.Suit("")
+			if s.round.CurrentTrick.LeadSuit != nil {
+				leadSuit = *s.round.CurrentTrick.LeadSuit
+			}
+			chosenCard := s.round.BotStrategy.ChooseCard(*nextPlayer.Hand, leadSuit)
+			if chosenCard.ID == "" {
+				return
+			}
+			_ = s.round.PlayCard(nextPlayer.ID, chosenCard.ID)
 		}
 
 	}

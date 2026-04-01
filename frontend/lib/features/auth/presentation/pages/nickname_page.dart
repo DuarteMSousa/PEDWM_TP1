@@ -19,6 +19,9 @@ class NicknamePage extends StatefulWidget {
 class _NicknamePageState extends State<NicknamePage> {
   late final AuthController _controller;
   final TextEditingController _nicknameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isRegisterMode = false;
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -30,11 +33,22 @@ class _NicknamePageState extends State<NicknamePage> {
   void dispose() {
     _controller.dispose();
     _nicknameController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    await _controller.enterWithNickname(_nicknameController.text);
+    if (_isRegisterMode) {
+      await _controller.register(
+        username: _nicknameController.text,
+        password: _passwordController.text,
+      );
+    } else {
+      await _controller.login(
+        username: _nicknameController.text,
+        password: _passwordController.text,
+      );
+    }
     if (!mounted) {
       return;
     }
@@ -47,9 +61,15 @@ class _NicknamePageState extends State<NicknamePage> {
     }
     if (_controller.errorMessage != null) {
       ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_controller.errorMessage!)));
+      context,
+    ).showSnackBar(SnackBar(content: Text(_controller.errorMessage!)));
     }
+  }
+
+  void _toggleMode() {
+    setState(() {
+      _isRegisterMode = !_isRegisterMode;
+    });
   }
 
   @override
@@ -57,15 +77,20 @@ class _NicknamePageState extends State<NicknamePage> {
     final theme = Theme.of(context);
     const ivory = Color(0xFFF8F0DB);
 
-    final nicknameCard = SectionCard(
+    final authCard = SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Entrar no lobby', style: theme.textTheme.headlineSmall),
+          Text(
+            _isRegisterMode ? 'Criar conta' : 'Entrar no lobby',
+            style: theme.textTheme.headlineSmall,
+          ),
           const SizedBox(height: 10),
           Text(
-            'Define o teu nickname para entrares no lobby.',
+            _isRegisterMode
+                ? 'Regista o teu utilizador com nickname e password.'
+                : 'Faz login com o teu nickname e password.',
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 18),
@@ -76,6 +101,29 @@ class _NicknamePageState extends State<NicknamePage> {
               hintText: 'ex: parceiro_1',
               prefixIcon: Icon(Icons.person_outline),
             ),
+            textInputAction: TextInputAction.next,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _passwordController,
+            obscureText: _obscurePassword,
+            decoration: InputDecoration(
+              labelText: 'Password',
+              hintText: 'minimo 6 caracteres',
+              prefixIcon: const Icon(Icons.lock_outline),
+              suffixIcon: IconButton(
+                onPressed: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+              ),
+            ),
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _submit(),
           ),
@@ -85,19 +133,22 @@ class _NicknamePageState extends State<NicknamePage> {
             child: ElevatedButton.icon(
               onPressed: _controller.isLoading ? null : _submit,
               icon: const Icon(Icons.play_arrow_rounded),
-              label: Text(_controller.isLoading ? 'A entrar...' : 'Entrar'),
+              label: Text(
+                _controller.isLoading
+                    ? (_isRegisterMode ? 'A criar conta...' : 'A entrar...')
+                    : (_isRegisterMode ? 'Criar conta' : 'Entrar'),
+              ),
             ),
           ),
-          /* const SizedBox(height: 8),
+          const SizedBox(height: 8),
           TextButton(
-            onPressed: _controller.isLoading
-                ? null
-                : () {
-                    _nicknameController.text = 'guest';
-                    _submit();
-                  },
-            child: const Text('Entrar como convidado'),
-          ), */
+            onPressed: _controller.isLoading ? null : _toggleMode,
+            child: Text(
+              _isRegisterMode
+                  ? 'Ja tenho conta'
+                  : 'Nao tenho conta (registar)',
+            ),
+          ),
         ],
       ),
     );
@@ -137,7 +188,7 @@ class _NicknamePageState extends State<NicknamePage> {
                                 child: RevealSlideFade(
                                   delay: const Duration(milliseconds: 180),
                                   beginOffset: const Offset(0.04, 0),
-                                  child: nicknameCard,
+                                  child: authCard,
                                 ),
                               ),
                             ],
@@ -159,7 +210,7 @@ class _NicknamePageState extends State<NicknamePage> {
                             RevealSlideFade(
                               delay: const Duration(milliseconds: 180),
                               beginOffset: const Offset(0, 0.04),
-                              child: nicknameCard,
+                              child: authCard,
                             ),
                           ],
                         );

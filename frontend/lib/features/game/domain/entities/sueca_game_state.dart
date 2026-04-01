@@ -15,6 +15,8 @@ class SuecaGameState {
     required this.myPlayerId,
     required this.teamAScore,
     required this.teamBScore,
+    required this.roundTeamAScore,
+    required this.roundTeamBScore,
   });
 
   final String roomId;
@@ -27,6 +29,8 @@ class SuecaGameState {
   final String myPlayerId;
   final int teamAScore;
   final int teamBScore;
+  final int roundTeamAScore;
+  final int roundTeamBScore;
 
   SuecaGameState copyWith({
     GamePhase? phase,
@@ -38,6 +42,8 @@ class SuecaGameState {
     String? myPlayerId,
     int? teamAScore,
     int? teamBScore,
+    int? roundTeamAScore,
+    int? roundTeamBScore,
   }) {
     return SuecaGameState(
       roomId: roomId,
@@ -50,6 +56,8 @@ class SuecaGameState {
       myPlayerId: myPlayerId ?? this.myPlayerId,
       teamAScore: teamAScore ?? this.teamAScore,
       teamBScore: teamBScore ?? this.teamBScore,
+      roundTeamAScore: roundTeamAScore ?? this.roundTeamAScore,
+      roundTeamBScore: roundTeamBScore ?? this.roundTeamBScore,
     );
   }
 }

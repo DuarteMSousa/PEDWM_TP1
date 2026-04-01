@@ -33,4 +33,7 @@ func (o *WebSocketObserver) Update(event domain.Event) {
 	}
 
 	o.hub.BroadcastToRoom(roomID, payload)
+	if roomID != lobbyRoomID {
+		o.hub.BroadcastToRoom(lobbyRoomID, payload)
+	}
 }

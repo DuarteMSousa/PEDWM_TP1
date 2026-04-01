@@ -214,9 +214,15 @@ class GameRemoteDataSource {
         final scoreTuple = _parseScoreTuple(payloadMap['score']);
         return current.copyWith(
           phase: GamePhase.scoring,
+          roundTeamAScore: scoreTuple.$1,
+          roundTeamBScore: scoreTuple.$2,
+          tableCards: <String, SuecaCard>{},
+        );
+      case 'GAME_SCORE_UPDATED':
+        final scoreTuple = _parseScoreTuple(payloadMap['score']);
+        return current.copyWith(
           teamAScore: scoreTuple.$1,
           teamBScore: scoreTuple.$2,
-          tableCards: <String, SuecaCard>{},
         );
       case 'GAME_ENDED':
         final scoreTuple = _parseScoreTuple(payloadMap['finalScores']);
@@ -373,6 +379,8 @@ class GameRemoteDataSource {
       myPlayerId: playerId,
       teamAScore: scoreTuple.$1,
       teamBScore: scoreTuple.$2,
+      roundTeamAScore: 0,
+      roundTeamBScore: 0,
     );
   }
 
@@ -427,8 +435,26 @@ class GameRemoteDataSource {
     }
 
     final mapped = Map<String, dynamic>.from(rawScore);
-    final teamA = _toInt(mapped['team1']);
-    final teamB = _toInt(mapped['team2']);
+    int? teamA = _toInt(mapped['team1']);
+    int? teamB = _toInt(mapped['team2']);
+
+    if (teamA == null || teamB == null) {
+      for (final entry in mapped.entries) {
+        final key = entry.key.toString().toLowerCase();
+        final value = _toInt(entry.value);
+        if (value == null) {
+          continue;
+        }
+        if (key.contains('1') && teamA == null) {
+          teamA = value;
+          continue;
+        }
+        if (key.contains('2') && teamB == null) {
+          teamB = value;
+        }
+      }
+    }
+
     if (teamA != null || teamB != null) {
       return (teamA ?? 0, teamB ?? 0);
     }
@@ -605,6 +631,8 @@ class GameRemoteDataSource {
       myPlayerId: playerId,
       teamAScore: 0,
       teamBScore: 0,
+      roundTeamAScore: 0,
+      roundTeamBScore: 0,
     );
   }
 

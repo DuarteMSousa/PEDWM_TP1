@@ -16,6 +16,7 @@ const (
 	EventTrumpRevealed EventType = "TRUMP_REVEALED"
 	EventCardDealt     EventType = "CARD_DEALT"
 	EventRoundEnded    EventType = "ROUND_ENDED"
+	EventGameScore     EventType = "GAME_SCORE_UPDATED"
 
 	EventPlayerJoined EventType = "PLAYER_JOINED"
 	EventPlayerLeft   EventType = "PLAYER_LEFT"
@@ -89,6 +90,10 @@ type RoundEndedPayload struct {
 	WinnerTeam string         `json:"winnerTeam"`
 }
 
+type GameScorePayload struct {
+	Score map[string]int `json:"score"`
+}
+
 type GameEndedPayload struct {
 	FinalScores map[string]int `json:"finalScores"`
 	WinnerTeam  string         `json:"winnerTeam"`
@@ -156,6 +161,10 @@ func NewTrickEndedEvent(gameID string, winnerID string, points int) Event {
 
 func NewRoundEndedEvent(gameID string, score map[string]int, winnerTeam string) Event {
 	return newEvent(EventRoundEnded, gameID, RoundEndedPayload{Score: score, WinnerTeam: winnerTeam})
+}
+
+func NewGameScoreUpdatedEvent(gameID string, score map[string]int) Event {
+	return newEvent(EventGameScore, gameID, GameScorePayload{Score: score})
 }
 
 func NewGameEndedEvent(gameID string, finalScores map[string]int, winnerTeam string) Event {
