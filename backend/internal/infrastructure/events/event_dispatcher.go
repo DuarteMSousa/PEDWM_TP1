@@ -62,9 +62,9 @@ func (d *EventDispatcher) Dispatch(event events.Event) error {
 		return fmt.Errorf("unknown event type: %s", event.Type)
 	}
 
-	payload, ok := event.Payload.(json.RawMessage)
-	if !ok {
-		return fmt.Errorf("invalid payload type")
+	payload, err := normalizePayload(event.Payload)
+	if err != nil {
+		return fmt.Errorf("invalid payload type: %w", err)
 	}
 	return handler(payload)
 }
@@ -79,4 +79,23 @@ func (d *EventDispatcher) HandleMessage(event events.Event) {
 	}
 
 	d.Dispatch(event)
+}
+
+func normalizePayload(payload any) (json.RawMessage, error) {
+	switch typed := payload.(type) {
+	case nil:
+		return json.RawMessage(`{}`), nil
+	case json.RawMessage:
+		return typed, nil
+	case []byte:
+		return json.RawMessage(typed), nil
+	case string:
+		return json.RawMessage(typed), nil
+	default:
+		b, err := json.Marshal(typed)
+		if err != nil {
+			return nil, err
+		}
+		return json.RawMessage(b), nil
+	}
 }
