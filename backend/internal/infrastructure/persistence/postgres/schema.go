@@ -127,7 +127,6 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 		`CREATE INDEX IF NOT EXISTS idx_room_players_user ON room_players(user_id)`,
 
 		`CREATE INDEX IF NOT EXISTS idx_events_game ON events(game_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_events_user ON events(user_id)`,
 
 		`CREATE UNIQUE INDEX IF NOT EXISTS one_active_game_per_room
 			ON games(room_id)

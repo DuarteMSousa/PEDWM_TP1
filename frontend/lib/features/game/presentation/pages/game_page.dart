@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:sueca_pedwm/features/game/domain/entities/team.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/shared_widgets/motion.dart';
@@ -218,7 +219,7 @@ class _GamePageState extends State<GamePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Mesa ${widget.args.room.name}')),
+      appBar: AppBar(title: Text(widget.args.room.name)),
       body: AnimatedBuilder(
         animation: _controller,
         builder: (context, _) {
@@ -322,6 +323,7 @@ class _GamePageState extends State<GamePage> {
                                         isBusy: _controller.isLoading,
                                         canPlay: _controller.canPlayCard,
                                         onPlayCard: _controller.playCard,
+                                        state: state,
                                       ),
                                     ),
                                   ),
@@ -564,6 +566,7 @@ class _WoodenTable extends StatelessWidget {
                     isCurrent: top!.id == state.currentPlayerId,
                     cardCount: opponentCards,
                     cardBackAssetPath: cardBackAssetPath,
+                    teams: state.teams,
                   ),
                 ),
               if (left != null)
@@ -575,6 +578,7 @@ class _WoodenTable extends StatelessWidget {
                     isCurrent: left!.id == state.currentPlayerId,
                     cardCount: opponentCards,
                     cardBackAssetPath: cardBackAssetPath,
+                    teams: state.teams,
                   ),
                 ),
               if (right != null)
@@ -586,6 +590,7 @@ class _WoodenTable extends StatelessWidget {
                     isCurrent: right!.id == state.currentPlayerId,
                     cardCount: opponentCards,
                     cardBackAssetPath: cardBackAssetPath,
+                    teams: state.teams,
                   ),
                 ),
               Center(
@@ -601,7 +606,7 @@ class _WoodenTable extends StatelessWidget {
                 Align(
                   alignment: const Alignment(-0.86, 0.88),
                   child: _CurrentTurnBadge(
-                    nickname: me!.nickname+me!.sequence.toString(),
+                    nickname: me!.nickname + me!.sequence.toString(),
                     isCurrent: me!.id == state.currentPlayerId,
                   ),
                 ),
@@ -622,6 +627,7 @@ class _OpponentSeat extends StatelessWidget {
     required this.isCurrent,
     required this.cardCount,
     required this.cardBackAssetPath,
+    required this.teams,
   });
 
   final Player player;
@@ -629,10 +635,16 @@ class _OpponentSeat extends StatelessWidget {
   final bool isCurrent;
   final int cardCount;
   final String? cardBackAssetPath;
+  final List<Team> teams;
 
   @override
   Widget build(BuildContext context) {
-    final avatar = _PlayerAvatar(player: player, highlight: isCurrent);
+    final avatar = _PlayerAvatar(
+      player: player,
+      highlight: isCurrent,
+      teams: teams,
+      displayTeam: true,
+    );
     final cards = _CardBackFan(
       count: cardCount,
       vertical: seat == _Seat.left || seat == _Seat.right,
@@ -661,10 +673,17 @@ class _OpponentSeat extends StatelessWidget {
 }
 
 class _PlayerAvatar extends StatelessWidget {
-  const _PlayerAvatar({required this.player, required this.highlight});
+  const _PlayerAvatar({
+    required this.player,
+    required this.highlight,
+    required this.teams,
+    this.displayTeam = false,
+  });
 
   final Player player;
   final bool highlight;
+  final List<Team> teams;
+  final bool displayTeam;
 
   @override
   Widget build(BuildContext context) {
@@ -709,14 +728,30 @@ class _PlayerAvatar extends StatelessWidget {
         const SizedBox(height: 3),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 86),
-          child: Text(
-            player.nickname+player.sequence.toString(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(color: const Color(0xFFF8F0DB)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                player.nickname,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: const Color(0xFFF8F0DB),
+                ),
+              ),
+              if (displayTeam && teams.isNotEmpty)
+                Text(
+                  _playerTeamName(player.nickname, teams),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: const Color.fromARGB(204, 212, 204, 183),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+            ],
           ),
         ),
       ],
@@ -1033,6 +1068,7 @@ class _MyHandArea extends StatelessWidget {
     required this.isBusy,
     required this.canPlay,
     required this.onPlayCard,
+    required this.state,
   });
 
   final Player? me;
@@ -1040,6 +1076,7 @@ class _MyHandArea extends StatelessWidget {
   final bool isBusy;
   final bool canPlay;
   final Future<void> Function(SuecaCard card) onPlayCard;
+  final SuecaGameState state;
 
   @override
   Widget build(BuildContext context) {
@@ -1060,12 +1097,16 @@ class _MyHandArea extends StatelessWidget {
             Row(
               children: [
                 if (me != null) ...[
-                  _PlayerAvatar(player: me!, highlight: false),
+                  _PlayerAvatar(
+                    player: me!,
+                    highlight: false,
+                    teams: state.teams,
+                  ),
                   const SizedBox(width: 8),
                 ],
                 Expanded(
                   child: Text(
-                    'A tua mao (${hand.length} cartas)',
+                    'A tua mão (${hand.length} cartas)',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: const Color(0xFFF8F0DB),
                     ),
@@ -1377,4 +1418,13 @@ String _initials(String nickname) {
   final first = parts.first.substring(0, 1);
   final second = parts[1].substring(0, 1);
   return '$first$second'.toUpperCase();
+}
+
+String _playerTeamName(String nickname, List<Team> teams) {
+  for (final team in teams) {
+    if (team.players.map((player) => player.nickname).contains(nickname)) {
+      return team.id;
+    }
+  }
+  return 'Sem equipa';
 }

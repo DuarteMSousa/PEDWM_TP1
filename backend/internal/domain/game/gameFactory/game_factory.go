@@ -36,8 +36,8 @@ func CreateSuecaGame(players map[string]*player.Player, botStrategy bot_strategy
 		return roomPlayers[i].Sequence < roomPlayers[j].Sequence
 	})
 
-	team1 := team.Team{ID: "team1"}
-	team2 := team.Team{ID: "team2"}
+	team1 := team.Team{ID: "Equipa 1"}
+	team2 := team.Team{ID: "Equipa 2"}
 	for i, p := range roomPlayers {
 		if i%2 == 0 {
 			team1.Players = append(team1.Players, p)
