@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import 'package:sueca_pedwm/core/utils/logger.dart';
+import 'package:sueca_pedwm/features/game/domain/entities/team.dart';
+
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/network/graphql/graphql_service.dart';
 import '../../../../core/network/websocket/websocket_service.dart';
@@ -18,6 +21,7 @@ class GameRemoteDataSource {
 
   final GraphqlService _graphqlService;
   final WebSocketService _webSocketService;
+  Future<void>? _eventQueue;
 
   final Map<String, SuecaGameState> _cachedGames = <String, SuecaGameState>{};
   final Map<String, StreamController<SuecaGameState>> _controllers =
@@ -38,20 +42,33 @@ class GameRemoteDataSource {
     final room = await roomFuture;
     final snapshot = await snapshotFuture;
 
-    final players = _parsePlayers(room['players']);
+    List<Player> players = [];
+    final teams = _parseTeams(snapshot['teams']);
+    teams
+        .map(
+          (team) => team.players.forEach((player) {
+            if (players.every((p) => p.id != player.id)) {
+              players.add(player);
+            }
+          }),
+        )
+        .toList();
+
     final currentPlayer = players.firstWhere(
       (player) => player.id == playerId,
-      orElse: () => Player(id: playerId, nickname: 'Tu'),
+      orElse: () => Player(id: playerId, nickname: 'Tu', sequence: 1),
     );
-    if (players.every((player) => player.id != playerId)) {
-      players.add(currentPlayer);
-    }
+
+    players.sort((a, b) => a.sequence.compareTo(b.sequence));
+
+    Logger.info('gameSnapshot -> $snapshot');
 
     final state = _stateFromSnapshot(
       roomId: roomId,
       playerId: playerId,
       roomStatus: room['status']?.toString() ?? 'OPEN',
       players: players,
+      teams: teams,
       snapshot: snapshot,
       fallbackCurrentPlayerId: currentPlayer.id,
     );
@@ -110,20 +127,35 @@ class GameRemoteDataSource {
     required String roomId,
     required Map<String, dynamic> rawEvent,
   }) {
-    final eventRoomId =
-        rawEvent['roomId']?.toString() ?? rawEvent['gameId']?.toString();
-    if (eventRoomId != roomId) {
-      return;
-    }
+    _eventQueue = (_eventQueue ?? Future.value()).then((_) async {
+      final eventRoomId =
+          rawEvent['roomId']?.toString() ?? rawEvent['gameId']?.toString();
+      if (eventRoomId != roomId) return;
 
-    final current = _cachedGames[roomId];
-    if (current == null) {
-      return;
-    }
+      final current = _cachedGames[roomId];
+      if (current == null) return;
 
-    final next = _applyEvent(current, rawEvent);
-    _cachedGames[roomId] = next;
-    _emit(roomId, next);
+      final type = rawEvent['type']?.toString() ?? '';
+      final payload = rawEvent['payload'] ?? {};
+
+      // 2. Determinar o tempo de espera para este evento
+      if (type == 'CARD_PLAYED') {
+        final playerId = payload['playerId']?.toString();
+        // Se não fui eu que joguei (foi um bot ou adversário), espera para eu ver a carta
+        if (playerId != current.myPlayerId) {
+          await Future.delayed(const Duration(milliseconds: 1000));
+        }
+      } else if (type == 'TRICK_ENDED') {
+        // Quando a vaza acaba, espera 2 segundos com as cartas na mesa
+        // antes de limpar (emitir o novo estado)
+        await Future.delayed(const Duration(seconds: 2));
+      }
+
+      // 3. Aplica o evento e emite o novo estado
+      final next = _applyEvent(current, rawEvent);
+      _cachedGames[roomId] = next;
+      _emit(roomId, next);
+    });
   }
 
   SuecaGameState _applyEvent(
@@ -138,9 +170,14 @@ class GameRemoteDataSource {
               ? Map<String, dynamic>.from(payload)
               : <String, dynamic>{});
 
+    Logger.info('WebSocket event -> $rawEvent');
+
     switch (type) {
       case 'GAME_STARTED':
-        return current.copyWith(phase: GamePhase.playingTrick);
+        return current.copyWith(
+          teams: _parseTeams(payloadMap['teams']),
+          phase: GamePhase.playingTrick,
+        );
       case 'ROUND_STARTED':
         return current.copyWith(
           phase: GamePhase.playingTrick,
@@ -209,33 +246,41 @@ class GameRemoteDataSource {
           phase: GamePhase.playingTrick,
         );
       case 'TRICK_ENDED':
-        final scoreTuple = _parseScoreTuple(payloadMap['score']);
+        final points = payloadMap['points'];
+        final team = current.teams.firstWhere(
+          (t) => t.players.any((p) => p.id == payloadMap['winnerId']),
+        );
+        team.roundScore += points is int ? points : 0;
         return current.copyWith(
           tableCards: <String, SuecaCard>{},
-          roundTeamAScore: current.roundTeamAScore + scoreTuple.$1,
-          roundTeamBScore: current.roundTeamBScore + scoreTuple.$2,
           phase: GamePhase.scoring,
         );
       case 'ROUND_ENDED':
-        final scoreTuple = _parseScoreTuple(payloadMap['score']);
         return current.copyWith(
           phase: GamePhase.scoring,
-          roundTeamAScore: scoreTuple.$1,
-          roundTeamBScore: scoreTuple.$2,
+          teams: _updateTeamsScore(
+            current.teams,
+            payloadMap['score'],
+            isRound: true,
+          ),
           tableCards: <String, SuecaCard>{},
         );
       case 'GAME_SCORE_UPDATED':
-        final scoreTuple = _parseScoreTuple(payloadMap['score']);
         return current.copyWith(
-          teamAScore: scoreTuple.$1,
-          teamBScore: scoreTuple.$2,
+          teams: _updateTeamsScore(
+            current.teams,
+            payloadMap['score'],
+            isRound: false,
+          ),
         );
       case 'GAME_ENDED':
-        final scoreTuple = _parseScoreTuple(payloadMap['finalScores']);
         return current.copyWith(
           phase: GamePhase.finished,
-          teamAScore: scoreTuple.$1,
-          teamBScore: scoreTuple.$2,
+          teams: _updateTeamsScore(
+            current.teams,
+            payloadMap['finalScores'],
+            isRound: false,
+          ),
         );
       default:
         return current;
@@ -278,33 +323,41 @@ class GameRemoteDataSource {
   }) async {
     final response = await _graphqlService.query(
       document: '''
-        query GameSnapshot(\$roomId: ID!, \$playerId: ID!) {
-          gameSnapshot(roomId: \$roomId, playerId: \$playerId) {
-            roomId
-            gameId
-            status
-            trumpSuit
-            currentPlayerId
-            myHand {
-              id
-              suit
-              rank
-            }
-            tablePlays {
-              playerId
-              card {
-                id
-                suit
-                rank
-              }
-            }
-            scores {
-              teamId
-              points
-            }
+    query GameSnapshot(\$roomId: ID!, \$playerId: ID!) { # Open Query
+      gameSnapshot(roomId: \$roomId, playerId: \$playerId) { # Open Selection
+        roomId
+        gameId
+        status
+        trumpSuit
+        currentPlayerId
+        myHand {
+          id
+          suit
+          rank
+        }
+        tablePlays {
+          playerId
+          card {
+            id
+            suit
+            rank
           }
         }
-      ''',
+        scores {
+          teamId
+          points
+        }
+        teams {
+          id
+          players {
+            id
+            name
+            sequence
+          }
+        } 
+      } 
+    } 
+  ''',
       variables: <String, dynamic>{'roomId': roomId, 'playerId': playerId},
     );
 
@@ -326,6 +379,7 @@ class GameRemoteDataSource {
     required String playerId,
     required String roomStatus,
     required List<Player> players,
+    required List<Team> teams,
     required Map<String, dynamic> snapshot,
     required String fallbackCurrentPlayerId,
   }) {
@@ -362,7 +416,6 @@ class GameRemoteDataSource {
       }
     }
 
-    final scoreTuple = _parseSnapshotScores(scoresRaw);
     final trumpSuit = _parseSuit(trumpSuitRaw) ?? Suit.hearts;
     final currentPlayerId =
         (currentPlayerRaw == null || currentPlayerRaw.isEmpty)
@@ -374,37 +427,27 @@ class GameRemoteDataSource {
       hasCards: hand.isNotEmpty || tableCards.isNotEmpty,
     );
 
+    teams = _updateTeamsScore(teams, scoresRaw, isRound: false);
+
     return SuecaGameState(
       roomId: roomId,
       phase: phase,
       players: players,
+      teams: teams,
       hand: hand,
       tableCards: tableCards,
       trumpSuit: trumpSuit,
       currentPlayerId: currentPlayerId,
       myPlayerId: playerId,
-      teamAScore: scoreTuple.$1,
-      teamBScore: scoreTuple.$2,
-      roundTeamAScore: 0,
-      roundTeamBScore: 0,
     );
   }
 
-  List<Player> _parsePlayers(dynamic rawPlayers) {
-    if (rawPlayers is! List) {
-      return <Player>[];
-    }
+  List<Team> _parseTeams(dynamic rawTeams) {
+    if (rawTeams == null) return [];
 
-    return rawPlayers
-        .whereType<Map<String, dynamic>>()
-        .map(
-          (rawPlayer) => Player(
-            id: rawPlayer['id']?.toString() ?? '',
-            nickname: rawPlayer['username']?.toString() ?? 'Jogador',
-          ),
-        )
-        .where((player) => player.id.isNotEmpty)
-        .toList(growable: true);
+    final list = List<dynamic>.from(rawTeams);
+
+    return list.map((json) => Team.fromJson(json)).toList();
   }
 
   GamePhase _phaseFromRoomStatus(String status) {
@@ -556,6 +599,46 @@ class GameRemoteDataSource {
     return SuecaCard(suit: suit, rank: rank);
   }
 
+  List<Team> _updateTeamsScore(
+    List<Team> teams,
+    dynamic scoresRaw, {
+    required bool isRound,
+  }) {
+    if (scoresRaw == null) return teams;
+
+    if (scoresRaw is Map) {
+      final scores = Map<String, dynamic>.from(scoresRaw);
+
+      return teams.map((team) {
+        final value = scores[team.id];
+        final points = value is int ? value : 0;
+
+        return team.copyWith(
+          score: isRound ? team.score : points,
+          roundScore: isRound ? points : 0,
+        );
+      }).toList();
+    }
+
+    if (scoresRaw is List) {
+      final list = List<Map<String, dynamic>>.from(scoresRaw);
+
+      return teams.map((team) {
+        final match = list.where((s) => s['teamId'] == team.id).toList();
+
+        final value = match.isNotEmpty ? match.first['points'] : null;
+        final points = value is int ? value : 0;
+
+        return team.copyWith(
+          score: isRound ? team.score : points,
+          roundScore: isRound ? points : 0,
+        );
+      }).toList();
+    }
+
+    return teams;
+  }
+
   Suit? _parseSuit(String? rawSuit) {
     if (rawSuit == null || rawSuit.trim().isEmpty) {
       return null;
@@ -629,16 +712,13 @@ class GameRemoteDataSource {
     return SuecaGameState(
       roomId: roomId,
       phase: GamePhase.waitingForPlayers,
-      players: <Player>[Player(id: playerId, nickname: 'Tu')],
+      players: <Player>[Player(id: playerId, nickname: 'Tu', sequence: 1)],
+      teams: <Team>[],
       hand: const <SuecaCard>[],
       tableCards: const <String, SuecaCard>{},
       trumpSuit: Suit.hearts,
       currentPlayerId: playerId,
       myPlayerId: playerId,
-      teamAScore: 0,
-      teamBScore: 0,
-      roundTeamAScore: 0,
-      roundTeamBScore: 0,
     );
   }
 

@@ -63,6 +63,7 @@ type ComplexityRoot struct {
 		Scores          func(childComplexity int) int
 		Status          func(childComplexity int) int
 		TablePlays      func(childComplexity int) int
+		Teams           func(childComplexity int) int
 		TrumpSuit       func(childComplexity int) int
 	}
 
@@ -113,6 +114,11 @@ type ComplexityRoot struct {
 	RoomPlayer struct {
 		ID       func(childComplexity int) int
 		Username func(childComplexity int) int
+	}
+
+	Team struct {
+		ID      func(childComplexity int) int
+		Players func(childComplexity int) int
 	}
 
 	TeamScore struct {
@@ -269,6 +275,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.GameSnapshot.TablePlays(childComplexity), true
+	case "GameSnapshot.teams":
+		if e.ComplexityRoot.GameSnapshot.Teams == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameSnapshot.Teams(childComplexity), true
 	case "GameSnapshot.trumpSuit":
 		if e.ComplexityRoot.GameSnapshot.TrumpSuit == nil {
 			break
@@ -553,6 +565,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.RoomPlayer.Username(childComplexity), true
+
+	case "Team.id":
+		if e.ComplexityRoot.Team.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Team.ID(childComplexity), true
+	case "Team.players":
+		if e.ComplexityRoot.Team.Players == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Team.Players(childComplexity), true
 
 	case "TeamScore.points":
 		if e.ComplexityRoot.TeamScore.Points == nil {
@@ -1450,6 +1475,41 @@ func (ec *executionContext) fieldContext_GameSnapshot_tablePlays(_ context.Conte
 				return ec.fieldContext_GameTablePlay_card(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type GameTablePlay", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameSnapshot_teams(ctx context.Context, field graphql.CollectedField, obj *model.GameSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameSnapshot_teams,
+		func(ctx context.Context) (any, error) {
+			return obj.Teams, nil
+		},
+		nil,
+		ec.marshalNTeam2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐTeamᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameSnapshot_teams(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Team_id(ctx, field)
+			case "players":
+				return ec.fieldContext_Team_players(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Team", field.Name)
 		},
 	}
 	return fc, nil
@@ -2507,6 +2567,8 @@ func (ec *executionContext) fieldContext_Query_gameSnapshot(ctx context.Context,
 				return ec.fieldContext_GameSnapshot_myHand(ctx, field)
 			case "tablePlays":
 				return ec.fieldContext_GameSnapshot_tablePlays(ctx, field)
+			case "teams":
+				return ec.fieldContext_GameSnapshot_teams(ctx, field)
 			case "scores":
 				return ec.fieldContext_GameSnapshot_scores(ctx, field)
 			}
@@ -2890,6 +2952,74 @@ func (ec *executionContext) fieldContext_RoomPlayer_username(_ context.Context, 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Team_id(ctx context.Context, field graphql.CollectedField, obj *model.Team) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Team_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Team_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Team",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Team_players(ctx context.Context, field graphql.CollectedField, obj *model.Team) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Team_players,
+		func(ctx context.Context) (any, error) {
+			return obj.Players, nil
+		},
+		nil,
+		ec.marshalNPlayer2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐPlayerᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Team_players(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Team",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Player_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Player_name(ctx, field)
+			case "type":
+				return ec.fieldContext_Player_type(ctx, field)
+			case "sequence":
+				return ec.fieldContext_Player_sequence(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Player", field.Name)
 		},
 	}
 	return fc, nil
@@ -5087,6 +5217,11 @@ func (ec *executionContext) _GameSnapshot(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "teams":
+			out.Values[i] = ec._GameSnapshot_teams(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "scores":
 			out.Values[i] = ec._GameSnapshot_scores(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -5613,6 +5748,50 @@ func (ec *executionContext) _RoomPlayer(ctx context.Context, sel ast.SelectionSe
 			}
 		case "username":
 			out.Values[i] = ec._RoomPlayer_username(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var teamImplementors = []string{"Team"}
+
+func (ec *executionContext) _Team(ctx context.Context, sel ast.SelectionSet, obj *model.Team) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, teamImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Team")
+		case "id":
+			out.Values[i] = ec._Team_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "players":
+			out.Values[i] = ec._Team_players(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -6290,6 +6469,32 @@ func (ec *executionContext) unmarshalNLoginInput2backendᚋinternalᚋinfrastruc
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalNPlayer2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐPlayerᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Player) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNPlayer2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐPlayer(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPlayer2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐPlayer(ctx context.Context, sel ast.SelectionSet, v *model.Player) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Player(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNPlayerType2backendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐPlayerType(ctx context.Context, v any) (model.PlayerType, error) {
 	var res model.PlayerType
 	err := res.UnmarshalGQL(v)
@@ -6405,6 +6610,32 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNTeam2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐTeamᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Team) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNTeam2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐTeam(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNTeam2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐTeam(ctx context.Context, sel ast.SelectionSet, v *model.Team) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Team(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNTeamScore2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐTeamScoreᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TeamScore) graphql.Marshaler {

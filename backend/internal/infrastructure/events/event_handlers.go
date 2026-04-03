@@ -44,9 +44,9 @@ func NewGameEndedEventHandler(userStatsService UserStatsService) EventHandler {
 			return err
 		}
 
-		for team := range p.Teams {
-			for _, player := range p.Teams[team].Players {
-				won := p.Winner == team
+		for _, team := range p.Teams {
+			for _, player := range team.Players {
+				won := p.Winner == team.ID
 				_, err := userStatsService.RecordGame(player.ID, won)
 				if err != nil {
 					return err

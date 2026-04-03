@@ -97,10 +97,14 @@ type GameScorePayload struct {
 	Score map[string]int `json:"score"`
 }
 
+type GameStartedPayload struct {
+	Teams []team.Team `json:"teams,omitempty"`
+}
+
 type GameEndedPayload struct {
-	FinalScores map[string]int       `json:"finalScores"`
-	Winner      string               `json:"winner"`
-	Teams       map[string]team.Team `json:"teams,omitempty"`
+	FinalScores map[string]int `json:"finalScores"`
+	Winner      string         `json:"winner"`
+	Teams       []team.Team    `json:"teams,omitempty"`
 }
 
 type RoomClosedPayload struct {
@@ -135,8 +139,8 @@ func NewPlayerLeftEvent(gameID string, playerID string, roomID string) Event {
 	return newEvent(EventPlayerLeft, gameID, PlayerLeftPayload{PlayerID: playerID, RoomID: roomID})
 }
 
-func NewGameStartedEvent(gameID string) Event {
-	return newEvent(EventGameStarted, gameID, nil)
+func NewGameStartedEvent(gameID string, teams []team.Team) Event {
+	return newEvent(EventGameStarted, gameID, GameStartedPayload{Teams: teams})
 }
 
 func NewRoundStartedEvent(gameID string) Event {
@@ -175,7 +179,7 @@ func NewGameScoreUpdatedEvent(gameID string, score map[string]int) Event {
 	return newEvent(EventGameScore, gameID, GameScorePayload{Score: score})
 }
 
-func NewGameEndedEvent(gameID string, finalScores map[string]int, winner string, teams map[string]team.Team) Event {
+func NewGameEndedEvent(gameID string, finalScores map[string]int, winner string, teams []team.Team) Event {
 	return newEvent(EventGameEnded, gameID, GameEndedPayload{FinalScores: finalScores, Winner: winner, Teams: teams})
 }
 

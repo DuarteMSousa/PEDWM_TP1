@@ -5,6 +5,7 @@ import (
 	"backend/internal/domain/card"
 	"backend/internal/domain/events"
 	"backend/internal/domain/room"
+	"backend/internal/domain/team"
 	"backend/internal/domain/trick"
 	events_infrastructure "backend/internal/infrastructure/events"
 	"backend/internal/infrastructure/websocket"
@@ -27,6 +28,7 @@ type GameSnapshot struct {
 	CurrentPlayerID string
 	MyHand          []card.Card
 	TablePlays      []trick.Play
+	Teams           map[string]*team.Team
 	Scores          map[string]int
 }
 
@@ -210,5 +212,6 @@ func (s *RoomService) GetGameSnapshot(roomID, playerID string) (*GameSnapshot, e
 		MyHand:          myHand,
 		TablePlays:      tablePlays,
 		Scores:          scores,
+		Teams:           g.Teams,
 	}, nil
 }

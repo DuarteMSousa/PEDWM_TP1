@@ -21,9 +21,11 @@ func (s *GameFinishedState) Enter() {
 
 func (s *GameFinishedState) Update() {
 	winner := s.game.scoringStrategy.Winner(s.game)
-	teams := make(map[string]team.Team)
-	for _, team := range s.game.Teams {
-		teams[team.ID] = *team
+	teams := make([]team.Team, len(s.game.Teams))
+	i := 0
+	for _, t := range s.game.Teams {
+		teams[i] = *t
+		i++
 	}
 
 	event := events.NewGameEndedEvent(s.game.ID.String(), s.game.Score, winner, teams)

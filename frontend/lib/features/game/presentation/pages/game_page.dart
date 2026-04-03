@@ -153,21 +153,11 @@ class _GamePageState extends State<GamePage> {
               ),
               const SizedBox(height: 12),
               Row(
-                children: [
-                  Expanded(
-                    child: _ScorePill(
-                      label: 'Equipa A',
-                      score: state.teamAScore,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _ScorePill(
-                      label: 'Equipa B',
-                      score: state.teamBScore,
-                    ),
-                  ),
-                ],
+                children: state.teams.map((team) {
+                  return Expanded(
+                    child: _ScorePill(label: team.id, score: team.score),
+                  );
+                }).toList(),
               ),
               const SizedBox(height: 16),
               Row(
@@ -210,10 +200,19 @@ class _GamePageState extends State<GamePage> {
   }
 
   String? _winnerLabel(SuecaGameState state) {
-    if (state.teamAScore == state.teamBScore) {
+    if (state.teams.isEmpty) return null;
+
+    final maxScore = state.teams
+        .map((t) => t.score)
+        .reduce((a, b) => a > b ? a : b);
+
+    final winners = state.teams.where((t) => t.score == maxScore).toList();
+
+    if (winners.length > 1) {
       return null;
     }
-    return state.teamAScore > state.teamBScore ? 'Equipa A' : 'Equipa B';
+
+    return winners.first.id;
   }
 
   @override
@@ -383,10 +382,33 @@ class _TopHud extends StatelessWidget {
               label: 'Trunfo ${_suitLabel(state.trumpSuit)}',
               icon: Icons.style_outlined,
             ),
-            _ScorePill(label: 'Jogo A', score: state.teamAScore),
-            _ScorePill(label: 'Jogo B', score: state.teamBScore),
-            _ScorePill(label: 'Ronda A', score: state.roundTeamAScore),
-            _ScorePill(label: 'Ronda B', score: state.roundTeamBScore),
+            Column(
+              children: [
+                Row(
+                  children: state.teams.map((team) {
+                    return Expanded(
+                      child: _ScorePill(
+                        label: 'Jogo ${team.id}',
+                        score: team.score,
+                      ),
+                    );
+                  }).toList(),
+                ),
+
+                const SizedBox(height: 8),
+
+                Row(
+                  children: state.teams.map((team) {
+                    return Expanded(
+                      child: _ScorePill(
+                        label: 'Ronda ${team.id}',
+                        score: team.roundScore,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
             if (isBusy)
               const SizedBox(
                 width: 16,
@@ -579,7 +601,7 @@ class _WoodenTable extends StatelessWidget {
                 Align(
                   alignment: const Alignment(-0.86, 0.88),
                   child: _CurrentTurnBadge(
-                    nickname: me!.nickname,
+                    nickname: me!.nickname+me!.sequence.toString(),
                     isCurrent: me!.id == state.currentPlayerId,
                   ),
                 ),
@@ -688,7 +710,7 @@ class _PlayerAvatar extends StatelessWidget {
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 86),
           child: Text(
-            player.nickname,
+            player.nickname+player.sequence.toString(),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
@@ -1109,7 +1131,8 @@ class _FannedHandState extends State<_FannedHand> {
     super.didUpdateWidget(oldWidget);
     if (!widget.canInteract) {
       _selectedIndex = null;
-    } else if (_selectedIndex != null && _selectedIndex! >= widget.hand.length) {
+    } else if (_selectedIndex != null &&
+        _selectedIndex! >= widget.hand.length) {
       _selectedIndex = null;
     }
   }
@@ -1163,20 +1186,19 @@ class _FannedHandState extends State<_FannedHand> {
         );
         const baseTop = 10.0;
 
-        final visualOrder = List<int>.generate(
-          widget.hand.length,
-          (index) => index,
-        )..sort((a, b) {
-          final aIsSelected = a == _selectedIndex;
-          final bIsSelected = b == _selectedIndex;
-          if (aIsSelected && !bIsSelected) {
-            return 1;
-          }
-          if (bIsSelected && !aIsSelected) {
-            return -1;
-          }
-          return a.compareTo(b);
-        });
+        final visualOrder =
+            List<int>.generate(widget.hand.length, (index) => index)
+              ..sort((a, b) {
+                final aIsSelected = a == _selectedIndex;
+                final bIsSelected = b == _selectedIndex;
+                if (aIsSelected && !bIsSelected) {
+                  return 1;
+                }
+                if (bIsSelected && !aIsSelected) {
+                  return -1;
+                }
+                return a.compareTo(b);
+              });
 
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -1188,26 +1210,30 @@ class _FannedHandState extends State<_FannedHand> {
               height: 138,
               child: Stack(
                 clipBehavior: Clip.none,
-                children: visualOrder.map((index) {
-                  final card = widget.hand[index];
-                  final isSelected = _selectedIndex == index;
+                children: visualOrder
+                    .map((index) {
+                      final card = widget.hand[index];
+                      final isSelected = _selectedIndex == index;
 
-                  return Positioned(
-                    left: index * step,
-                    top: isSelected ? 0 : baseTop,
-                    child: RevealSlideFade(
-                      key: ValueKey<String>('hand_${card.compactLabel}_$index'),
-                      delay: Duration(milliseconds: 80 + (index * 45)),
-                      beginOffset: const Offset(0, 0.04),
-                      child: _HandCard(
-                        card: card,
-                        isDisabled: !widget.canInteract || _isSubmitting,
-                        isSelected: isSelected,
-                        onPressed: () => _onCardTap(index),
-                      ),
-                    ),
-                  );
-                }).toList(growable: false),
+                      return Positioned(
+                        left: index * step,
+                        top: isSelected ? 0 : baseTop,
+                        child: RevealSlideFade(
+                          key: ValueKey<String>(
+                            'hand_${card.compactLabel}_$index',
+                          ),
+                          delay: Duration(milliseconds: 80 + (index * 45)),
+                          beginOffset: const Offset(0, 0.04),
+                          child: _HandCard(
+                            card: card,
+                            isDisabled: !widget.canInteract || _isSubmitting,
+                            isSelected: isSelected,
+                            onPressed: () => _onCardTap(index),
+                          ),
+                        ),
+                      );
+                    })
+                    .toList(growable: false),
               ),
             ),
           ),

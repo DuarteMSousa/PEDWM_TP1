@@ -9,6 +9,8 @@ import (
 	"backend/internal/domain/trick"
 	"backend/internal/domain/user"
 	"backend/internal/infrastructure/graph/model"
+	"encoding/json"
+	"log"
 	"sort"
 )
 
@@ -117,14 +119,43 @@ func mapGameSnapshot(snapshot *services.GameSnapshot) *model.GameSnapshot {
 		currentPlayerID = &value
 	}
 
-	return &model.GameSnapshot{
+	var teams []*model.Team
+	if snapshot.Teams != nil {
+		for _, t := range snapshot.Teams {
+			teams = append(teams, &model.Team{
+				ID: t.ID,
+				Players: func() []*model.Player {
+					result := make([]*model.Player, 0, len(t.Players))
+					for _, p := range t.Players {
+						result = append(result, &model.Player{
+							ID:       p.ID,
+							Name:     p.Name,
+							Sequence: int32(p.Sequence),
+							Type:     model.PlayerType(p.Type),
+						})
+					}
+					return result
+				}(),
+			})
+		}
+	}
+
+	snap := &model.GameSnapshot{
 		RoomID:          snapshot.RoomID,
 		GameID:          snapshot.GameID,
 		Status:          snapshot.Status,
 		TrumpSuit:       trumpSuit,
 		CurrentPlayerID: currentPlayerID,
 		MyHand:          hand,
+		Teams:           teams,
 		TablePlays:      tablePlays,
 		Scores:          scores,
 	}
+
+	b, err := json.MarshalIndent(snap, "", "  ")
+	if err != nil {
+		log.Println("Erro ao mapear:", err)
+	}
+	log.Printf("Mapped GameSnapshot:\n%s", string(b))
+	return snap
 }

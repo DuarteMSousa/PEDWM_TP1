@@ -21,6 +21,8 @@ func (s SuecaGameScoringStrategy) CalculateCurrentRoundGamePoints(round *round.R
 
 		if roundScore[teamID] == 120 {
 			teamGamePoints = 4
+		} else if roundScore[teamID] > 90 {
+			teamGamePoints = 2
 		} else if roundScore[teamID] >= 60 {
 			teamGamePoints = 1
 		} else {

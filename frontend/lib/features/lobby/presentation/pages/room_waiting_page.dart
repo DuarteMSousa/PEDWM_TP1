@@ -296,10 +296,7 @@ class _RoomWaitingPageState extends State<RoomWaitingPage> {
                           child: ElevatedButton.icon(
                             onPressed: _controller.hasGameStarted
                                 ? _maybeNavigateToGame
-                                : (!_controller.hasAllPlayers ||
-                                          !_controller.isHost
-                                      ? null
-                                      : _startGame),
+                                : _startGame,
                             icon: const Icon(Icons.play_arrow_rounded),
                             label: Text(
                               _controller.hasGameStarted

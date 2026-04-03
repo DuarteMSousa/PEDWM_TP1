@@ -96,12 +96,7 @@ class RoomWaitingController extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-    if (!hasAllPlayers) {
-      errorMessage = 'Sao precisos 4 jogadores para iniciar.';
-      notifyListeners();
-      return false;
-    }
-
+    
     isActionLoading = true;
     errorMessage = null;
     notifyListeners();

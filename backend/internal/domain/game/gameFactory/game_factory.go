@@ -15,7 +15,9 @@ func CreateSuecaGame(players map[string]*player.Player, botStrategy bot_strategy
 	for _, p := range players {
 		roomPlayers = append(roomPlayers, p)
 	}
-
+	sort.Slice(roomPlayers, func(i2, j int) bool {
+		return roomPlayers[i2].Sequence < roomPlayers[j].Sequence
+	})
 	if len(roomPlayers) < 4 {
 		for i := len(roomPlayers); i < 4; i++ {
 			currentSequence := 1
@@ -24,7 +26,7 @@ func CreateSuecaGame(players map[string]*player.Player, botStrategy bot_strategy
 					currentSequence = p.Sequence + 1
 				}
 			}
-			botPlayer := player.NewPlayer("bot"+strconv.Itoa(i), "Bot "+strconv.Itoa(i), currentSequence)
+			botPlayer := player.NewPlayer("bot"+strconv.Itoa(currentSequence), "Bot "+strconv.Itoa(currentSequence), currentSequence)
 			botPlayer.Type = player.BOT
 			roomPlayers = append(roomPlayers, botPlayer)
 		}

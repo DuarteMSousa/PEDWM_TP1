@@ -5,6 +5,7 @@ import (
 	"backend/internal/domain/events"
 	"backend/internal/domain/player"
 	"errors"
+	"log"
 	"math/rand"
 )
 
@@ -103,6 +104,7 @@ func (s *RoundPlayingState) Update() {
 
 			err = s.round.PlayCard(nextPlayer.ID, chosenCard.ID)
 
+			log.Printf("Bot %s played card %s of suit %s", nextPlayer.Name, chosenCard.Rank, chosenCard.Suit)
 			if err != nil {
 				panic(err)
 			}

@@ -56,6 +56,7 @@ func (r *Round) StartNewTrick(leaderID string) {
 	r.CurrentTrick = trick.NewTrick(leaderID, r.TrumpSuit, r.Teams)
 	r.AddEvent(events.NewTrickStartedEvent(r.gameId.String(), leaderID))
 	r.AddEvent(events.NewTurnChangedEvent(r.gameId.String(), leaderID))
+	r.State.Update()
 }
 
 func (r *Round) GetPlayerTeamId(playerID string) (string, error) {
@@ -114,13 +115,14 @@ func (r *Round) PlayCard(playerID string, cardId string) error {
 
 	r.AddEvent(events.NewCardPlayedEvent(r.gameId.String(), player.ID, card))
 
-	r.State.Update()
 	if r.CurrentTrick != nil && !r.RuleStrategy.HasEnded(r) {
 		nextPlayerID, err := r.CurrentTrick.TurnOrder.Next()
 		if err == nil {
 			r.AddEvent(events.NewTurnChangedEvent(r.gameId.String(), nextPlayerID))
 		}
 	}
+
+	r.State.Update()
 
 	return nil
 }

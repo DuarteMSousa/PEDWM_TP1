@@ -40,6 +40,7 @@ type GameSnapshot struct {
 	CurrentPlayerID *string          `json:"currentPlayerId,omitempty"`
 	MyHand          []*GameCard      `json:"myHand"`
 	TablePlays      []*GameTablePlay `json:"tablePlays"`
+	Teams           []*Team          `json:"teams"`
 	Scores          []*TeamScore     `json:"scores"`
 }
 
@@ -111,6 +112,11 @@ type SendFriendRequestInput struct {
 
 type StartGameInput struct {
 	RoomID string `json:"roomId"`
+}
+
+type Team struct {
+	ID      string    `json:"id"`
+	Players []*Player `json:"players"`
 }
 
 type TeamScore struct {
