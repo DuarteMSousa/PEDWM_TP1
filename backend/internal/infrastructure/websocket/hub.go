@@ -40,7 +40,12 @@ func (h *Hub) CreateRoomHub(room *room.Room) *RoomHub {
 	defer h.mu.Unlock()
 
 	if existing, ok := h.rooms[roomID]; ok {
-		existing.SetRoom(room)
+		// Preserve in-memory runtime state (e.g. active game/event bus) when a
+		// room hub already has a room attached. This avoids replacing it with a
+		// DB-loaded room instance that does not carry runtime game state.
+		if !existing.HasRoom() {
+			existing.SetRoom(room)
+		}
 		return existing
 	}
 
