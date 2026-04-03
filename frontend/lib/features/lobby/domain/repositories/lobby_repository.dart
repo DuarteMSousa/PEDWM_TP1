@@ -15,5 +15,8 @@ abstract class LobbyRepository {
     required String roomId,
     required String playerId,
   });
-  Future<RoomDetails> startGame({required String roomId});
+  Future<RoomDetails> startGame({
+    required String roomId,
+    required String requesterId,
+  });
 }

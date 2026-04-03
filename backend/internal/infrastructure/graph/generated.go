@@ -5803,7 +5803,7 @@ func (ec *executionContext) unmarshalInputStartGameInput(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"roomId"}
+	fieldsInOrder := [...]string{"roomId", "requesterId"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -5817,6 +5817,13 @@ func (ec *executionContext) unmarshalInputStartGameInput(ctx context.Context, ob
 				return it, err
 			}
 			it.RoomID = data
+		case "requesterId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesterId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RequesterID = data
 		}
 	}
 	return it, nil

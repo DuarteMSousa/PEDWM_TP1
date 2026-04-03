@@ -10,6 +10,7 @@ import (
 	events_infrastructure "backend/internal/infrastructure/events"
 	"backend/internal/infrastructure/websocket"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,6 +19,7 @@ import (
 var (
 	ErrRoomNotFound = errors.New("room not found")
 	ErrGameNotFound = errors.New("game not found")
+	ErrNotRoomHost  = errors.New("only the room host can start a game")
 )
 
 type GameSnapshot struct {
@@ -56,28 +58,15 @@ func (s *RoomService) CreateRoom(hostID string) (*room.Room, error) {
 		return nil, err
 	}
 
-	eventBus := events.NewEventBus()
-	r.SetEventBus(eventBus)
-
-	wsObserver := websocket.NewWebSocketObserver(s.hub)
-	eventBus.Subscribe(wsObserver)
-
-	if s.eventDispatcher == nil {
-		s.eventDispatcher = events_infrastructure.GetEventDispatcherInstance()
-	}
-
-	persistenceObserver := events_infrastructure.NewEventPersistanceObserver(s.eventService, s.eventDispatcher)
-	eventBus.Subscribe(persistenceObserver)
-
-	s.hub.CreateRoomHub(r)
+	s.prepareRoomRuntime(r)
 
 	return r, s.repo.Save(r)
 }
 
 func (s *RoomService) JoinRoom(roomID, userID string) (*room.Room, error) {
-	room := s.hub.GetRoom(roomID)
-	if room == nil {
-		return nil, ErrRoomNotFound
+	rm, err := s.getOrLoadRoom(roomID)
+	if err != nil {
+		return nil, err
 	}
 
 	user, err := s.userRepo.FindByID(userID)
@@ -85,57 +74,73 @@ func (s *RoomService) JoinRoom(roomID, userID string) (*room.Room, error) {
 		return nil, err
 	}
 
-	if err := room.AddPlayer(userID, user.Username); err != nil {
+	if err := rm.AddPlayer(userID, user.Username); err != nil {
 		return nil, err
 	}
 
-	if err := s.repo.Save(room); err != nil {
+	if err := s.repo.Save(rm); err != nil {
 		return nil, err
 	}
-	s.publishRoomSyncedEvent(room)
+	s.publishRoomSyncedEvent(rm)
 
-	return room, nil
+	return rm, nil
 }
 
 func (s *RoomService) LeaveRoom(roomID, userID string) (*room.Room, error) {
-	room := s.hub.GetRoom(roomID)
-	if room == nil {
-		return nil, ErrRoomNotFound
-	}
-
-	if err := room.RemovePlayer(userID); err != nil {
+	rm, err := s.getOrLoadRoom(roomID)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := s.repo.Save(room); err != nil {
+	if err := rm.RemovePlayer(userID); err != nil {
 		return nil, err
 	}
-	s.publishRoomSyncedEvent(room)
 
-	return room, nil
+	if rm.Status == room.CLOSED {
+		if err := s.repo.Delete(rm.ID); err != nil {
+			return nil, err
+		}
+		s.hub.DeleteRoomHub(rm.ID)
+		return rm, nil
+	}
+
+	if err := s.repo.Save(rm); err != nil {
+		return nil, err
+	}
+	s.publishRoomSyncedEvent(rm)
+
+	return rm, nil
 }
 
-func (s *RoomService) StartGame(roomID string) (*room.Room, error) {
-	room := s.hub.GetRoom(roomID)
-	if room == nil {
-		return nil, ErrRoomNotFound
-	}
-
-	if err := room.StartGame(); err != nil {
+func (s *RoomService) StartGame(roomID string, requesterID string) (*room.Room, error) {
+	rm, err := s.getOrLoadRoom(roomID)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := s.repo.Save(room); err != nil {
+	requesterID = strings.TrimSpace(requesterID)
+	if requesterID == "" || rm.HostID != requesterID {
+		return nil, ErrNotRoomHost
+	}
+	if _, exists := rm.Players[requesterID]; !exists {
+		return nil, ErrNotRoomHost
+	}
+
+	if err := rm.StartGame(); err != nil {
 		return nil, err
 	}
-	if room.Game != nil {
-		if err := s.gameRepo.Save(room.Game); err != nil {
+
+	if err := s.repo.Save(rm); err != nil {
+		return nil, err
+	}
+	if rm.Game != nil {
+		if err := s.gameRepo.Save(rm.Game); err != nil {
 			return nil, err
 		}
 	}
-	s.publishRoomSyncedEvent(room)
+	s.publishRoomSyncedEvent(rm)
 
-	return room, nil
+	return rm, nil
 }
 
 func (s *RoomService) publishRoomSyncedEvent(room *room.Room) {
@@ -156,23 +161,35 @@ func (s *RoomService) publishRoomSyncedEvent(room *room.Room) {
 }
 
 func (s *RoomService) GetRoom(id string) (*room.Room, error) {
-	return s.repo.FindByID(id)
+	return s.getOrLoadRoom(id)
 }
 
 func (s *RoomService) GetRooms() ([]*room.Room, error) {
-	return s.repo.FindAll()
+	rooms, err := s.repo.FindAll()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, rm := range rooms {
+		s.prepareRoomRuntime(rm)
+		if rm.SyncStatusWithGame() {
+			_ = s.repo.Save(rm)
+		}
+	}
+
+	return rooms, nil
 }
 
 func (s *RoomService) GetGameSnapshot(roomID, playerID string) (*GameSnapshot, error) {
-	room := s.hub.GetRoom(roomID)
-	if room == nil {
-		return nil, ErrRoomNotFound
+	rm, err := s.getOrLoadRoom(roomID)
+	if err != nil {
+		return nil, err
 	}
-	if room.Game == nil {
+	if rm.Game == nil {
 		return nil, ErrGameNotFound
 	}
 
-	g := room.Game
+	g := rm.Game
 	currentRound := g.CurrentRound()
 	if currentRound == nil {
 		return nil, ErrGameNotFound
@@ -204,7 +221,7 @@ func (s *RoomService) GetGameSnapshot(roomID, playerID string) (*GameSnapshot, e
 	}
 
 	return &GameSnapshot{
-		RoomID:          room.ID,
+		RoomID:          rm.ID,
 		GameID:          g.ID.String(),
 		Status:          string(g.Status),
 		TrumpSuit:       string(currentRound.TrumpSuit),
@@ -214,4 +231,81 @@ func (s *RoomService) GetGameSnapshot(roomID, playerID string) (*GameSnapshot, e
 		Scores:          scores,
 		Teams:           g.Teams,
 	}, nil
+}
+
+func (s *RoomService) HandleClientDisconnect(roomID, userID string) {
+	roomID = strings.TrimSpace(roomID)
+	userID = strings.TrimSpace(userID)
+	if roomID == "" || userID == "" || roomID == "lobby" {
+		return
+	}
+
+	rm, err := s.getOrLoadRoom(roomID)
+	if err != nil || rm == nil {
+		return
+	}
+
+	if rm.Status == room.OPEN {
+		if _, exists := rm.Players[userID]; !exists {
+			return
+		}
+		_, _ = s.LeaveRoom(roomID, userID)
+		return
+	}
+
+	if rm.SyncStatusWithGame() {
+		_ = s.repo.Save(rm)
+		if _, exists := rm.Players[userID]; exists {
+			_, _ = s.LeaveRoom(roomID, userID)
+		}
+	}
+}
+
+func (s *RoomService) getOrLoadRoom(roomID string) (*room.Room, error) {
+	roomID = strings.TrimSpace(roomID)
+	if roomID == "" {
+		return nil, ErrRoomNotFound
+	}
+
+	rm := s.hub.GetRoom(roomID)
+	if rm == nil {
+		loadedRoom, err := s.repo.FindByID(roomID)
+		if err != nil || loadedRoom == nil {
+			return nil, ErrRoomNotFound
+		}
+		rm = loadedRoom
+	}
+
+	s.prepareRoomRuntime(rm)
+
+	if rm.SyncStatusWithGame() {
+		if err := s.repo.Save(rm); err != nil {
+			return nil, err
+		}
+	}
+
+	return rm, nil
+}
+
+func (s *RoomService) prepareRoomRuntime(rm *room.Room) {
+	if rm == nil {
+		return
+	}
+
+	if s.eventDispatcher == nil {
+		s.eventDispatcher = events_infrastructure.GetEventDispatcherInstance()
+	}
+
+	if rm.EventBus == nil {
+		eventBus := events.NewEventBus()
+		rm.SetEventBus(eventBus)
+
+		wsObserver := websocket.NewWebSocketObserver(s.hub)
+		eventBus.Subscribe(wsObserver)
+
+		persistenceObserver := events_infrastructure.NewEventPersistanceObserver(s.eventService, s.eventDispatcher)
+		eventBus.Subscribe(persistenceObserver)
+	}
+
+	s.hub.CreateRoomHub(rm)
 }

@@ -67,12 +67,12 @@ func main() {
 	userService := services.NewUserService(userRepo, userStatsRepo)
 	friendshipService := services.NewFriendshipService(friendshipRepo, userRepo)
 	userStatsService := services.NewUserStatsService(userStatsRepo, userRepo)
+	hub.SetDisconnectHandler(roomService.HandleClientDisconnect)
 
 	// ========================
 	// Event Dispatcher
 	// ========================
 	eventDispatcher := events_infrastructure.GetEventDispatcherInstance()
-	eventDispatcher.Register("PLAYER_LEFT", events_infrastructure.NewPlayerLeftEventHandler(roomService))
 	eventDispatcher.Register("GAME_ENDED", events_infrastructure.NewGameEndedEventHandler(userStatsService))
 
 	// ========================

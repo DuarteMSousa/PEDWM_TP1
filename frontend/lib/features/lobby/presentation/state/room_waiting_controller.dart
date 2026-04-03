@@ -96,13 +96,16 @@ class RoomWaitingController extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-    
+
     isActionLoading = true;
     errorMessage = null;
     notifyListeners();
 
     try {
-      room = await _lobbyRepository.startGame(roomId: roomId);
+      room = await _lobbyRepository.startGame(
+        roomId: roomId,
+        requesterId: currentPlayerId,
+      );
       roomUnavailable = false;
       return true;
     } catch (error) {

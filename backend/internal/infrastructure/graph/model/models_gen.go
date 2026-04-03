@@ -137,7 +137,8 @@ type SendFriendRequestInput struct {
 }
 
 type StartGameInput struct {
-	RoomID string `json:"roomId"`
+	RoomID      string `json:"roomId"`
+	RequesterID string `json:"requesterId"`
 }
 
 type Team struct {

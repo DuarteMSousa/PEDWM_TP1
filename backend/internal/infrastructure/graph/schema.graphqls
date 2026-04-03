@@ -173,6 +173,7 @@ input LeaveRoomInput {
 
 input StartGameInput {
   roomId: ID!
+  requesterId: ID!
 }
 
 # =========================

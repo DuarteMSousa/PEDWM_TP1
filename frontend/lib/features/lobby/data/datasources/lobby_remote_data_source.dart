@@ -204,11 +204,14 @@ class LobbyRemoteDataSource {
     return _roomDetailsFromJson(payload);
   }
 
-  Future<RoomDetails> startGame({required String roomId}) async {
+  Future<RoomDetails> startGame({
+    required String roomId,
+    required String requesterId,
+  }) async {
     final response = await _graphqlService.mutation(
       document: '''
-        mutation StartGame(\$roomId: ID!) {
-          startGame(input: { roomId: \$roomId }) {
+        mutation StartGame(\$roomId: ID!, \$requesterId: ID!) {
+          startGame(input: { roomId: \$roomId, requesterId: \$requesterId }) {
             id
             hostId
             status
@@ -219,7 +222,10 @@ class LobbyRemoteDataSource {
           }
         }
       ''',
-      variables: <String, dynamic>{'roomId': roomId},
+      variables: <String, dynamic>{
+        'roomId': roomId,
+        'requesterId': requesterId,
+      },
     );
 
     final data = response['data'];
