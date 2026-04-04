@@ -35,7 +35,11 @@ enum EventType {
   CARD_PLAYED
   TRICK_ENDED
   GAME_ENDED
-  ROOM_CLOSED
+}
+
+enum BotStrategyType {
+  EASY
+  HARD
 }
 
 # =========================
@@ -84,6 +88,7 @@ type Room {
   players: [RoomPlayer!]!
   status: RoomStatus!
   createdAt: Time!
+  botStrategy: BotStrategyType!
 }
 
 type GamePlayer {

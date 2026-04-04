@@ -64,11 +64,12 @@ func mapRoom(r *room.Room) *model.Room {
 	}
 
 	return &model.Room{
-		ID:        r.ID,
-		HostID:    r.HostID,
-		Players:   players,
-		Status:    model.RoomStatus(r.Status),
-		CreatedAt: r.CreatedAt,
+		ID:          r.ID,
+		HostID:      r.HostID,
+		Players:     players,
+		Status:      model.RoomStatus(r.Status),
+		CreatedAt:   r.CreatedAt,
+		BotStrategy: model.BotStrategyType(r.BotStrategy.GetType()),
 	}
 }
 

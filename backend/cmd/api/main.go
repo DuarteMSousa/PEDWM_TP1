@@ -58,6 +58,7 @@ func main() {
 	// ========================
 	dispatcher := wstransport.GetCommandDispatcherInstance()
 	dispatcher.Register("play_card", wstransport.NewPlayCardHandler(hub))
+	dispatcher.Register("change_bot_strategy", wstransport.NewChangeBotStrategyHandler(hub))
 
 	// ========================
 	// Application
@@ -74,7 +75,7 @@ func main() {
 	// ========================
 	eventDispatcher := events_infrastructure.GetEventDispatcherInstance()
 	eventDispatcher.Register("PLAYER_LEFT", events_infrastructure.NewPlayerLeftEventHandler(roomService))
-	eventDispatcher.Register("GAME_ENDED", events_infrastructure.NewGameEndedEventHandler(userStatsService))
+	eventDispatcher.Register("GAME_ENDED", events_infrastructure.NewGameEndedEventHandler(userStatsService, gameService))
 
 	// ========================
 	// GraphQL

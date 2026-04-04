@@ -38,3 +38,7 @@ func (h *HardBotStrategy) ChooseCard(hand hand.Hand, leadSuit card.Suit, cardStr
 
 	return best
 }
+
+func (h *HardBotStrategy) GetType() BotStrategyType {
+	return HARD
+}

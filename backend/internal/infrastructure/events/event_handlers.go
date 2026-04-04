@@ -7,7 +7,7 @@ package events_infrastructure
 
 import (
 	"backend/internal/domain/events"
-	"encoding/json"
+	"backend/internal/domain/game"
 	"errors"
 )
 
@@ -19,11 +19,9 @@ var (
 // O handler localiza o jogo ativo na sala do cliente, cria um
 // PlayCardCommand e executa-o sobre o jogo.
 func NewPlayerLeftEventHandler(roomService RoomService) EventHandler {
-	return func(payload json.RawMessage) error {
-		var p events.PlayerLeftPayload
-		if err := json.Unmarshal(payload, &p); err != nil {
-			return err
-		}
+	return func(event events.Event) error {
+		p := event.Payload.(events.PlayerLeftPayload)
+
 		if p.PlayerID == "" {
 			return ErrMissingPlayer
 		}
@@ -37,12 +35,9 @@ func NewPlayerLeftEventHandler(roomService RoomService) EventHandler {
 	}
 }
 
-func NewGameEndedEventHandler(userStatsService UserStatsService) EventHandler {
-	return func(payload json.RawMessage) error {
-		var p events.GameEndedPayload
-		if err := json.Unmarshal(payload, &p); err != nil {
-			return err
-		}
+func NewGameEndedEventHandler(userStatsService UserStatsService, gameService GameService) EventHandler {
+	return func(event events.Event) error {
+		p := event.Payload.(events.GameEndedPayload)
 
 		for _, team := range p.Teams {
 			for _, player := range team.Players {
@@ -52,6 +47,11 @@ func NewGameEndedEventHandler(userStatsService UserStatsService) EventHandler {
 					return err
 				}
 			}
+		}
+
+		_, err := gameService.SetGameStatus(event.GameID, game.FINISHED)
+		if err != nil {
+			return err
 		}
 
 		return nil

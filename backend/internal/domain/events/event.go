@@ -2,6 +2,7 @@ package events
 
 import (
 	"backend/internal/domain/card"
+	bot_strategy "backend/internal/domain/player/botStrategy"
 	"backend/internal/domain/team"
 	"time"
 
@@ -27,6 +28,8 @@ const (
 	EventTrickEnded   EventType = "TRICK_ENDED"
 	EventGameEnded    EventType = "GAME_ENDED"
 	EventRoomClosed   EventType = "ROOM_CLOSED"
+
+	EventBotStrategyChanged EventType = "BOT_STRATEGY_CHANGED"
 )
 
 type Event struct {
@@ -111,6 +114,11 @@ type RoomClosedPayload struct {
 	RoomID string `json:"roomId"`
 }
 
+type BotStrategyChangedPayload struct {
+	RoomID      string                       `json:"roomId"`
+	BotStrategy bot_strategy.BotStrategyType `json:"botStrategy"`
+}
+
 func (e Event) WithPayload(payload any) Event {
 	e.Payload = payload
 	return e
@@ -185,4 +193,8 @@ func NewGameEndedEvent(gameID string, finalScores map[string]int, winner string,
 
 func NewRoomClosedEvent(roomID string) Event {
 	return newEvent(EventRoomClosed, "", RoomClosedPayload{RoomID: roomID})
+}
+
+func NewBotStrategyChangedEvent(roomID string, strategy bot_strategy.BotStrategyType) Event {
+	return newEvent(EventBotStrategyChanged, "", BotStrategyChangedPayload{RoomID: roomID, BotStrategy: strategy})
 }

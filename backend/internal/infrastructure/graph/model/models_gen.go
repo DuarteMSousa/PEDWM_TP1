@@ -170,11 +170,12 @@ type RespondFriendRequestInput struct {
 }
 
 type Room struct {
-	ID        string        `json:"id"`
-	HostID    string        `json:"hostId"`
-	Players   []*RoomPlayer `json:"players"`
-	Status    RoomStatus    `json:"status"`
-	CreatedAt time.Time     `json:"createdAt"`
+	ID          string          `json:"id"`
+	HostID      string          `json:"hostId"`
+	Players     []*RoomPlayer   `json:"players"`
+	Status      RoomStatus      `json:"status"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	BotStrategy BotStrategyType `json:"botStrategy"`
 }
 
 type RoomClosedEventPayload struct {
@@ -259,6 +260,61 @@ type UserStats struct {
 	Elo    int32  `json:"elo"`
 }
 
+type BotStrategyType string
+
+const (
+	BotStrategyTypeEasy BotStrategyType = "EASY"
+	BotStrategyTypeHard BotStrategyType = "HARD"
+)
+
+var AllBotStrategyType = []BotStrategyType{
+	BotStrategyTypeEasy,
+	BotStrategyTypeHard,
+}
+
+func (e BotStrategyType) IsValid() bool {
+	switch e {
+	case BotStrategyTypeEasy, BotStrategyTypeHard:
+		return true
+	}
+	return false
+}
+
+func (e BotStrategyType) String() string {
+	return string(e)
+}
+
+func (e *BotStrategyType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = BotStrategyType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid BotStrategyType", str)
+	}
+	return nil
+}
+
+func (e BotStrategyType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *BotStrategyType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e BotStrategyType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
 type EventType string
 
 const (
@@ -275,7 +331,6 @@ const (
 	EventTypeCardPlayed       EventType = "CARD_PLAYED"
 	EventTypeTrickEnded       EventType = "TRICK_ENDED"
 	EventTypeGameEnded        EventType = "GAME_ENDED"
-	EventTypeRoomClosed       EventType = "ROOM_CLOSED"
 )
 
 var AllEventType = []EventType{
@@ -292,12 +347,11 @@ var AllEventType = []EventType{
 	EventTypeCardPlayed,
 	EventTypeTrickEnded,
 	EventTypeGameEnded,
-	EventTypeRoomClosed,
 }
 
 func (e EventType) IsValid() bool {
 	switch e {
-	case EventTypeRoundStarted, EventTypeTrickStarted, EventTypeTrumpRevealed, EventTypeCardDealt, EventTypeRoundEnded, EventTypeGameScoreUpdated, EventTypePlayerJoined, EventTypePlayerLeft, EventTypeGameStarted, EventTypeTurnChanged, EventTypeCardPlayed, EventTypeTrickEnded, EventTypeGameEnded, EventTypeRoomClosed:
+	case EventTypeRoundStarted, EventTypeTrickStarted, EventTypeTrumpRevealed, EventTypeCardDealt, EventTypeRoundEnded, EventTypeGameScoreUpdated, EventTypePlayerJoined, EventTypePlayerLeft, EventTypeGameStarted, EventTypeTurnChanged, EventTypeCardPlayed, EventTypeTrickEnded, EventTypeGameEnded:
 		return true
 	}
 	return false

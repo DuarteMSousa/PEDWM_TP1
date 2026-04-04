@@ -11,7 +11,6 @@ package events_infrastructure
 
 import (
 	"backend/internal/domain/events"
-	"encoding/json"
 	"fmt"
 	"sync"
 )
@@ -20,7 +19,7 @@ import (
 // um comando recebido via WebSocket. Recebe o contexto do comando
 // (identificação do jogador, sala e referência ao cliente) e o payload
 // JSON específico do comando.
-type EventHandler func(payload json.RawMessage) error
+type EventHandler func(event events.Event) error
 
 // EventDispatcher mantém um registo de handlers indexados pelo tipo
 // de mensagem e encaminha cada mensagem recebida para o handler adequado.
@@ -62,11 +61,7 @@ func (d *EventDispatcher) Dispatch(event events.Event) error {
 		return fmt.Errorf("unknown event type: %s", event.Type)
 	}
 
-	payload, ok := event.Payload.(json.RawMessage)
-	if !ok {
-		return fmt.Errorf("invalid payload type")
-	}
-	return handler(payload)
+	return handler(event)
 }
 
 // HandleMessage é o ponto de entrada principal invocado pelo ReadPump do

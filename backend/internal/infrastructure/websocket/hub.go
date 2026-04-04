@@ -115,6 +115,8 @@ func (h *Hub) RemoveClient(roomID string, client *Client) {
 	if current, exists := h.rooms[roomID]; exists && current == room && current.IsEmpty() {
 		delete(h.rooms, roomID)
 	}
+
+	//Aqui trata se quando o user sai e fecha se a sala e altera se oos players do game
 }
 
 func (h *Hub) BroadcastToRoom(roomID string, payload []byte) {

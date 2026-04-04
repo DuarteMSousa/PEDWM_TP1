@@ -24,3 +24,7 @@ func (e *EasyBotStrategy) ChooseCard(hand hand.Hand, leadSuit card.Suit, cardStr
 
 	return hand.Cards[0]
 }
+
+func (e *EasyBotStrategy) GetType() BotStrategyType {
+	return EASY
+}

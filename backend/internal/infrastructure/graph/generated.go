@@ -165,11 +165,12 @@ type ComplexityRoot struct {
 	}
 
 	Room struct {
-		CreatedAt func(childComplexity int) int
-		HostID    func(childComplexity int) int
-		ID        func(childComplexity int) int
-		Players   func(childComplexity int) int
-		Status    func(childComplexity int) int
+		BotStrategy func(childComplexity int) int
+		CreatedAt   func(childComplexity int) int
+		HostID      func(childComplexity int) int
+		ID          func(childComplexity int) int
+		Players     func(childComplexity int) int
+		Status      func(childComplexity int) int
 	}
 
 	RoomClosedEventPayload struct {
@@ -814,6 +815,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Query.UserStats(childComplexity, args["userId"].(string)), true
 
+	case "Room.botStrategy":
+		if e.ComplexityRoot.Room.BotStrategy == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Room.BotStrategy(childComplexity), true
 	case "Room.createdAt":
 		if e.ComplexityRoot.Room.CreatedAt == nil {
 			break
@@ -3075,6 +3082,8 @@ func (ec *executionContext) fieldContext_Mutation_createRoom(ctx context.Context
 				return ec.fieldContext_Room_status(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Room_createdAt(ctx, field)
+			case "botStrategy":
+				return ec.fieldContext_Room_botStrategy(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Room", field.Name)
 		},
@@ -3128,6 +3137,8 @@ func (ec *executionContext) fieldContext_Mutation_joinRoom(ctx context.Context, 
 				return ec.fieldContext_Room_status(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Room_createdAt(ctx, field)
+			case "botStrategy":
+				return ec.fieldContext_Room_botStrategy(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Room", field.Name)
 		},
@@ -3181,6 +3192,8 @@ func (ec *executionContext) fieldContext_Mutation_leaveRoom(ctx context.Context,
 				return ec.fieldContext_Room_status(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Room_createdAt(ctx, field)
+			case "botStrategy":
+				return ec.fieldContext_Room_botStrategy(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Room", field.Name)
 		},
@@ -3234,6 +3247,8 @@ func (ec *executionContext) fieldContext_Mutation_startGame(ctx context.Context,
 				return ec.fieldContext_Room_status(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Room_createdAt(ctx, field)
+			case "botStrategy":
+				return ec.fieldContext_Room_botStrategy(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Room", field.Name)
 		},
@@ -3748,6 +3763,8 @@ func (ec *executionContext) fieldContext_Query_room(ctx context.Context, field g
 				return ec.fieldContext_Room_status(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Room_createdAt(ctx, field)
+			case "botStrategy":
+				return ec.fieldContext_Room_botStrategy(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Room", field.Name)
 		},
@@ -3800,6 +3817,8 @@ func (ec *executionContext) fieldContext_Query_rooms(_ context.Context, field gr
 				return ec.fieldContext_Room_status(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Room_createdAt(ctx, field)
+			case "botStrategy":
+				return ec.fieldContext_Room_botStrategy(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Room", field.Name)
 		},
@@ -4228,6 +4247,35 @@ func (ec *executionContext) fieldContext_Room_createdAt(_ context.Context, field
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Room_botStrategy(ctx context.Context, field graphql.CollectedField, obj *model.Room) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Room_botStrategy,
+		func(ctx context.Context) (any, error) {
+			return obj.BotStrategy, nil
+		},
+		nil,
+		ec.marshalNBotStrategyType2backendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐBotStrategyType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Room_botStrategy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Room",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type BotStrategyType does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8002,6 +8050,11 @@ func (ec *executionContext) _Room(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "botStrategy":
+			out.Values[i] = ec._Room_botStrategy(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8911,6 +8964,16 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNBotStrategyType2backendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐBotStrategyType(ctx context.Context, v any) (model.BotStrategyType, error) {
+	var res model.BotStrategyType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNBotStrategyType2backendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐBotStrategyType(ctx context.Context, sel ast.SelectionSet, v model.BotStrategyType) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNCreateRoomInput2backendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐCreateRoomInput(ctx context.Context, v any) (model.CreateRoomInput, error) {

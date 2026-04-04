@@ -40,7 +40,8 @@ type Room struct {
 	Game     *game.Game                `json:"game,omitempty"`
 	EventBus *events.EventBus          `json:"-"`
 
-	CreatedAt time.Time `json:"createdAt"`
+	BotStrategy bot_strategy.IBotStrategy `json:"-"`
+	CreatedAt   time.Time                 `json:"createdAt"`
 }
 
 func NewRoom(id string, hostId string, hostUsername string) (*Room, error) {
@@ -62,11 +63,12 @@ func NewRoom(id string, hostId string, hostUsername string) (*Room, error) {
 	}
 
 	return &Room{
-		ID:        id,
-		HostID:    hostId,
-		Players:   players,
-		Status:    OPEN,
-		CreatedAt: time.Now().UTC(),
+		ID:          id,
+		HostID:      hostId,
+		Players:     players,
+		Status:      OPEN,
+		CreatedAt:   time.Now().UTC(),
+		BotStrategy: bot_strategy.NewEasyBotStrategy(),
 	}, nil
 }
 
@@ -174,7 +176,7 @@ func (r *Room) StartGame() error {
 		gamePlayers[id] = p
 	}
 
-	r.Game = game_factory.CreateSuecaGame(gamePlayers, bot_strategy.NewEasyBotStrategy(), r.EventBus)
+	r.Game = game_factory.CreateSuecaGame(gamePlayers, r.BotStrategy, r.EventBus)
 	r.Game.RoomID = r.ID
 	r.Status = IN_GAME
 
@@ -192,4 +194,13 @@ func (r *Room) Close() {
 		return
 	}
 	r.Status = CLOSED
+}
+
+func (r *Room) SetBotStrategy(strategy bot_strategy.IBotStrategy) {
+	if r == nil || r.Game == nil {
+		return
+	}
+	r.BotStrategy = strategy
+	event := events.NewBotStrategyChangedEvent(r.ID, strategy.GetType())
+	r.EventBus.Publish(event)
 }
