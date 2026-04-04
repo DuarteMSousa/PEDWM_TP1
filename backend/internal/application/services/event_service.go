@@ -16,3 +16,11 @@ func NewEventService(repo interfaces.EventRepository) *EventService {
 func (s *EventService) SaveEvent(event events.Event) error {
 	return s.repo.Save(event)
 }
+
+func (s *EventService) GetEventsByRoomID(roomID string) ([]events.Event, error) {
+	return s.repo.FindByRoomID(roomID)
+}
+
+func (s *EventService) GetEventsByGameID(gameID string) ([]events.Event, error) {
+	return s.repo.FindByGameID(gameID)
+}

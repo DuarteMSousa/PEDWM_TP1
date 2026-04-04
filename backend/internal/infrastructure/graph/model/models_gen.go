@@ -10,12 +10,40 @@ import (
 	"time"
 )
 
+type EventPayload interface {
+	IsEventPayload()
+}
+
 type AuthPayload struct {
 	User *User `json:"user"`
 }
 
+type CardDealtEventPayload struct {
+	PlayerID string    `json:"playerId"`
+	Card     *GameCard `json:"card"`
+}
+
+func (CardDealtEventPayload) IsEventPayload() {}
+
+type CardPlayedEventPayload struct {
+	PlayerID string    `json:"playerId"`
+	Card     *GameCard `json:"card"`
+}
+
+func (CardPlayedEventPayload) IsEventPayload() {}
+
 type CreateRoomInput struct {
 	HostID string `json:"hostId"`
+}
+
+type Event struct {
+	ID        string       `json:"id"`
+	Type      EventType    `json:"type"`
+	GameID    *string      `json:"gameID,omitempty"`
+	RoomID    *string      `json:"roomID,omitempty"`
+	Timestamp time.Time    `json:"timestamp"`
+	Sequence  int32        `json:"sequence"`
+	Payload   EventPayload `json:"payload,omitempty"`
 }
 
 type Friendship struct {
@@ -26,11 +54,39 @@ type Friendship struct {
 	UpdatedAt   time.Time        `json:"updatedAt"`
 }
 
+type Game struct {
+	ID        string        `json:"id"`
+	RoomID    *string       `json:"roomId,omitempty"`
+	Players   []*GamePlayer `json:"players"`
+	Events    []*Event      `json:"events,omitempty"`
+	CreatedAt time.Time     `json:"createdAt"`
+	UpdatedAt time.Time     `json:"updatedAt"`
+}
+
 type GameCard struct {
 	ID   string `json:"id"`
 	Suit string `json:"suit"`
 	Rank string `json:"rank"`
 }
+
+type GameEndedEventPayload struct {
+	Winner      string       `json:"winner"`
+	FinalScores []*TeamScore `json:"finalScores"`
+	Teams       []*Team      `json:"teams,omitempty"`
+}
+
+func (GameEndedEventPayload) IsEventPayload() {}
+
+type GamePlayer struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+}
+
+type GameScoreUpdatedEventPayload struct {
+	Score []*TeamScore `json:"score"`
+}
+
+func (GameScoreUpdatedEventPayload) IsEventPayload() {}
 
 type GameSnapshot struct {
 	RoomID          string           `json:"roomId"`
@@ -43,6 +99,12 @@ type GameSnapshot struct {
 	Teams           []*Team          `json:"teams"`
 	Scores          []*TeamScore     `json:"scores"`
 }
+
+type GameStartedEventPayload struct {
+	Teams []*Team `json:"teams,omitempty"`
+}
+
+func (GameStartedEventPayload) IsEventPayload() {}
 
 type GameTablePlay struct {
 	PlayerID string    `json:"playerId"`
@@ -74,6 +136,21 @@ type Player struct {
 	Sequence int32      `json:"sequence"`
 }
 
+type PlayerJoinedEventPayload struct {
+	PlayerID string `json:"playerId"`
+	Name     string `json:"name"`
+	Slot     int32  `json:"slot"`
+}
+
+func (PlayerJoinedEventPayload) IsEventPayload() {}
+
+type PlayerLeftEventPayload struct {
+	PlayerID string `json:"playerId"`
+	RoomID   string `json:"roomId"`
+}
+
+func (PlayerLeftEventPayload) IsEventPayload() {}
+
 type Query struct {
 }
 
@@ -100,10 +177,30 @@ type Room struct {
 	CreatedAt time.Time     `json:"createdAt"`
 }
 
+type RoomClosedEventPayload struct {
+	RoomID string `json:"roomId"`
+}
+
+func (RoomClosedEventPayload) IsEventPayload() {}
+
 type RoomPlayer struct {
 	ID       string `json:"id"`
 	Username string `json:"username"`
 }
+
+type RoundEndedEventPayload struct {
+	WinnerTeam string       `json:"winnerTeam"`
+	Score      []*TeamScore `json:"score"`
+}
+
+func (RoundEndedEventPayload) IsEventPayload() {}
+
+type RoundStartedEventPayload struct {
+	RoundNumber int32  `json:"roundNumber"`
+	DealerID    string `json:"dealerId"`
+}
+
+func (RoundStartedEventPayload) IsEventPayload() {}
 
 type SendFriendRequestInput struct {
 	RequesterID string `json:"requesterId"`
@@ -124,6 +221,32 @@ type TeamScore struct {
 	Points int32  `json:"points"`
 }
 
+type TrickEndedEventPayload struct {
+	WinnerID string `json:"winnerId"`
+	Points   int32  `json:"points"`
+}
+
+func (TrickEndedEventPayload) IsEventPayload() {}
+
+type TrickStartedEventPayload struct {
+	LeaderID string `json:"leaderId"`
+}
+
+func (TrickStartedEventPayload) IsEventPayload() {}
+
+type TrumpRevealedEventPayload struct {
+	Card *GameCard `json:"card"`
+	Suit string    `json:"suit"`
+}
+
+func (TrumpRevealedEventPayload) IsEventPayload() {}
+
+type TurnChangedEventPayload struct {
+	PlayerID string `json:"playerId"`
+}
+
+func (TurnChangedEventPayload) IsEventPayload() {}
+
 type User struct {
 	ID       string `json:"id"`
 	Username string `json:"username"`
@@ -134,6 +257,85 @@ type UserStats struct {
 	Games  int32  `json:"games"`
 	Wins   int32  `json:"wins"`
 	Elo    int32  `json:"elo"`
+}
+
+type EventType string
+
+const (
+	EventTypeRoundStarted     EventType = "ROUND_STARTED"
+	EventTypeTrickStarted     EventType = "TRICK_STARTED"
+	EventTypeTrumpRevealed    EventType = "TRUMP_REVEALED"
+	EventTypeCardDealt        EventType = "CARD_DEALT"
+	EventTypeRoundEnded       EventType = "ROUND_ENDED"
+	EventTypeGameScoreUpdated EventType = "GAME_SCORE_UPDATED"
+	EventTypePlayerJoined     EventType = "PLAYER_JOINED"
+	EventTypePlayerLeft       EventType = "PLAYER_LEFT"
+	EventTypeGameStarted      EventType = "GAME_STARTED"
+	EventTypeTurnChanged      EventType = "TURN_CHANGED"
+	EventTypeCardPlayed       EventType = "CARD_PLAYED"
+	EventTypeTrickEnded       EventType = "TRICK_ENDED"
+	EventTypeGameEnded        EventType = "GAME_ENDED"
+	EventTypeRoomClosed       EventType = "ROOM_CLOSED"
+)
+
+var AllEventType = []EventType{
+	EventTypeRoundStarted,
+	EventTypeTrickStarted,
+	EventTypeTrumpRevealed,
+	EventTypeCardDealt,
+	EventTypeRoundEnded,
+	EventTypeGameScoreUpdated,
+	EventTypePlayerJoined,
+	EventTypePlayerLeft,
+	EventTypeGameStarted,
+	EventTypeTurnChanged,
+	EventTypeCardPlayed,
+	EventTypeTrickEnded,
+	EventTypeGameEnded,
+	EventTypeRoomClosed,
+}
+
+func (e EventType) IsValid() bool {
+	switch e {
+	case EventTypeRoundStarted, EventTypeTrickStarted, EventTypeTrumpRevealed, EventTypeCardDealt, EventTypeRoundEnded, EventTypeGameScoreUpdated, EventTypePlayerJoined, EventTypePlayerLeft, EventTypeGameStarted, EventTypeTurnChanged, EventTypeCardPlayed, EventTypeTrickEnded, EventTypeGameEnded, EventTypeRoomClosed:
+		return true
+	}
+	return false
+}
+
+func (e EventType) String() string {
+	return string(e)
+}
+
+func (e *EventType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = EventType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid EventType", str)
+	}
+	return nil
+}
+
+func (e EventType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *EventType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e EventType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }
 
 type FriendshipStatus string

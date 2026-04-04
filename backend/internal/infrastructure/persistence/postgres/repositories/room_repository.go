@@ -60,18 +60,18 @@ func (r *RoomPostgresRepository) Save(rm *room.Room) error {
 	})
 
 	for idx, p := range orderedPlayers {
-		seat := p.Sequence
-		if seat <= 0 {
-			seat = idx + 1
+		sequence := p.Sequence
+		if sequence <= 0 {
+			sequence = idx + 1
 		}
 
 		_, err := tx.Exec(ctx, `
-			INSERT INTO room_players (room_id, user_id, seat)
+			INSERT INTO room_players (room_id, user_id, sequence)
 			VALUES ($1, $2, $3)
 		`,
 			rm.ID,
 			p.ID,
-			seat,
+			sequence,
 		)
 		if err != nil {
 			return err
@@ -100,11 +100,11 @@ func (r *RoomPostgresRepository) FindByID(id string) (*room.Room, error) {
 	rm.Status = room.RoomStatus(status)
 
 	rows, err := r.pool.Query(ctx, `
-		SELECT rp.user_id, u.username, rp.seat
+		SELECT rp.user_id, u.username, rp.sequence
 		FROM room_players rp
 		JOIN users u ON u.id = rp.user_id
 		WHERE rp.room_id = $1
-		ORDER BY rp.seat ASC, rp.created_at ASC
+		ORDER BY rp.sequence ASC, rp.created_at ASC
 	`, id)
 	if err != nil {
 		return nil, err
@@ -117,12 +117,12 @@ func (r *RoomPostgresRepository) FindByID(id string) (*room.Room, error) {
 		var (
 			id       string
 			username string
-			seat     int
+			sequence int
 		)
-		if err := rows.Scan(&id, &username, &seat); err != nil {
+		if err := rows.Scan(&id, &username, &sequence); err != nil {
 			return nil, err
 		}
-		rm.Players[id] = player.NewPlayer(id, username, seat)
+		rm.Players[id] = player.NewPlayer(id, username, sequence)
 	}
 
 	return &rm, nil

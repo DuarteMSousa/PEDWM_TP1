@@ -67,6 +67,7 @@ func main() {
 	userService := services.NewUserService(userRepo, userStatsRepo)
 	friendshipService := services.NewFriendshipService(friendshipRepo, userRepo)
 	userStatsService := services.NewUserStatsService(userStatsRepo, userRepo)
+	gameService := services.NewGameService(gameRepo)
 
 	// ========================
 	// Event Dispatcher
@@ -84,6 +85,7 @@ func main() {
 		FriendshipService: friendshipService,
 		UserStatsService:  userStatsService,
 		EventService:      eventService,
+		GameService:       gameService,
 	}
 
 	srv := handler.New(graph.NewExecutableSchema(

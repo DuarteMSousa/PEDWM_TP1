@@ -3,9 +3,12 @@ package graph
 import (
 	"backend/internal/application/services"
 	"backend/internal/domain/card"
+	domainevents "backend/internal/domain/events"
 	"backend/internal/domain/friendship"
+	"backend/internal/domain/game"
 	"backend/internal/domain/player"
 	"backend/internal/domain/room"
+	"backend/internal/domain/team"
 	"backend/internal/domain/trick"
 	"backend/internal/domain/user"
 	"backend/internal/infrastructure/graph/model"
@@ -84,6 +87,118 @@ func mapGameTablePlay(p trick.Play) *model.GameTablePlay {
 	}
 }
 
+func mapEvent(e domainevents.Event) *model.Event {
+	return &model.Event{
+		ID:        e.ID,
+		Type:      model.EventType(e.Type),
+		GameID:    &e.GameID,
+		RoomID:    &e.RoomID,
+		Timestamp: e.Timestamp,
+		Sequence:  int32(e.Sequence),
+		Payload:   mapEventPayload(e.Payload),
+	}
+}
+
+func mapTeamPlayers(players []*player.Player) []*model.Player {
+	result := make([]*model.Player, 0, len(players))
+	for _, p := range players {
+		result = append(result, &model.Player{
+			ID:       p.ID,
+			Name:     p.Name,
+			Type:     model.PlayerType(p.Type),
+			Sequence: int32(p.Sequence),
+		})
+	}
+	return result
+}
+
+func mapDomainTeams(teams []team.Team) []*model.Team {
+	result := make([]*model.Team, 0, len(teams))
+	for _, t := range teams {
+		teamPlayers := make([]*player.Player, 0, len(t.Players))
+		for i := range t.Players {
+			teamPlayers = append(teamPlayers, t.Players[i])
+		}
+
+		result = append(result, &model.Team{
+			ID:      t.ID,
+			Players: mapTeamPlayers(teamPlayers),
+		})
+	}
+	return result
+}
+
+func mapTeamScores(score map[string]int) []*model.TeamScore {
+	result := make([]*model.TeamScore, 0, len(score))
+	for teamID, points := range score {
+		result = append(result, &model.TeamScore{TeamID: teamID, Points: int32(points)})
+	}
+	return result
+}
+
+func mapEventPayload(payload any) model.EventPayload {
+	switch p := payload.(type) {
+	case domainevents.PlayerJoinedPayload:
+		return model.PlayerJoinedEventPayload{PlayerID: p.PlayerID, Name: p.Name, Slot: int32(p.Slot)}
+	case *domainevents.PlayerJoinedPayload:
+		return model.PlayerJoinedEventPayload{PlayerID: p.PlayerID, Name: p.Name, Slot: int32(p.Slot)}
+	case domainevents.PlayerLeftPayload:
+		return model.PlayerLeftEventPayload{PlayerID: p.PlayerID, RoomID: p.RoomID}
+	case *domainevents.PlayerLeftPayload:
+		return model.PlayerLeftEventPayload{PlayerID: p.PlayerID, RoomID: p.RoomID}
+	case domainevents.RoundStartedPayload:
+		return model.RoundStartedEventPayload{RoundNumber: int32(p.RoundNumber), DealerID: p.DealerID}
+	case *domainevents.RoundStartedPayload:
+		return model.RoundStartedEventPayload{RoundNumber: int32(p.RoundNumber), DealerID: p.DealerID}
+	case domainevents.TrickStartedPayload:
+		return model.TrickStartedEventPayload{LeaderID: p.LeaderID}
+	case *domainevents.TrickStartedPayload:
+		return model.TrickStartedEventPayload{LeaderID: p.LeaderID}
+	case domainevents.TrumpRevealedPayload:
+		return model.TrumpRevealedEventPayload{Card: mapGameCard(p.Card), Suit: string(p.Suit)}
+	case *domainevents.TrumpRevealedPayload:
+		return model.TrumpRevealedEventPayload{Card: mapGameCard(p.Card), Suit: string(p.Suit)}
+	case domainevents.CardDealtPayload:
+		return model.CardDealtEventPayload{PlayerID: p.PlayerID, Card: mapGameCard(p.Card)}
+	case *domainevents.CardDealtPayload:
+		return model.CardDealtEventPayload{PlayerID: p.PlayerID, Card: mapGameCard(p.Card)}
+	case domainevents.CardPlayedPayload:
+		return model.CardPlayedEventPayload{PlayerID: p.PlayerID, Card: mapGameCard(p.Card)}
+	case *domainevents.CardPlayedPayload:
+		return model.CardPlayedEventPayload{PlayerID: p.PlayerID, Card: mapGameCard(p.Card)}
+	case domainevents.TurnChangedPayload:
+		return model.TurnChangedEventPayload{PlayerID: p.PlayerID}
+	case *domainevents.TurnChangedPayload:
+		return model.TurnChangedEventPayload{PlayerID: p.PlayerID}
+	case domainevents.TrickEndedPayload:
+		return model.TrickEndedEventPayload{WinnerID: p.WinnerID, Points: int32(p.Points)}
+	case *domainevents.TrickEndedPayload:
+		return model.TrickEndedEventPayload{WinnerID: p.WinnerID, Points: int32(p.Points)}
+	case domainevents.RoundEndedPayload:
+		return model.RoundEndedEventPayload{WinnerTeam: p.WinnerTeam, Score: mapTeamScores(p.Score)}
+	case *domainevents.RoundEndedPayload:
+		return model.RoundEndedEventPayload{WinnerTeam: p.WinnerTeam, Score: mapTeamScores(p.Score)}
+	case domainevents.GameScorePayload:
+		return model.GameScoreUpdatedEventPayload{Score: mapTeamScores(p.Score)}
+	case *domainevents.GameScorePayload:
+		return model.GameScoreUpdatedEventPayload{Score: mapTeamScores(p.Score)}
+	case domainevents.GameStartedPayload:
+		return model.GameStartedEventPayload{Teams: mapDomainTeams(p.Teams)}
+	case *domainevents.GameStartedPayload:
+		return model.GameStartedEventPayload{Teams: mapDomainTeams(p.Teams)}
+	case domainevents.GameEndedPayload:
+		return model.GameEndedEventPayload{Winner: p.Winner, FinalScores: mapTeamScores(p.FinalScores), Teams: mapDomainTeams(p.Teams)}
+	case *domainevents.GameEndedPayload:
+		return model.GameEndedEventPayload{Winner: p.Winner, FinalScores: mapTeamScores(p.FinalScores), Teams: mapDomainTeams(p.Teams)}
+	case domainevents.RoomClosedPayload:
+		return model.RoomClosedEventPayload{RoomID: p.RoomID}
+	case *domainevents.RoomClosedPayload:
+		return model.RoomClosedEventPayload{RoomID: p.RoomID}
+	default:
+		return nil
+	}
+}
+
 func mapGameSnapshot(snapshot *services.GameSnapshot) *model.GameSnapshot {
 	if snapshot == nil {
 		return nil
@@ -158,4 +273,42 @@ func mapGameSnapshot(snapshot *services.GameSnapshot) *model.GameSnapshot {
 	}
 	log.Printf("Mapped GameSnapshot:\n%s", string(b))
 	return snap
+}
+
+func mapGame(g *game.Game) *model.Game {
+
+	var players []*model.GamePlayer
+	for _, team := range g.Teams {
+		for _, player := range team.Players {
+
+			players = append(players, &model.GamePlayer{
+				ID:       player.ID,
+				Username: player.Name,
+			})
+
+		}
+	}
+
+	var resultEvents []*model.Event
+
+	for _, e := range g.Events {
+		resultEvents = append(resultEvents, &model.Event{
+			ID:        e.ID,
+			Type:      model.EventType(e.Type),
+			GameID:    &e.GameID,
+			RoomID:    &e.RoomID,
+			Timestamp: e.Timestamp,
+			Sequence:  int32(e.Sequence),
+			Payload:   mapEventPayload(e.Payload),
+		})
+	}
+
+	return &model.Game{
+		ID:        g.ID.String(),
+		RoomID:    &g.RoomID,
+		Players:   players,
+		Events:    resultEvents,
+		CreatedAt: g.CreatedAt,
+		UpdatedAt: g.UpdatedAt,
+	}
 }

@@ -38,7 +38,7 @@ type Game struct {
 	ID      uuid.UUID
 	RoomID  string
 	Status  GameStatus
-	players map[string]*player.Player
+	Players map[string]*player.Player
 	Teams   map[string]*team.Team
 	Score   map[string]int
 
@@ -47,7 +47,7 @@ type Game struct {
 	scoringStrategy IGameScoringStrategy
 	botStrategy     bot_strategy.IBotStrategy
 
-	events               []events.Event
+	Events               []events.Event
 	currentEventSequence int
 
 	eventBus *events.EventBus
@@ -60,12 +60,12 @@ func NewGame(teams []*team.Team, scoringStrategy IGameScoringStrategy, botStrate
 	g := &Game{
 		ID:                   uuid.New(),
 		Status:               PENDING,
-		players:              make(map[string]*player.Player),
+		Players:              make(map[string]*player.Player),
 		Score:                make(map[string]int),
 		scoringStrategy:      scoringStrategy,
 		botStrategy:          botStrategy,
 		Teams:                make(map[string]*team.Team),
-		events:               []events.Event{},
+		Events:               []events.Event{},
 		currentEventSequence: 1,
 		CreatedAt:            time.Now().UTC(),
 		UpdatedAt:            time.Now().UTC(),
@@ -73,7 +73,7 @@ func NewGame(teams []*team.Team, scoringStrategy IGameScoringStrategy, botStrate
 
 	for _, t := range teams {
 		for _, p := range t.Players {
-			g.players[p.ID] = p
+			g.Players[p.ID] = p
 		}
 	}
 	g.scoringStrategy = scoringStrategy
@@ -82,7 +82,7 @@ func NewGame(teams []*team.Team, scoringStrategy IGameScoringStrategy, botStrate
 	for _, t := range teams {
 		g.Teams[t.ID] = t
 	}
-	g.events = []events.Event{}
+	g.Events = []events.Event{}
 	g.eventBus = events.DefaultBus()
 
 	g.State = NewGameStartingState(g)
@@ -106,7 +106,7 @@ func (g *Game) AddEvent(e events.Event) {
 	e.Sequence = g.currentEventSequence
 	g.currentEventSequence++
 
-	g.events = append(g.events, e)
+	g.Events = append(g.Events, e)
 	if g.eventBus != nil {
 		g.eventBus.Publish(e)
 	}
@@ -114,7 +114,7 @@ func (g *Game) AddEvent(e events.Event) {
 }
 
 func (g *Game) GetEvents() []events.Event {
-	return g.events
+	return g.Events
 }
 
 func (g *Game) PlayCard(playerId string, cardId string) error {
@@ -128,7 +128,7 @@ func (g *Game) PlayCard(playerId string, cardId string) error {
 		return ErrRoundNotConfigured
 	}
 
-	_, ok := g.players[playerId]
+	_, ok := g.Players[playerId]
 	if !ok {
 		return ErrPlayerNotFound
 	}
@@ -167,7 +167,7 @@ func (g *Game) GetPlayer(playerID string) (*player.Player, error) {
 	if g == nil {
 		return nil, ErrGameDoesNotExist
 	}
-	p, ok := g.players[playerID]
+	p, ok := g.Players[playerID]
 	if !ok {
 		return nil, ErrPlayerNotFound
 	}

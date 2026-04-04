@@ -10,6 +10,20 @@ import (
 	"context"
 )
 
+// Events is the resolver for the events field.
+func (r *gameResolver) Events(ctx context.Context, obj *model.Game) ([]*model.Event, error) {
+	events, err := r.EventService.GetEventsByGameID(obj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	eventsResult := make([]*model.Event, 0, len(events))
+	for _, e := range events {
+		eventsResult = append(eventsResult, mapEvent(e))
+	}
+	return eventsResult, nil
+}
+
 // Register is the resolver for the register field.
 func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInput) (*model.AuthPayload, error) {
 	u, err := r.UserService.Register(input.Username, input.Password)
@@ -189,11 +203,28 @@ func (r *queryResolver) UserStats(ctx context.Context, userID string) (*model.Us
 	return mapUserStats(userStats), nil
 }
 
+// UserGames is the resolver for the userGames field.
+func (r *queryResolver) UserGames(ctx context.Context, userID string) ([]*model.Game, error) {
+	games, err := r.GameService.GetUserGames(userID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*model.Game, 0, len(games))
+	for _, g := range games {
+		result = append(result, mapGame(g))
+	}
+	return result, nil
+}
+
+// Game returns GameResolver implementation.
+func (r *Resolver) Game() GameResolver { return &gameResolver{r} }
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+type gameResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

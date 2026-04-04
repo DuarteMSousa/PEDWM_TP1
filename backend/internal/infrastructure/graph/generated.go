@@ -29,6 +29,7 @@ func NewExecutableSchema(cfg Config) graphql.ExecutableSchema {
 type Config = graphql.Config[ResolverRoot, DirectiveRoot, ComplexityRoot]
 
 type ResolverRoot interface {
+	Game() GameResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 }
@@ -41,6 +42,26 @@ type ComplexityRoot struct {
 		User func(childComplexity int) int
 	}
 
+	CardDealtEventPayload struct {
+		Card     func(childComplexity int) int
+		PlayerID func(childComplexity int) int
+	}
+
+	CardPlayedEventPayload struct {
+		Card     func(childComplexity int) int
+		PlayerID func(childComplexity int) int
+	}
+
+	Event struct {
+		GameID    func(childComplexity int) int
+		ID        func(childComplexity int) int
+		Payload   func(childComplexity int) int
+		RoomID    func(childComplexity int) int
+		Sequence  func(childComplexity int) int
+		Timestamp func(childComplexity int) int
+		Type      func(childComplexity int) int
+	}
+
 	Friendship struct {
 		AddresseeID func(childComplexity int) int
 		CreatedAt   func(childComplexity int) int
@@ -49,10 +70,34 @@ type ComplexityRoot struct {
 		UpdatedAt   func(childComplexity int) int
 	}
 
+	Game struct {
+		CreatedAt func(childComplexity int) int
+		Events    func(childComplexity int) int
+		ID        func(childComplexity int) int
+		Players   func(childComplexity int) int
+		RoomID    func(childComplexity int) int
+		UpdatedAt func(childComplexity int) int
+	}
+
 	GameCard struct {
 		ID   func(childComplexity int) int
 		Rank func(childComplexity int) int
 		Suit func(childComplexity int) int
+	}
+
+	GameEndedEventPayload struct {
+		FinalScores func(childComplexity int) int
+		Teams       func(childComplexity int) int
+		Winner      func(childComplexity int) int
+	}
+
+	GamePlayer struct {
+		ID       func(childComplexity int) int
+		Username func(childComplexity int) int
+	}
+
+	GameScoreUpdatedEventPayload struct {
+		Score func(childComplexity int) int
 	}
 
 	GameSnapshot struct {
@@ -65,6 +110,10 @@ type ComplexityRoot struct {
 		TablePlays      func(childComplexity int) int
 		Teams           func(childComplexity int) int
 		TrumpSuit       func(childComplexity int) int
+	}
+
+	GameStartedEventPayload struct {
+		Teams func(childComplexity int) int
 	}
 
 	GameTablePlay struct {
@@ -92,6 +141,17 @@ type ComplexityRoot struct {
 		Type     func(childComplexity int) int
 	}
 
+	PlayerJoinedEventPayload struct {
+		Name     func(childComplexity int) int
+		PlayerID func(childComplexity int) int
+		Slot     func(childComplexity int) int
+	}
+
+	PlayerLeftEventPayload struct {
+		PlayerID func(childComplexity int) int
+		RoomID   func(childComplexity int) int
+	}
+
 	Query struct {
 		Friends               func(childComplexity int, userID string) int
 		GameSnapshot          func(childComplexity int, roomID string, playerID string) int
@@ -100,6 +160,7 @@ type ComplexityRoot struct {
 		Rooms                 func(childComplexity int) int
 		User                  func(childComplexity int, id string) int
 		UserByUsername        func(childComplexity int, username string) int
+		UserGames             func(childComplexity int, userID string) int
 		UserStats             func(childComplexity int, userID string) int
 	}
 
@@ -111,9 +172,23 @@ type ComplexityRoot struct {
 		Status    func(childComplexity int) int
 	}
 
+	RoomClosedEventPayload struct {
+		RoomID func(childComplexity int) int
+	}
+
 	RoomPlayer struct {
 		ID       func(childComplexity int) int
 		Username func(childComplexity int) int
+	}
+
+	RoundEndedEventPayload struct {
+		Score      func(childComplexity int) int
+		WinnerTeam func(childComplexity int) int
+	}
+
+	RoundStartedEventPayload struct {
+		DealerID    func(childComplexity int) int
+		RoundNumber func(childComplexity int) int
 	}
 
 	Team struct {
@@ -124,6 +199,24 @@ type ComplexityRoot struct {
 	TeamScore struct {
 		Points func(childComplexity int) int
 		TeamID func(childComplexity int) int
+	}
+
+	TrickEndedEventPayload struct {
+		Points   func(childComplexity int) int
+		WinnerID func(childComplexity int) int
+	}
+
+	TrickStartedEventPayload struct {
+		LeaderID func(childComplexity int) int
+	}
+
+	TrumpRevealedEventPayload struct {
+		Card func(childComplexity int) int
+		Suit func(childComplexity int) int
+	}
+
+	TurnChangedEventPayload struct {
+		PlayerID func(childComplexity int) int
 	}
 
 	User struct {
@@ -139,6 +232,9 @@ type ComplexityRoot struct {
 	}
 }
 
+type GameResolver interface {
+	Events(ctx context.Context, obj *model.Game) ([]*model.Event, error)
+}
 type MutationResolver interface {
 	Register(ctx context.Context, input model.RegisterInput) (*model.AuthPayload, error)
 	Login(ctx context.Context, input model.LoginInput) (*model.AuthPayload, error)
@@ -160,6 +256,7 @@ type QueryResolver interface {
 	Rooms(ctx context.Context) ([]*model.Room, error)
 	GameSnapshot(ctx context.Context, roomID string, playerID string) (*model.GameSnapshot, error)
 	UserStats(ctx context.Context, userID string) (*model.UserStats, error)
+	UserGames(ctx context.Context, userID string) ([]*model.Game, error)
 }
 
 type executableSchema graphql.ExecutableSchemaState[ResolverRoot, DirectiveRoot, ComplexityRoot]
@@ -182,6 +279,75 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.AuthPayload.User(childComplexity), true
+
+	case "CardDealtEventPayload.card":
+		if e.ComplexityRoot.CardDealtEventPayload.Card == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CardDealtEventPayload.Card(childComplexity), true
+	case "CardDealtEventPayload.playerId":
+		if e.ComplexityRoot.CardDealtEventPayload.PlayerID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CardDealtEventPayload.PlayerID(childComplexity), true
+
+	case "CardPlayedEventPayload.card":
+		if e.ComplexityRoot.CardPlayedEventPayload.Card == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CardPlayedEventPayload.Card(childComplexity), true
+	case "CardPlayedEventPayload.playerId":
+		if e.ComplexityRoot.CardPlayedEventPayload.PlayerID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CardPlayedEventPayload.PlayerID(childComplexity), true
+
+	case "Event.gameID":
+		if e.ComplexityRoot.Event.GameID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Event.GameID(childComplexity), true
+	case "Event.id":
+		if e.ComplexityRoot.Event.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Event.ID(childComplexity), true
+	case "Event.payload":
+		if e.ComplexityRoot.Event.Payload == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Event.Payload(childComplexity), true
+	case "Event.roomID":
+		if e.ComplexityRoot.Event.RoomID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Event.RoomID(childComplexity), true
+	case "Event.sequence":
+		if e.ComplexityRoot.Event.Sequence == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Event.Sequence(childComplexity), true
+	case "Event.timestamp":
+		if e.ComplexityRoot.Event.Timestamp == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Event.Timestamp(childComplexity), true
+	case "Event.type":
+		if e.ComplexityRoot.Event.Type == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Event.Type(childComplexity), true
 
 	case "Friendship.addresseeId":
 		if e.ComplexityRoot.Friendship.AddresseeID == nil {
@@ -214,6 +380,43 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Friendship.UpdatedAt(childComplexity), true
 
+	case "Game.createdAt":
+		if e.ComplexityRoot.Game.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Game.CreatedAt(childComplexity), true
+	case "Game.events":
+		if e.ComplexityRoot.Game.Events == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Game.Events(childComplexity), true
+	case "Game.id":
+		if e.ComplexityRoot.Game.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Game.ID(childComplexity), true
+	case "Game.players":
+		if e.ComplexityRoot.Game.Players == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Game.Players(childComplexity), true
+	case "Game.roomId":
+		if e.ComplexityRoot.Game.RoomID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Game.RoomID(childComplexity), true
+	case "Game.updatedAt":
+		if e.ComplexityRoot.Game.UpdatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Game.UpdatedAt(childComplexity), true
+
 	case "GameCard.id":
 		if e.ComplexityRoot.GameCard.ID == nil {
 			break
@@ -232,6 +435,45 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.GameCard.Suit(childComplexity), true
+
+	case "GameEndedEventPayload.finalScores":
+		if e.ComplexityRoot.GameEndedEventPayload.FinalScores == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameEndedEventPayload.FinalScores(childComplexity), true
+	case "GameEndedEventPayload.teams":
+		if e.ComplexityRoot.GameEndedEventPayload.Teams == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameEndedEventPayload.Teams(childComplexity), true
+	case "GameEndedEventPayload.winner":
+		if e.ComplexityRoot.GameEndedEventPayload.Winner == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameEndedEventPayload.Winner(childComplexity), true
+
+	case "GamePlayer.id":
+		if e.ComplexityRoot.GamePlayer.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GamePlayer.ID(childComplexity), true
+	case "GamePlayer.username":
+		if e.ComplexityRoot.GamePlayer.Username == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GamePlayer.Username(childComplexity), true
+
+	case "GameScoreUpdatedEventPayload.score":
+		if e.ComplexityRoot.GameScoreUpdatedEventPayload.Score == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameScoreUpdatedEventPayload.Score(childComplexity), true
 
 	case "GameSnapshot.currentPlayerId":
 		if e.ComplexityRoot.GameSnapshot.CurrentPlayerID == nil {
@@ -287,6 +529,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.GameSnapshot.TrumpSuit(childComplexity), true
+
+	case "GameStartedEventPayload.teams":
+		if e.ComplexityRoot.GameStartedEventPayload.Teams == nil {
+			break
+		}
+
+		return e.ComplexityRoot.GameStartedEventPayload.Teams(childComplexity), true
 
 	case "GameTablePlay.card":
 		if e.ComplexityRoot.GameTablePlay.Card == nil {
@@ -437,6 +686,38 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Player.Type(childComplexity), true
 
+	case "PlayerJoinedEventPayload.name":
+		if e.ComplexityRoot.PlayerJoinedEventPayload.Name == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PlayerJoinedEventPayload.Name(childComplexity), true
+	case "PlayerJoinedEventPayload.playerId":
+		if e.ComplexityRoot.PlayerJoinedEventPayload.PlayerID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PlayerJoinedEventPayload.PlayerID(childComplexity), true
+	case "PlayerJoinedEventPayload.slot":
+		if e.ComplexityRoot.PlayerJoinedEventPayload.Slot == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PlayerJoinedEventPayload.Slot(childComplexity), true
+
+	case "PlayerLeftEventPayload.playerId":
+		if e.ComplexityRoot.PlayerLeftEventPayload.PlayerID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PlayerLeftEventPayload.PlayerID(childComplexity), true
+	case "PlayerLeftEventPayload.roomId":
+		if e.ComplexityRoot.PlayerLeftEventPayload.RoomID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PlayerLeftEventPayload.RoomID(childComplexity), true
+
 	case "Query.friends":
 		if e.ComplexityRoot.Query.Friends == nil {
 			break
@@ -510,6 +791,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.UserByUsername(childComplexity, args["username"].(string)), true
+	case "Query.userGames":
+		if e.ComplexityRoot.Query.UserGames == nil {
+			break
+		}
+
+		args, err := ec.field_Query_userGames_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.UserGames(childComplexity, args["userId"].(string)), true
 	case "Query.userStats":
 		if e.ComplexityRoot.Query.UserStats == nil {
 			break
@@ -553,6 +845,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Room.Status(childComplexity), true
 
+	case "RoomClosedEventPayload.roomId":
+		if e.ComplexityRoot.RoomClosedEventPayload.RoomID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RoomClosedEventPayload.RoomID(childComplexity), true
+
 	case "RoomPlayer.id":
 		if e.ComplexityRoot.RoomPlayer.ID == nil {
 			break
@@ -565,6 +864,32 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.RoomPlayer.Username(childComplexity), true
+
+	case "RoundEndedEventPayload.score":
+		if e.ComplexityRoot.RoundEndedEventPayload.Score == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RoundEndedEventPayload.Score(childComplexity), true
+	case "RoundEndedEventPayload.winnerTeam":
+		if e.ComplexityRoot.RoundEndedEventPayload.WinnerTeam == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RoundEndedEventPayload.WinnerTeam(childComplexity), true
+
+	case "RoundStartedEventPayload.dealerId":
+		if e.ComplexityRoot.RoundStartedEventPayload.DealerID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RoundStartedEventPayload.DealerID(childComplexity), true
+	case "RoundStartedEventPayload.roundNumber":
+		if e.ComplexityRoot.RoundStartedEventPayload.RoundNumber == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RoundStartedEventPayload.RoundNumber(childComplexity), true
 
 	case "Team.id":
 		if e.ComplexityRoot.Team.ID == nil {
@@ -591,6 +916,46 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.TeamScore.TeamID(childComplexity), true
+
+	case "TrickEndedEventPayload.points":
+		if e.ComplexityRoot.TrickEndedEventPayload.Points == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TrickEndedEventPayload.Points(childComplexity), true
+	case "TrickEndedEventPayload.winnerId":
+		if e.ComplexityRoot.TrickEndedEventPayload.WinnerID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TrickEndedEventPayload.WinnerID(childComplexity), true
+
+	case "TrickStartedEventPayload.leaderId":
+		if e.ComplexityRoot.TrickStartedEventPayload.LeaderID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TrickStartedEventPayload.LeaderID(childComplexity), true
+
+	case "TrumpRevealedEventPayload.card":
+		if e.ComplexityRoot.TrumpRevealedEventPayload.Card == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TrumpRevealedEventPayload.Card(childComplexity), true
+	case "TrumpRevealedEventPayload.suit":
+		if e.ComplexityRoot.TrumpRevealedEventPayload.Suit == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TrumpRevealedEventPayload.Suit(childComplexity), true
+
+	case "TurnChangedEventPayload.playerId":
+		if e.ComplexityRoot.TurnChangedEventPayload.PlayerID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TurnChangedEventPayload.PlayerID(childComplexity), true
 
 	case "User.id":
 		if e.ComplexityRoot.User.ID == nil {
@@ -922,6 +1287,17 @@ func (ec *executionContext) field_Query_userByUsername_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_userGames_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["userId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_userStats_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1026,6 +1402,341 @@ func (ec *executionContext) fieldContext_AuthPayload_user(_ context.Context, fie
 				return ec.fieldContext_User_username(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CardDealtEventPayload_playerId(ctx context.Context, field graphql.CollectedField, obj *model.CardDealtEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CardDealtEventPayload_playerId,
+		func(ctx context.Context) (any, error) {
+			return obj.PlayerID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CardDealtEventPayload_playerId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CardDealtEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CardDealtEventPayload_card(ctx context.Context, field graphql.CollectedField, obj *model.CardDealtEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CardDealtEventPayload_card,
+		func(ctx context.Context) (any, error) {
+			return obj.Card, nil
+		},
+		nil,
+		ec.marshalNGameCard2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameCard,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CardDealtEventPayload_card(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CardDealtEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_GameCard_id(ctx, field)
+			case "suit":
+				return ec.fieldContext_GameCard_suit(ctx, field)
+			case "rank":
+				return ec.fieldContext_GameCard_rank(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type GameCard", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CardPlayedEventPayload_playerId(ctx context.Context, field graphql.CollectedField, obj *model.CardPlayedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CardPlayedEventPayload_playerId,
+		func(ctx context.Context) (any, error) {
+			return obj.PlayerID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CardPlayedEventPayload_playerId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CardPlayedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CardPlayedEventPayload_card(ctx context.Context, field graphql.CollectedField, obj *model.CardPlayedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CardPlayedEventPayload_card,
+		func(ctx context.Context) (any, error) {
+			return obj.Card, nil
+		},
+		nil,
+		ec.marshalNGameCard2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameCard,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CardPlayedEventPayload_card(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CardPlayedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_GameCard_id(ctx, field)
+			case "suit":
+				return ec.fieldContext_GameCard_suit(ctx, field)
+			case "rank":
+				return ec.fieldContext_GameCard_rank(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type GameCard", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Event_id(ctx context.Context, field graphql.CollectedField, obj *model.Event) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Event_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Event_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Event",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Event_type(ctx context.Context, field graphql.CollectedField, obj *model.Event) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Event_type,
+		func(ctx context.Context) (any, error) {
+			return obj.Type, nil
+		},
+		nil,
+		ec.marshalNEventType2backendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐEventType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Event_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Event",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type EventType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Event_gameID(ctx context.Context, field graphql.CollectedField, obj *model.Event) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Event_gameID,
+		func(ctx context.Context) (any, error) {
+			return obj.GameID, nil
+		},
+		nil,
+		ec.marshalOID2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Event_gameID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Event",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Event_roomID(ctx context.Context, field graphql.CollectedField, obj *model.Event) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Event_roomID,
+		func(ctx context.Context) (any, error) {
+			return obj.RoomID, nil
+		},
+		nil,
+		ec.marshalOID2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Event_roomID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Event",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Event_timestamp(ctx context.Context, field graphql.CollectedField, obj *model.Event) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Event_timestamp,
+		func(ctx context.Context) (any, error) {
+			return obj.Timestamp, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Event_timestamp(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Event",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Event_sequence(ctx context.Context, field graphql.CollectedField, obj *model.Event) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Event_sequence,
+		func(ctx context.Context) (any, error) {
+			return obj.Sequence, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Event_sequence(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Event",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Event_payload(ctx context.Context, field graphql.CollectedField, obj *model.Event) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Event_payload,
+		func(ctx context.Context) (any, error) {
+			return obj.Payload, nil
+		},
+		nil,
+		ec.marshalOEventPayload2backendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐEventPayload,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Event_payload(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Event",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type EventPayload does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1176,6 +1887,202 @@ func (ec *executionContext) fieldContext_Friendship_updatedAt(_ context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _Game_id(ctx context.Context, field graphql.CollectedField, obj *model.Game) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Game_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Game_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Game",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Game_roomId(ctx context.Context, field graphql.CollectedField, obj *model.Game) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Game_roomId,
+		func(ctx context.Context) (any, error) {
+			return obj.RoomID, nil
+		},
+		nil,
+		ec.marshalOID2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Game_roomId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Game",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Game_players(ctx context.Context, field graphql.CollectedField, obj *model.Game) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Game_players,
+		func(ctx context.Context) (any, error) {
+			return obj.Players, nil
+		},
+		nil,
+		ec.marshalNGamePlayer2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGamePlayerᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Game_players(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Game",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_GamePlayer_id(ctx, field)
+			case "username":
+				return ec.fieldContext_GamePlayer_username(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type GamePlayer", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Game_events(ctx context.Context, field graphql.CollectedField, obj *model.Game) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Game_events,
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Game().Events(ctx, obj)
+		},
+		nil,
+		ec.marshalOEvent2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐEvent,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Game_events(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Game",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Event_id(ctx, field)
+			case "type":
+				return ec.fieldContext_Event_type(ctx, field)
+			case "gameID":
+				return ec.fieldContext_Event_gameID(ctx, field)
+			case "roomID":
+				return ec.fieldContext_Event_roomID(ctx, field)
+			case "timestamp":
+				return ec.fieldContext_Event_timestamp(ctx, field)
+			case "sequence":
+				return ec.fieldContext_Event_sequence(ctx, field)
+			case "payload":
+				return ec.fieldContext_Event_payload(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Event", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Game_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Game) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Game_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Game_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Game",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Game_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.Game) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Game_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Game_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Game",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _GameCard_id(ctx context.Context, field graphql.CollectedField, obj *model.GameCard) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1258,6 +2165,198 @@ func (ec *executionContext) fieldContext_GameCard_rank(_ context.Context, field 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameEndedEventPayload_winner(ctx context.Context, field graphql.CollectedField, obj *model.GameEndedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameEndedEventPayload_winner,
+		func(ctx context.Context) (any, error) {
+			return obj.Winner, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameEndedEventPayload_winner(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameEndedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameEndedEventPayload_finalScores(ctx context.Context, field graphql.CollectedField, obj *model.GameEndedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameEndedEventPayload_finalScores,
+		func(ctx context.Context) (any, error) {
+			return obj.FinalScores, nil
+		},
+		nil,
+		ec.marshalNTeamScore2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐTeamScoreᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameEndedEventPayload_finalScores(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameEndedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "teamId":
+				return ec.fieldContext_TeamScore_teamId(ctx, field)
+			case "points":
+				return ec.fieldContext_TeamScore_points(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TeamScore", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameEndedEventPayload_teams(ctx context.Context, field graphql.CollectedField, obj *model.GameEndedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameEndedEventPayload_teams,
+		func(ctx context.Context) (any, error) {
+			return obj.Teams, nil
+		},
+		nil,
+		ec.marshalOTeam2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐTeamᚄ,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameEndedEventPayload_teams(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameEndedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Team_id(ctx, field)
+			case "players":
+				return ec.fieldContext_Team_players(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Team", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GamePlayer_id(ctx context.Context, field graphql.CollectedField, obj *model.GamePlayer) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GamePlayer_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GamePlayer_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GamePlayer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GamePlayer_username(ctx context.Context, field graphql.CollectedField, obj *model.GamePlayer) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GamePlayer_username,
+		func(ctx context.Context) (any, error) {
+			return obj.Username, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GamePlayer_username(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GamePlayer",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameScoreUpdatedEventPayload_score(ctx context.Context, field graphql.CollectedField, obj *model.GameScoreUpdatedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameScoreUpdatedEventPayload_score,
+		func(ctx context.Context) (any, error) {
+			return obj.Score, nil
+		},
+		nil,
+		ec.marshalNTeamScore2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐTeamScoreᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameScoreUpdatedEventPayload_score(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameScoreUpdatedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "teamId":
+				return ec.fieldContext_TeamScore_teamId(ctx, field)
+			case "points":
+				return ec.fieldContext_TeamScore_points(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TeamScore", field.Name)
 		},
 	}
 	return fc, nil
@@ -1545,6 +2644,41 @@ func (ec *executionContext) fieldContext_GameSnapshot_scores(_ context.Context, 
 				return ec.fieldContext_TeamScore_points(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type TeamScore", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GameStartedEventPayload_teams(ctx context.Context, field graphql.CollectedField, obj *model.GameStartedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GameStartedEventPayload_teams,
+		func(ctx context.Context) (any, error) {
+			return obj.Teams, nil
+		},
+		nil,
+		ec.marshalOTeam2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐTeamᚄ,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_GameStartedEventPayload_teams(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GameStartedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Team_id(ctx, field)
+			case "players":
+				return ec.fieldContext_Team_players(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Team", field.Name)
 		},
 	}
 	return fc, nil
@@ -2234,6 +3368,151 @@ func (ec *executionContext) fieldContext_Player_sequence(_ context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _PlayerJoinedEventPayload_playerId(ctx context.Context, field graphql.CollectedField, obj *model.PlayerJoinedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PlayerJoinedEventPayload_playerId,
+		func(ctx context.Context) (any, error) {
+			return obj.PlayerID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PlayerJoinedEventPayload_playerId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PlayerJoinedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PlayerJoinedEventPayload_name(ctx context.Context, field graphql.CollectedField, obj *model.PlayerJoinedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PlayerJoinedEventPayload_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PlayerJoinedEventPayload_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PlayerJoinedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PlayerJoinedEventPayload_slot(ctx context.Context, field graphql.CollectedField, obj *model.PlayerJoinedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PlayerJoinedEventPayload_slot,
+		func(ctx context.Context) (any, error) {
+			return obj.Slot, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PlayerJoinedEventPayload_slot(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PlayerJoinedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PlayerLeftEventPayload_playerId(ctx context.Context, field graphql.CollectedField, obj *model.PlayerLeftEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PlayerLeftEventPayload_playerId,
+		func(ctx context.Context) (any, error) {
+			return obj.PlayerID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PlayerLeftEventPayload_playerId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PlayerLeftEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PlayerLeftEventPayload_roomId(ctx context.Context, field graphql.CollectedField, obj *model.PlayerLeftEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PlayerLeftEventPayload_roomId,
+		func(ctx context.Context) (any, error) {
+			return obj.RoomID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PlayerLeftEventPayload_roomId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PlayerLeftEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2640,6 +3919,61 @@ func (ec *executionContext) fieldContext_Query_userStats(ctx context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_userGames(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_userGames,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().UserGames(ctx, fc.Args["userId"].(string))
+		},
+		nil,
+		ec.marshalNGame2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_userGames(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Game_id(ctx, field)
+			case "roomId":
+				return ec.fieldContext_Game_roomId(ctx, field)
+			case "players":
+				return ec.fieldContext_Game_players(ctx, field)
+			case "events":
+				return ec.fieldContext_Game_events(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Game_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Game_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Game", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_userGames_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2899,6 +4233,35 @@ func (ec *executionContext) fieldContext_Room_createdAt(_ context.Context, field
 	return fc, nil
 }
 
+func (ec *executionContext) _RoomClosedEventPayload_roomId(ctx context.Context, field graphql.CollectedField, obj *model.RoomClosedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RoomClosedEventPayload_roomId,
+		func(ctx context.Context) (any, error) {
+			return obj.RoomID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RoomClosedEventPayload_roomId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RoomClosedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _RoomPlayer_id(ctx context.Context, field graphql.CollectedField, obj *model.RoomPlayer) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2952,6 +4315,128 @@ func (ec *executionContext) fieldContext_RoomPlayer_username(_ context.Context, 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RoundEndedEventPayload_winnerTeam(ctx context.Context, field graphql.CollectedField, obj *model.RoundEndedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RoundEndedEventPayload_winnerTeam,
+		func(ctx context.Context) (any, error) {
+			return obj.WinnerTeam, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RoundEndedEventPayload_winnerTeam(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RoundEndedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RoundEndedEventPayload_score(ctx context.Context, field graphql.CollectedField, obj *model.RoundEndedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RoundEndedEventPayload_score,
+		func(ctx context.Context) (any, error) {
+			return obj.Score, nil
+		},
+		nil,
+		ec.marshalNTeamScore2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐTeamScoreᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RoundEndedEventPayload_score(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RoundEndedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "teamId":
+				return ec.fieldContext_TeamScore_teamId(ctx, field)
+			case "points":
+				return ec.fieldContext_TeamScore_points(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TeamScore", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RoundStartedEventPayload_roundNumber(ctx context.Context, field graphql.CollectedField, obj *model.RoundStartedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RoundStartedEventPayload_roundNumber,
+		func(ctx context.Context) (any, error) {
+			return obj.RoundNumber, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RoundStartedEventPayload_roundNumber(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RoundStartedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RoundStartedEventPayload_dealerId(ctx context.Context, field graphql.CollectedField, obj *model.RoundStartedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RoundStartedEventPayload_dealerId,
+		func(ctx context.Context) (any, error) {
+			return obj.DealerID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RoundStartedEventPayload_dealerId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RoundStartedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3078,6 +4563,188 @@ func (ec *executionContext) fieldContext_TeamScore_points(_ context.Context, fie
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrickEndedEventPayload_winnerId(ctx context.Context, field graphql.CollectedField, obj *model.TrickEndedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TrickEndedEventPayload_winnerId,
+		func(ctx context.Context) (any, error) {
+			return obj.WinnerID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TrickEndedEventPayload_winnerId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrickEndedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrickEndedEventPayload_points(ctx context.Context, field graphql.CollectedField, obj *model.TrickEndedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TrickEndedEventPayload_points,
+		func(ctx context.Context) (any, error) {
+			return obj.Points, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TrickEndedEventPayload_points(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrickEndedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrickStartedEventPayload_leaderId(ctx context.Context, field graphql.CollectedField, obj *model.TrickStartedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TrickStartedEventPayload_leaderId,
+		func(ctx context.Context) (any, error) {
+			return obj.LeaderID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TrickStartedEventPayload_leaderId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrickStartedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrumpRevealedEventPayload_card(ctx context.Context, field graphql.CollectedField, obj *model.TrumpRevealedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TrumpRevealedEventPayload_card,
+		func(ctx context.Context) (any, error) {
+			return obj.Card, nil
+		},
+		nil,
+		ec.marshalNGameCard2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameCard,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TrumpRevealedEventPayload_card(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrumpRevealedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_GameCard_id(ctx, field)
+			case "suit":
+				return ec.fieldContext_GameCard_suit(ctx, field)
+			case "rank":
+				return ec.fieldContext_GameCard_rank(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type GameCard", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrumpRevealedEventPayload_suit(ctx context.Context, field graphql.CollectedField, obj *model.TrumpRevealedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TrumpRevealedEventPayload_suit,
+		func(ctx context.Context) (any, error) {
+			return obj.Suit, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TrumpRevealedEventPayload_suit(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrumpRevealedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TurnChangedEventPayload_playerId(ctx context.Context, field graphql.CollectedField, obj *model.TurnChangedEventPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TurnChangedEventPayload_playerId,
+		func(ctx context.Context) (any, error) {
+			return obj.PlayerID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TurnChangedEventPayload_playerId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TurnChangedEventPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5026,6 +6693,117 @@ func (ec *executionContext) unmarshalInputStartGameInput(ctx context.Context, ob
 
 // region    ************************** interface.gotpl ***************************
 
+func (ec *executionContext) _EventPayload(ctx context.Context, sel ast.SelectionSet, obj model.EventPayload) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.TurnChangedEventPayload:
+		return ec._TurnChangedEventPayload(ctx, sel, &obj)
+	case *model.TurnChangedEventPayload:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._TurnChangedEventPayload(ctx, sel, obj)
+	case model.TrumpRevealedEventPayload:
+		return ec._TrumpRevealedEventPayload(ctx, sel, &obj)
+	case *model.TrumpRevealedEventPayload:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._TrumpRevealedEventPayload(ctx, sel, obj)
+	case model.TrickStartedEventPayload:
+		return ec._TrickStartedEventPayload(ctx, sel, &obj)
+	case *model.TrickStartedEventPayload:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._TrickStartedEventPayload(ctx, sel, obj)
+	case model.TrickEndedEventPayload:
+		return ec._TrickEndedEventPayload(ctx, sel, &obj)
+	case *model.TrickEndedEventPayload:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._TrickEndedEventPayload(ctx, sel, obj)
+	case model.RoundStartedEventPayload:
+		return ec._RoundStartedEventPayload(ctx, sel, &obj)
+	case *model.RoundStartedEventPayload:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._RoundStartedEventPayload(ctx, sel, obj)
+	case model.RoundEndedEventPayload:
+		return ec._RoundEndedEventPayload(ctx, sel, &obj)
+	case *model.RoundEndedEventPayload:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._RoundEndedEventPayload(ctx, sel, obj)
+	case model.RoomClosedEventPayload:
+		return ec._RoomClosedEventPayload(ctx, sel, &obj)
+	case *model.RoomClosedEventPayload:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._RoomClosedEventPayload(ctx, sel, obj)
+	case model.PlayerLeftEventPayload:
+		return ec._PlayerLeftEventPayload(ctx, sel, &obj)
+	case *model.PlayerLeftEventPayload:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._PlayerLeftEventPayload(ctx, sel, obj)
+	case model.PlayerJoinedEventPayload:
+		return ec._PlayerJoinedEventPayload(ctx, sel, &obj)
+	case *model.PlayerJoinedEventPayload:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._PlayerJoinedEventPayload(ctx, sel, obj)
+	case model.GameStartedEventPayload:
+		return ec._GameStartedEventPayload(ctx, sel, &obj)
+	case *model.GameStartedEventPayload:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._GameStartedEventPayload(ctx, sel, obj)
+	case model.GameScoreUpdatedEventPayload:
+		return ec._GameScoreUpdatedEventPayload(ctx, sel, &obj)
+	case *model.GameScoreUpdatedEventPayload:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._GameScoreUpdatedEventPayload(ctx, sel, obj)
+	case model.GameEndedEventPayload:
+		return ec._GameEndedEventPayload(ctx, sel, &obj)
+	case *model.GameEndedEventPayload:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._GameEndedEventPayload(ctx, sel, obj)
+	case model.CardPlayedEventPayload:
+		return ec._CardPlayedEventPayload(ctx, sel, &obj)
+	case *model.CardPlayedEventPayload:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._CardPlayedEventPayload(ctx, sel, obj)
+	case model.CardDealtEventPayload:
+		return ec._CardDealtEventPayload(ctx, sel, &obj)
+	case *model.CardDealtEventPayload:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._CardDealtEventPayload(ctx, sel, obj)
+	default:
+		if typedObj, ok := obj.(graphql.Marshaler); ok {
+			return typedObj
+		} else {
+			panic(fmt.Errorf("unexpected type %T; non-generated variants of EventPayload must implement graphql.Marshaler", obj))
+		}
+	}
+}
+
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
@@ -5046,6 +6824,154 @@ func (ec *executionContext) _AuthPayload(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var cardDealtEventPayloadImplementors = []string{"CardDealtEventPayload", "EventPayload"}
+
+func (ec *executionContext) _CardDealtEventPayload(ctx context.Context, sel ast.SelectionSet, obj *model.CardDealtEventPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, cardDealtEventPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CardDealtEventPayload")
+		case "playerId":
+			out.Values[i] = ec._CardDealtEventPayload_playerId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "card":
+			out.Values[i] = ec._CardDealtEventPayload_card(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var cardPlayedEventPayloadImplementors = []string{"CardPlayedEventPayload", "EventPayload"}
+
+func (ec *executionContext) _CardPlayedEventPayload(ctx context.Context, sel ast.SelectionSet, obj *model.CardPlayedEventPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, cardPlayedEventPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CardPlayedEventPayload")
+		case "playerId":
+			out.Values[i] = ec._CardPlayedEventPayload_playerId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "card":
+			out.Values[i] = ec._CardPlayedEventPayload_card(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var eventImplementors = []string{"Event"}
+
+func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, obj *model.Event) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, eventImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Event")
+		case "id":
+			out.Values[i] = ec._Event_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "type":
+			out.Values[i] = ec._Event_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "gameID":
+			out.Values[i] = ec._Event_gameID(ctx, field, obj)
+		case "roomID":
+			out.Values[i] = ec._Event_roomID(ctx, field, obj)
+		case "timestamp":
+			out.Values[i] = ec._Event_timestamp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "sequence":
+			out.Values[i] = ec._Event_sequence(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "payload":
+			out.Values[i] = ec._Event_payload(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5128,6 +7054,95 @@ func (ec *executionContext) _Friendship(ctx context.Context, sel ast.SelectionSe
 	return out
 }
 
+var gameImplementors = []string{"Game"}
+
+func (ec *executionContext) _Game(ctx context.Context, sel ast.SelectionSet, obj *model.Game) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, gameImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Game")
+		case "id":
+			out.Values[i] = ec._Game_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "roomId":
+			out.Values[i] = ec._Game_roomId(ctx, field, obj)
+		case "players":
+			out.Values[i] = ec._Game_players(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "events":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Game_events(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "createdAt":
+			out.Values[i] = ec._Game_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updatedAt":
+			out.Values[i] = ec._Game_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var gameCardImplementors = []string{"GameCard"}
 
 func (ec *executionContext) _GameCard(ctx context.Context, sel ast.SelectionSet, obj *model.GameCard) graphql.Marshaler {
@@ -5151,6 +7166,135 @@ func (ec *executionContext) _GameCard(ctx context.Context, sel ast.SelectionSet,
 			}
 		case "rank":
 			out.Values[i] = ec._GameCard_rank(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var gameEndedEventPayloadImplementors = []string{"GameEndedEventPayload", "EventPayload"}
+
+func (ec *executionContext) _GameEndedEventPayload(ctx context.Context, sel ast.SelectionSet, obj *model.GameEndedEventPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, gameEndedEventPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("GameEndedEventPayload")
+		case "winner":
+			out.Values[i] = ec._GameEndedEventPayload_winner(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "finalScores":
+			out.Values[i] = ec._GameEndedEventPayload_finalScores(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "teams":
+			out.Values[i] = ec._GameEndedEventPayload_teams(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var gamePlayerImplementors = []string{"GamePlayer"}
+
+func (ec *executionContext) _GamePlayer(ctx context.Context, sel ast.SelectionSet, obj *model.GamePlayer) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, gamePlayerImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("GamePlayer")
+		case "id":
+			out.Values[i] = ec._GamePlayer_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "username":
+			out.Values[i] = ec._GamePlayer_username(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var gameScoreUpdatedEventPayloadImplementors = []string{"GameScoreUpdatedEventPayload", "EventPayload"}
+
+func (ec *executionContext) _GameScoreUpdatedEventPayload(ctx context.Context, sel ast.SelectionSet, obj *model.GameScoreUpdatedEventPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, gameScoreUpdatedEventPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("GameScoreUpdatedEventPayload")
+		case "score":
+			out.Values[i] = ec._GameScoreUpdatedEventPayload_score(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -5227,6 +7371,42 @@ func (ec *executionContext) _GameSnapshot(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var gameStartedEventPayloadImplementors = []string{"GameStartedEventPayload", "EventPayload"}
+
+func (ec *executionContext) _GameStartedEventPayload(ctx context.Context, sel ast.SelectionSet, obj *model.GameStartedEventPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, gameStartedEventPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("GameStartedEventPayload")
+		case "teams":
+			out.Values[i] = ec._GameStartedEventPayload_teams(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5460,6 +7640,99 @@ func (ec *executionContext) _Player(ctx context.Context, sel ast.SelectionSet, o
 	return out
 }
 
+var playerJoinedEventPayloadImplementors = []string{"PlayerJoinedEventPayload", "EventPayload"}
+
+func (ec *executionContext) _PlayerJoinedEventPayload(ctx context.Context, sel ast.SelectionSet, obj *model.PlayerJoinedEventPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, playerJoinedEventPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PlayerJoinedEventPayload")
+		case "playerId":
+			out.Values[i] = ec._PlayerJoinedEventPayload_playerId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._PlayerJoinedEventPayload_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "slot":
+			out.Values[i] = ec._PlayerJoinedEventPayload_slot(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var playerLeftEventPayloadImplementors = []string{"PlayerLeftEventPayload", "EventPayload"}
+
+func (ec *executionContext) _PlayerLeftEventPayload(ctx context.Context, sel ast.SelectionSet, obj *model.PlayerLeftEventPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, playerLeftEventPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PlayerLeftEventPayload")
+		case "playerId":
+			out.Values[i] = ec._PlayerLeftEventPayload_playerId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "roomId":
+			out.Values[i] = ec._PlayerLeftEventPayload_roomId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -5640,6 +7913,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "userGames":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_userGames(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -5730,6 +8025,45 @@ func (ec *executionContext) _Room(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var roomClosedEventPayloadImplementors = []string{"RoomClosedEventPayload", "EventPayload"}
+
+func (ec *executionContext) _RoomClosedEventPayload(ctx context.Context, sel ast.SelectionSet, obj *model.RoomClosedEventPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, roomClosedEventPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RoomClosedEventPayload")
+		case "roomId":
+			out.Values[i] = ec._RoomClosedEventPayload_roomId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var roomPlayerImplementors = []string{"RoomPlayer"}
 
 func (ec *executionContext) _RoomPlayer(ctx context.Context, sel ast.SelectionSet, obj *model.RoomPlayer) graphql.Marshaler {
@@ -5748,6 +8082,94 @@ func (ec *executionContext) _RoomPlayer(ctx context.Context, sel ast.SelectionSe
 			}
 		case "username":
 			out.Values[i] = ec._RoomPlayer_username(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var roundEndedEventPayloadImplementors = []string{"RoundEndedEventPayload", "EventPayload"}
+
+func (ec *executionContext) _RoundEndedEventPayload(ctx context.Context, sel ast.SelectionSet, obj *model.RoundEndedEventPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, roundEndedEventPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RoundEndedEventPayload")
+		case "winnerTeam":
+			out.Values[i] = ec._RoundEndedEventPayload_winnerTeam(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "score":
+			out.Values[i] = ec._RoundEndedEventPayload_score(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var roundStartedEventPayloadImplementors = []string{"RoundStartedEventPayload", "EventPayload"}
+
+func (ec *executionContext) _RoundStartedEventPayload(ctx context.Context, sel ast.SelectionSet, obj *model.RoundStartedEventPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, roundStartedEventPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RoundStartedEventPayload")
+		case "roundNumber":
+			out.Values[i] = ec._RoundStartedEventPayload_roundNumber(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "dealerId":
+			out.Values[i] = ec._RoundStartedEventPayload_dealerId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -5836,6 +8258,172 @@ func (ec *executionContext) _TeamScore(ctx context.Context, sel ast.SelectionSet
 			}
 		case "points":
 			out.Values[i] = ec._TeamScore_points(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var trickEndedEventPayloadImplementors = []string{"TrickEndedEventPayload", "EventPayload"}
+
+func (ec *executionContext) _TrickEndedEventPayload(ctx context.Context, sel ast.SelectionSet, obj *model.TrickEndedEventPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, trickEndedEventPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TrickEndedEventPayload")
+		case "winnerId":
+			out.Values[i] = ec._TrickEndedEventPayload_winnerId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "points":
+			out.Values[i] = ec._TrickEndedEventPayload_points(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var trickStartedEventPayloadImplementors = []string{"TrickStartedEventPayload", "EventPayload"}
+
+func (ec *executionContext) _TrickStartedEventPayload(ctx context.Context, sel ast.SelectionSet, obj *model.TrickStartedEventPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, trickStartedEventPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TrickStartedEventPayload")
+		case "leaderId":
+			out.Values[i] = ec._TrickStartedEventPayload_leaderId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var trumpRevealedEventPayloadImplementors = []string{"TrumpRevealedEventPayload", "EventPayload"}
+
+func (ec *executionContext) _TrumpRevealedEventPayload(ctx context.Context, sel ast.SelectionSet, obj *model.TrumpRevealedEventPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, trumpRevealedEventPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TrumpRevealedEventPayload")
+		case "card":
+			out.Values[i] = ec._TrumpRevealedEventPayload_card(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "suit":
+			out.Values[i] = ec._TrumpRevealedEventPayload_suit(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var turnChangedEventPayloadImplementors = []string{"TurnChangedEventPayload", "EventPayload"}
+
+func (ec *executionContext) _TurnChangedEventPayload(ctx context.Context, sel ast.SelectionSet, obj *model.TurnChangedEventPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, turnChangedEventPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TurnChangedEventPayload")
+		case "playerId":
+			out.Values[i] = ec._TurnChangedEventPayload_playerId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -6330,6 +8918,16 @@ func (ec *executionContext) unmarshalNCreateRoomInput2backendᚋinternalᚋinfra
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNEventType2backendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐEventType(ctx context.Context, v any) (model.EventType, error) {
+	var res model.EventType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNEventType2backendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐEventType(ctx context.Context, sel ast.SelectionSet, v model.EventType) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) marshalNFriendship2backendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐFriendship(ctx context.Context, sel ast.SelectionSet, v model.Friendship) graphql.Marshaler {
 	return ec._Friendship(ctx, sel, &v)
 }
@@ -6370,6 +8968,32 @@ func (ec *executionContext) marshalNFriendshipStatus2backendᚋinternalᚋinfras
 	return v
 }
 
+func (ec *executionContext) marshalNGame2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Game) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNGame2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGame(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNGame2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGame(ctx context.Context, sel ast.SelectionSet, v *model.Game) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Game(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNGameCard2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameCardᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.GameCard) graphql.Marshaler {
 	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
 		fc := graphql.GetFieldContext(ctx)
@@ -6394,6 +9018,32 @@ func (ec *executionContext) marshalNGameCard2ᚖbackendᚋinternalᚋinfrastruct
 		return graphql.Null
 	}
 	return ec._GameCard(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNGamePlayer2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGamePlayerᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.GamePlayer) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNGamePlayer2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGamePlayer(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNGamePlayer2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGamePlayer(ctx context.Context, sel ast.SelectionSet, v *model.GamePlayer) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._GamePlayer(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNGameTablePlay2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameTablePlayᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.GameTablePlay) graphql.Marshaler {
@@ -6861,6 +9511,33 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
+func (ec *executionContext) marshalOEvent2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐEvent(ctx context.Context, sel ast.SelectionSet, v []*model.Event) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalOEvent2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐEvent(ctx, sel, v[i])
+	})
+
+	return ret
+}
+
+func (ec *executionContext) marshalOEvent2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐEvent(ctx context.Context, sel ast.SelectionSet, v *model.Event) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Event(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOEventPayload2backendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐEventPayload(ctx context.Context, sel ast.SelectionSet, v model.EventPayload) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._EventPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalOGameSnapshot2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐGameSnapshot(ctx context.Context, sel ast.SelectionSet, v *model.GameSnapshot) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -6909,6 +9586,25 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	_ = ctx
 	res := graphql.MarshalString(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOTeam2ᚕᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐTeamᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Team) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNTeam2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐTeam(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalOUser2ᚖbackendᚋinternalᚋinfrastructureᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {

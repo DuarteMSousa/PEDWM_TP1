@@ -21,6 +21,23 @@ enum FriendshipStatus {
   REJECTED
 }
 
+enum EventType {
+  ROUND_STARTED
+  TRICK_STARTED
+  TRUMP_REVEALED
+  CARD_DEALT
+  ROUND_ENDED
+  GAME_SCORE_UPDATED
+  PLAYER_JOINED
+  PLAYER_LEFT
+  GAME_STARTED
+  TURN_CHANGED
+  CARD_PLAYED
+  TRICK_ENDED
+  GAME_ENDED
+  ROOM_CLOSED
+}
+
 # =========================
 # Types
 # =========================
@@ -67,6 +84,113 @@ type Room {
   players: [RoomPlayer!]!
   status: RoomStatus!
   createdAt: Time!
+}
+
+type GamePlayer {
+  id: ID!
+  username: String!
+}
+
+type Game{
+  id:      ID!
+	roomId:  ID
+	players: [GamePlayer!]!
+	events:  [Event]
+	createdAt: Time!
+	updatedAt: Time!
+}
+
+type PlayerJoinedEventPayload {
+  playerId: ID!
+  name: String!
+  slot: Int!
+}
+
+type PlayerLeftEventPayload {
+  playerId: ID!
+  roomId: ID!
+}
+
+type RoundStartedEventPayload {
+  roundNumber: Int!
+  dealerId: ID!
+}
+
+type TrickStartedEventPayload {
+  leaderId: ID!
+}
+
+type TrumpRevealedEventPayload {
+  card: GameCard!
+  suit: String!
+}
+
+type CardDealtEventPayload {
+  playerId: ID!
+  card: GameCard!
+}
+
+type CardPlayedEventPayload {
+  playerId: ID!
+  card: GameCard!
+}
+
+type TurnChangedEventPayload {
+  playerId: ID!
+}
+
+type TrickEndedEventPayload {
+  winnerId: ID!
+  points: Int!
+}
+
+type RoundEndedEventPayload {
+  winnerTeam: ID!
+  score: [TeamScore!]!
+}
+
+type GameScoreUpdatedEventPayload {
+  score: [TeamScore!]!
+}
+
+type GameStartedEventPayload {
+  teams: [Team!]
+}
+
+type GameEndedEventPayload {
+  winner: ID!
+  finalScores: [TeamScore!]!
+  teams: [Team!]
+}
+
+type RoomClosedEventPayload {
+  roomId: ID!
+}
+
+union EventPayload =
+    PlayerJoinedEventPayload
+  | PlayerLeftEventPayload
+  | RoundStartedEventPayload
+  | TrickStartedEventPayload
+  | TrumpRevealedEventPayload
+  | CardDealtEventPayload
+  | CardPlayedEventPayload
+  | TurnChangedEventPayload
+  | TrickEndedEventPayload
+  | RoundEndedEventPayload
+  | GameScoreUpdatedEventPayload
+  | GameStartedEventPayload
+  | GameEndedEventPayload
+  | RoomClosedEventPayload
+
+type Event{
+	id:        ID!
+	type:      EventType! 
+	gameID:    ID   
+	roomID:    ID    
+	timestamp: Time!
+	sequence:  Int!    
+  payload: EventPayload
 }
 
 type GameCard {
@@ -169,6 +293,9 @@ type Query {
 
   # User Stats
   userStats(userId: ID!): UserStats
+
+  # games
+  userGames(userId:ID!):[Game!]!
 }
 
 type Mutation {

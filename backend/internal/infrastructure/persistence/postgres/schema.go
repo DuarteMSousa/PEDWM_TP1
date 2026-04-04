@@ -81,14 +81,14 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 		`CREATE TABLE IF NOT EXISTS room_players (
 			room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
 			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-			seat INT NOT NULL DEFAULT 0,
+			sequence INT NOT NULL DEFAULT 0,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 			PRIMARY KEY (room_id, user_id)
 		)`,
 
 		`ALTER TABLE room_players
-			ADD COLUMN IF NOT EXISTS seat INT NOT NULL DEFAULT 0`,
+			ADD COLUMN IF NOT EXISTS sequence INT NOT NULL DEFAULT 0`,
 
 		// =========================
 		// GAMES
@@ -99,6 +99,18 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 			status game_status NOT NULL,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		)`,
+
+		// =========================
+		// GAME PLAYERS
+		// =========================
+		`CREATE TABLE IF NOT EXISTS game_players (
+			game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			sequence INT NOT NULL DEFAULT 0,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			PRIMARY KEY (game_id, user_id)
 		)`,
 
 		// =========================
@@ -125,6 +137,9 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 
 		`CREATE INDEX IF NOT EXISTS idx_room_players_room ON room_players(room_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_room_players_user ON room_players(user_id)`,
+
+		`CREATE INDEX IF NOT EXISTS idx_game_players_game ON game_players(game_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_game_players_user ON game_players(user_id)`,
 
 		`CREATE INDEX IF NOT EXISTS idx_events_game ON events(game_id)`,
 
