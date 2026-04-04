@@ -606,7 +606,7 @@ class _WoodenTable extends StatelessWidget {
                 Align(
                   alignment: const Alignment(-0.86, 0.88),
                   child: _CurrentTurnBadge(
-                    nickname: me!.nickname + me!.sequence.toString(),
+                    nickname: me!.nickname,
                     isCurrent: me!.id == state.currentPlayerId,
                   ),
                 ),
