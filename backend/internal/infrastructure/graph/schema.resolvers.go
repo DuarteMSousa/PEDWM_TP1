@@ -180,30 +180,6 @@ func (r *queryResolver) GameSnapshot(ctx context.Context, roomID string, playerI
 	return mapGameSnapshot(snapshot), nil
 }
 
-// GameHistory is the resolver for the gameHistory field.
-func (r *queryResolver) GameHistory(ctx context.Context, userID string) ([]*model.MatchHistoryEntry, error) {
-	history, err := r.EventService.GetHistoryByUser(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]*model.MatchHistoryEntry, 0, len(history))
-	for _, entry := range history {
-		result = append(result, mapMatchHistoryEntry(entry))
-	}
-
-	return result, nil
-}
-
-// GameReplay is the resolver for the gameReplay field.
-func (r *queryResolver) GameReplay(ctx context.Context, gameID string) (*model.GameReplay, error) {
-	replay, err := r.EventService.GetReplayByGameID(gameID)
-	if err != nil {
-		return nil, err
-	}
-	return mapGameReplay(replay), nil
-}
-
 // UserStats is the resolver for the userStats field.
 func (r *queryResolver) UserStats(ctx context.Context, userID string) (*model.UserStats, error) {
 	userStats, err := r.UserStatsService.GetByUserID(userID)

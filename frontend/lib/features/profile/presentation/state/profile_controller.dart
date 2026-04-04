@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-import '../../domain/entities/match_replay.dart';
 import '../../domain/entities/profile.dart';
 import '../../domain/repositories/profile_repository.dart';
 
@@ -14,7 +13,6 @@ class ProfileController extends ChangeNotifier {
   final String userId;
 
   bool isLoading = false;
-  bool isReplayLoading = false;
   String? errorMessage;
   Profile? profile;
 
@@ -29,22 +27,6 @@ class ProfileController extends ChangeNotifier {
       errorMessage = error.toString();
     } finally {
       isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<MatchReplay?> loadReplay(String gameId) async {
-    isReplayLoading = true;
-    errorMessage = null;
-    notifyListeners();
-
-    try {
-      return await _profileRepository.fetchReplay(gameId);
-    } catch (error) {
-      errorMessage = error.toString();
-      return null;
-    } finally {
-      isReplayLoading = false;
       notifyListeners();
     }
   }

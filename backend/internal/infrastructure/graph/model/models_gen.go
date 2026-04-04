@@ -32,12 +32,6 @@ type GameCard struct {
 	Rank string `json:"rank"`
 }
 
-type GameReplay struct {
-	GameID string         `json:"gameId"`
-	RoomID string         `json:"roomId"`
-	Events []*ReplayEvent `json:"events"`
-}
-
 type GameSnapshot struct {
 	RoomID          string           `json:"roomId"`
 	GameID          string           `json:"gameId"`
@@ -70,18 +64,6 @@ type LoginInput struct {
 	Password string `json:"password"`
 }
 
-type MatchHistoryEntry struct {
-	GameID        string       `json:"gameId"`
-	RoomID        string       `json:"roomId"`
-	PlayedAt      time.Time    `json:"playedAt"`
-	Won           bool         `json:"won"`
-	WinnerTeamID  string       `json:"winnerTeamId"`
-	MyTeamID      string       `json:"myTeamId"`
-	MyScore       int32        `json:"myScore"`
-	OpponentScore int32        `json:"opponentScore"`
-	FinalScores   []*TeamScore `json:"finalScores"`
-}
-
 type Mutation struct {
 }
 
@@ -103,14 +85,6 @@ type RegisterInput struct {
 type RemoveFriendInput struct {
 	UserID   string `json:"userId"`
 	FriendID string `json:"friendId"`
-}
-
-type ReplayEvent struct {
-	ID        string    `json:"id"`
-	Type      string    `json:"type"`
-	Sequence  int32     `json:"sequence"`
-	Timestamp time.Time `json:"timestamp"`
-	Payload   string    `json:"payload"`
 }
 
 type RespondFriendRequestInput struct {

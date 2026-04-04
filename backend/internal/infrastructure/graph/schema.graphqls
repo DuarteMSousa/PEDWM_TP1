@@ -85,32 +85,6 @@ type TeamScore {
   points: Int!
 }
 
-type MatchHistoryEntry {
-  gameId: ID!
-  roomId: ID!
-  playedAt: Time!
-  won: Boolean!
-  winnerTeamId: ID!
-  myTeamId: ID!
-  myScore: Int!
-  opponentScore: Int!
-  finalScores: [TeamScore!]!
-}
-
-type ReplayEvent {
-  id: ID!
-  type: String!
-  sequence: Int!
-  timestamp: Time!
-  payload: String!
-}
-
-type GameReplay {
-  gameId: ID!
-  roomId: ID!
-  events: [ReplayEvent!]!
-}
-
 type GameSnapshot {
   roomId: ID!
   gameId: ID!
@@ -192,8 +166,6 @@ type Query {
   room(id: ID!): Room
   rooms: [Room!]!
   gameSnapshot(roomId: ID!, playerId: ID!): GameSnapshot
-  gameHistory(userId: ID!): [MatchHistoryEntry!]!
-  gameReplay(gameId: ID!): GameReplay
 
   # User Stats
   userStats(userId: ID!): UserStats
