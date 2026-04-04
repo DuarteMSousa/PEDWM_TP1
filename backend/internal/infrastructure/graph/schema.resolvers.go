@@ -96,7 +96,7 @@ func (r *mutationResolver) LeaveRoom(ctx context.Context, input model.LeaveRoomI
 
 // StartGame is the resolver for the startGame field.
 func (r *mutationResolver) StartGame(ctx context.Context, input model.StartGameInput) (*model.Room, error) {
-	room, err := r.RoomService.StartGame(input.RoomID, input.RequesterID)
+	room, err := r.RoomService.StartGame(input.RoomID)
 	if err != nil {
 		return nil, err
 	}

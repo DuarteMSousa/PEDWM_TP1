@@ -51,27 +51,7 @@ func (r *RoomHub) GetRoom() *room.Room {
 	if r == nil {
 		return nil
 	}
-	r.mu.RLock()
-	defer r.mu.RUnlock()
 	return r.room
-}
-
-func (r *RoomHub) SetRoom(nextRoom *room.Room) {
-	if r == nil {
-		return
-	}
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.room = nextRoom
-}
-
-func (r *RoomHub) HasRoom() bool {
-	if r == nil {
-		return false
-	}
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	return r.room != nil
 }
 
 func (r *RoomHub) AddClient(client *Client) {

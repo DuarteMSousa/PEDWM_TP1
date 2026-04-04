@@ -7,9 +7,8 @@ import (
 )
 
 type Hub struct {
-	mu                   sync.RWMutex
-	rooms                map[string]*RoomHub
-	onClientDisconnected func(roomID string, playerID string)
+	mu    sync.RWMutex
+	rooms map[string]*RoomHub
 }
 
 var (
@@ -38,11 +37,6 @@ func (h *Hub) CreateRoomHub(room *room.Room) *RoomHub {
 
 	h.mu.Lock()
 	defer h.mu.Unlock()
-
-	if existing, ok := h.rooms[roomID]; ok {
-		existing.SetRoom(room)
-		return existing
-	}
 
 	roomHub := NewRoomHub(room)
 	h.rooms[roomID] = roomHub
@@ -88,13 +82,7 @@ func (h *Hub) AddClient(roomID string, client *Client) {
 	roomHub := h.GetRoomHub(roomID)
 
 	if roomHub == nil {
-		h.mu.Lock()
-		roomHub = h.rooms[roomID]
-		if roomHub == nil {
-			roomHub = NewRoomHub(nil)
-			h.rooms[roomID] = roomHub
-		}
-		h.mu.Unlock()
+		return
 	}
 
 	roomHub.AddClient(client)
@@ -112,24 +100,20 @@ func (h *Hub) RemoveClient(roomID string, client *Client) {
 
 	h.mu.RLock()
 	room, ok := h.rooms[roomID]
-	disconnectHandler := h.onClientDisconnected
 	h.mu.RUnlock()
 	if !ok {
 		return
 	}
 
-	room.RemoveClient(client)
-
-	if disconnectHandler != nil {
-		go disconnectHandler(roomID, client.id)
+	isEmpty := room.RemoveClient(client)
+	if !isEmpty {
+		return
 	}
 
-	if room.IsEmpty() && !room.HasRoom() {
-		h.mu.Lock()
-		if current, exists := h.rooms[roomID]; exists && current == room && current.IsEmpty() && !current.HasRoom() {
-			delete(h.rooms, roomID)
-		}
-		h.mu.Unlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if current, exists := h.rooms[roomID]; exists && current == room && current.IsEmpty() {
+		delete(h.rooms, roomID)
 	}
 }
 
@@ -151,29 +135,4 @@ func (h *Hub) BroadcastToRoom(roomID string, payload []byte) {
 	}
 
 	room.Broadcast(payload)
-}
-
-func (h *Hub) DeleteRoomHub(roomID string) {
-	if h == nil {
-		return
-	}
-
-	roomID = strings.TrimSpace(roomID)
-	if roomID == "" {
-		return
-	}
-
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	delete(h.rooms, roomID)
-}
-
-func (h *Hub) SetDisconnectHandler(handler func(roomID string, playerID string)) {
-	if h == nil {
-		return
-	}
-
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.onClientDisconnected = handler
 }

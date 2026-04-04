@@ -7,7 +7,7 @@ import (
 	"backend/internal/domain/player"
 	bot_strategy "backend/internal/domain/player/botStrategy"
 	"errors"
-	"sort"
+	"math/rand"
 	"strings"
 	"time"
 )
@@ -30,7 +30,6 @@ var (
 	ErrCannotStartGamePlayers = errors.New("cannot start game: need exactly 4 players")
 	ErrInvalidGameID          = errors.New("invalid game id")
 	ErrInvalidPlayerID        = errors.New("invalid player id")
-	ErrGameInProgress         = errors.New("cannot leave room while game is in progress")
 )
 
 type Room struct {
@@ -110,17 +109,12 @@ func (r *Room) RemovePlayer(playerID string) error {
 	if r == nil {
 		return errors.New("room is nil")
 	}
-	r.SyncStatusWithGame()
-
+	if r.Status != OPEN {
+		return ErrRoomNotOpen
+	}
 	playerID = strings.TrimSpace(playerID)
 	if playerID == "" {
 		return ErrInvalidPlayerID
-	}
-	if r.Status == IN_GAME {
-		return ErrGameInProgress
-	}
-	if r.Status != OPEN {
-		return ErrRoomNotOpen
 	}
 
 	if _, exists := r.Players[playerID]; !exists {
@@ -141,13 +135,15 @@ func (r *Room) RemovePlayer(playerID string) error {
 	}
 
 	if r.HostID == playerID {
-		nextHostID := r.findNextHostID()
-		if nextHostID != "" {
-			r.HostID = nextHostID
+		r.HostID = ""
+		ids := make([]string, 0, len(r.Players))
+		for id := range r.Players {
+			ids = append(ids, id)
+		}
+		if len(ids) > 0 {
+			r.HostID = ids[rand.Intn(len(ids))]
 		}
 	}
-
-	r.reindexSequences()
 
 	if len(r.Players) == 0 {
 		r.Status = CLOSED
@@ -165,12 +161,10 @@ func (r *Room) CanStartGame() bool {
 	if r == nil {
 		return false
 	}
-	r.SyncStatusWithGame()
 	return r.Status == OPEN
 }
 
 func (r *Room) StartGame() error {
-	r.SyncStatusWithGame()
 	if !r.CanStartGame() {
 		return ErrCannotStartGamePlayers
 	}
@@ -198,55 +192,4 @@ func (r *Room) Close() {
 		return
 	}
 	r.Status = CLOSED
-}
-
-func (r *Room) SyncStatusWithGame() bool {
-	if r == nil || r.Game == nil {
-		return false
-	}
-	if r.Status == IN_GAME && r.Game.Status == game.FINISHED {
-		r.Status = OPEN
-		return true
-	}
-	return false
-}
-
-func (r *Room) reindexSequences() {
-	if r == nil || len(r.Players) == 0 {
-		return
-	}
-
-	orderedPlayers := make([]*player.Player, 0, len(r.Players))
-	for _, p := range r.Players {
-		orderedPlayers = append(orderedPlayers, p)
-	}
-	sort.Slice(orderedPlayers, func(i, j int) bool {
-		if orderedPlayers[i].Sequence == orderedPlayers[j].Sequence {
-			return orderedPlayers[i].ID < orderedPlayers[j].ID
-		}
-		return orderedPlayers[i].Sequence < orderedPlayers[j].Sequence
-	})
-
-	for index, p := range orderedPlayers {
-		p.Sequence = index + 1
-	}
-}
-
-func (r *Room) findNextHostID() string {
-	if r == nil || len(r.Players) == 0 {
-		return ""
-	}
-
-	orderedPlayers := make([]*player.Player, 0, len(r.Players))
-	for _, p := range r.Players {
-		orderedPlayers = append(orderedPlayers, p)
-	}
-	sort.Slice(orderedPlayers, func(i, j int) bool {
-		if orderedPlayers[i].Sequence == orderedPlayers[j].Sequence {
-			return orderedPlayers[i].ID < orderedPlayers[j].ID
-		}
-		return orderedPlayers[i].Sequence < orderedPlayers[j].Sequence
-	})
-
-	return orderedPlayers[0].ID
 }
