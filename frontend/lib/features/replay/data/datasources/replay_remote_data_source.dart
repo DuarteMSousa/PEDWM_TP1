@@ -70,6 +70,23 @@ class ReplayRemoteDataSource {
                     rank
                   }
                 }
+                ... on CardDealtEventPayload {
+                  playerId
+                  card {
+                    id
+                    suit
+                    rank
+                  }
+                }
+                ... on PlayerJoinedEventPayload {
+                  playerId
+                  name
+                  slot
+                }
+                ... on PlayerLeftEventPayload {
+                  playerId
+                  roomId
+                }
                 ... on TrickStartedEventPayload {
                   leaderId
                 }
@@ -167,10 +184,12 @@ class ReplayRemoteDataSource {
     if (rawPlayers is List) {
       for (final p in rawPlayers) {
         if (p is Map<String, dynamic>) {
-          players.add(GameSummaryPlayer(
-            id: p['id']?.toString() ?? '',
-            username: p['username']?.toString() ?? 'Jogador',
-          ));
+          players.add(
+            GameSummaryPlayer(
+              id: p['id']?.toString() ?? '',
+              username: p['username']?.toString() ?? 'Jogador',
+            ),
+          );
         }
       }
     }

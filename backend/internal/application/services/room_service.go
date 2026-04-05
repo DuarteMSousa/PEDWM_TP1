@@ -97,20 +97,27 @@ func (s *RoomService) JoinRoom(roomID, userID string) (*room.Room, error) {
 }
 
 func (s *RoomService) LeaveRoom(roomID, userID string) (*room.Room, error) {
-	room := s.hub.GetRoom(roomID)
-	if room == nil {
+	rm := s.hub.GetRoom(roomID)
+	if rm == nil {
 		return nil, ErrRoomNotFound
 	}
 
-	if err := room.RemovePlayer(userID); err != nil {
+	if err := rm.RemovePlayer(userID); err != nil {
 		log.Printf("error in leaveroom: %v", err)
 		return nil, err
 	}
 
-	if err := s.repo.Save(room); err != nil {
+	if rm.Status == room.CLOSED {
+		if err := s.repo.Delete(rm.ID); err != nil {
+			return nil, err
+		}
+		return rm, nil
+	}
+
+	if err := s.repo.Save(rm); err != nil {
 		return nil, err
 	}
-	return room, nil
+	return rm, nil
 }
 
 func (s *RoomService) DeleteRoom(roomID string) error {

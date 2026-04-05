@@ -49,8 +49,8 @@ class ReplayPlayerController extends ChangeNotifier {
 
   GameEvent? get currentEvent =>
       _currentIndex > 0 && _currentIndex <= totalEvents
-          ? _game.events[_currentIndex - 1]
-          : null;
+      ? _game.events[_currentIndex - 1]
+      : null;
 
   Future<void> load() async {
     pause();
@@ -143,6 +143,9 @@ class ReplayPlayerController extends ChangeNotifier {
     final teams = <String, _MutableReplayTeam>{};
     final teamOrder = <String>[];
     final tableCards = <String, SuecaCard>{};
+    final hasCardDealtEvents = game.events.any(
+      (event) => event.type == 'CARD_DEALT',
+    );
     Suit? trumpSuit;
     String? currentPlayerId;
     String? lastWinnerId;
@@ -174,7 +177,9 @@ class ReplayPlayerController extends ChangeNotifier {
       if (player != null) {
         player.teamId = teamId;
         player.isActive = true;
-        player.handCount = player.handCount == 0 ? 10 : player.handCount;
+        player.handCount = player.handCount == 0
+            ? (hasCardDealtEvents ? 0 : 10)
+            : player.handCount;
       }
     }
 
@@ -214,11 +219,13 @@ class ReplayPlayerController extends ChangeNotifier {
           }
 
           final existing = players[playerId];
-          final player = existing ??
+          final player =
+              existing ??
               _MutableReplayPlayer(
                 id: playerId,
                 name: mappedPlayer['name']?.toString() ?? 'Jogador',
-                sequence: _toInt(mappedPlayer['sequence']) ?? players.length + 1,
+                sequence:
+                    _toInt(mappedPlayer['sequence']) ?? players.length + 1,
               );
 
           player.name = mappedPlayer['name']?.toString() ?? player.name;
@@ -254,17 +261,26 @@ class ReplayPlayerController extends ChangeNotifier {
     }
 
     ReplayFrame snapshot() {
-      final activePlayers = players.values
-          .where((player) => player.isActive)
-          .toList(growable: false)
-        ..sort((a, b) => a.sequence.compareTo(b.sequence));
+      final activePlayers =
+          players.values
+              .where((player) => player.isActive)
+              .toList(growable: false)
+            ..sort((a, b) => a.sequence.compareTo(b.sequence));
 
       final orderedPlayers = _rotateForViewer(activePlayers);
       final seatPlayers = <ReplaySeat?>[
-        orderedPlayers.isNotEmpty ? ReplaySeat.fromMutable(orderedPlayers[0]) : null,
-        orderedPlayers.length > 1 ? ReplaySeat.fromMutable(orderedPlayers[1]) : null,
-        orderedPlayers.length > 2 ? ReplaySeat.fromMutable(orderedPlayers[2]) : null,
-        orderedPlayers.length > 3 ? ReplaySeat.fromMutable(orderedPlayers[3]) : null,
+        orderedPlayers.isNotEmpty
+            ? ReplaySeat.fromMutable(orderedPlayers[0])
+            : null,
+        orderedPlayers.length > 1
+            ? ReplaySeat.fromMutable(orderedPlayers[1])
+            : null,
+        orderedPlayers.length > 2
+            ? ReplaySeat.fromMutable(orderedPlayers[2])
+            : null,
+        orderedPlayers.length > 3
+            ? ReplaySeat.fromMutable(orderedPlayers[3])
+            : null,
       ];
 
       final orderedTeams = teamOrder
@@ -294,7 +310,7 @@ class ReplayPlayerController extends ChangeNotifier {
           applyTeamsPayload(payload['teams']);
           for (final player in players.values) {
             if (player.isActive) {
-              player.handCount = 10;
+              player.handCount = hasCardDealtEvents ? 0 : 10;
             }
           }
           phaseLabel = 'Jogo iniciado';
@@ -308,7 +324,6 @@ class ReplayPlayerController extends ChangeNotifier {
             final leftPlayer = players[playerId];
             if (leftPlayer != null) {
               leftPlayer.isActive = false;
-              leftPlayer.handCount = 0;
             }
             for (final team in teams.values) {
               team.playerIds.remove(playerId);
@@ -323,21 +338,42 @@ class ReplayPlayerController extends ChangeNotifier {
         case 'PLAYER_JOINED':
           final playerId = payload['playerId']?.toString();
           if (playerId != null && playerId.isNotEmpty) {
-            final player = players[playerId] ??
+            final slot = _toInt(payload['slot']) ?? players.length + 1;
+            final rawName = payload['name']?.toString();
+            final inferredHandCount = players.values
+                .where((item) => !item.isActive && item.sequence == slot)
+                .map((item) => item.handCount)
+                .firstWhere((count) => count > 0, orElse: () => 0);
+            final player =
+                players[playerId] ??
                 _MutableReplayPlayer(
                   id: playerId,
-                  name: payload['name']?.toString() ?? 'Jogador',
-                  sequence: _toInt(payload['slot']) ?? players.length + 1,
+                  name: _normalizeJoinedPlayerName(
+                    playerId: playerId,
+                    incomingName: rawName,
+                    existingName: _fallbackNameForPlayer(playerId),
+                  ),
+                  sequence: slot,
                 );
-            player.name = payload['name']?.toString().trim().isNotEmpty == true
-                ? payload['name']!.toString().trim()
-                : player.name;
-            player.sequence = _toInt(payload['slot']) ?? player.sequence;
+            player.name = _normalizeJoinedPlayerName(
+              playerId: playerId,
+              incomingName: rawName,
+              existingName: player.name,
+            );
+            player.sequence = slot;
             player.isActive = true;
-            player.handCount = player.handCount == 0 ? 10 : player.handCount;
+            if (player.handCount == 0) {
+              if (inferredHandCount > 0) {
+                player.handCount = inferredHandCount.clamp(0, 10);
+              } else {
+                player.handCount = hasCardDealtEvents ? 0 : 10;
+              }
+            }
             players[playerId] = player;
 
-            final teamWithSpace = teams.values.where((team) => team.playerIds.length < 2);
+            final teamWithSpace = teams.values.where(
+              (team) => team.playerIds.length < 2,
+            );
             if (teamWithSpace.isNotEmpty) {
               assignPlayerToTeam(playerId, teamWithSpace.first.id);
             }
@@ -345,7 +381,8 @@ class ReplayPlayerController extends ChangeNotifier {
           phaseLabel = 'Jogador entrou';
           break;
         case 'ROUND_STARTED':
-          phaseLabel = 'Ronda ${payload['roundNumber']?.toString() ?? ''}'.trim();
+          phaseLabel = 'Ronda ${payload['roundNumber']?.toString() ?? ''}'
+              .trim();
           tableCards.clear();
           lastWinnerId = null;
           currentPlayerId = payload['dealerId']?.toString();
@@ -399,7 +436,9 @@ class ReplayPlayerController extends ChangeNotifier {
           final points = _toInt(payload['points']) ?? 0;
           lastWinnerId = winnerId;
           if (winnerId != null) {
-            final team = teams.values.where((item) => item.playerIds.contains(winnerId));
+            final team = teams.values.where(
+              (item) => item.playerIds.contains(winnerId),
+            );
             if (team.isNotEmpty) {
               team.first.roundScore += points;
             }
@@ -441,7 +480,9 @@ class ReplayPlayerController extends ChangeNotifier {
       return const <_MutableReplayPlayer>[];
     }
 
-    final viewerIndex = orderedPlayers.indexWhere((player) => player.id == userId);
+    final viewerIndex = orderedPlayers.indexWhere(
+      (player) => player.id == userId,
+    );
     if (viewerIndex <= 0) {
       return orderedPlayers;
     }
@@ -583,6 +624,39 @@ SuecaCard? _parseCard(dynamic rawCard) {
     return null;
   }
   return SuecaCard(suit: suit, rank: rank);
+}
+
+String _normalizeJoinedPlayerName({
+  required String playerId,
+  required String? incomingName,
+  required String existingName,
+}) {
+  final candidate = incomingName?.trim() ?? '';
+  final isBot = playerId.startsWith('b');
+  if (candidate.isEmpty) {
+    return existingName;
+  }
+  if (isBot && _looksLikeUuid(candidate)) {
+    return _fallbackNameForPlayer(playerId);
+  }
+  return candidate;
+}
+
+String _fallbackNameForPlayer(String playerId) {
+  if (!playerId.startsWith('b')) {
+    return 'Jogador';
+  }
+  final suffix = playerId.substring(1).trim();
+  if (suffix.isEmpty) {
+    return 'Bot';
+  }
+  return 'Bot $suffix';
+}
+
+bool _looksLikeUuid(String value) {
+  return RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
+  ).hasMatch(value);
 }
 
 Suit? _parseSuit(String? rawSuit) {

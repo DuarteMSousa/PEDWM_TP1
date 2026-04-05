@@ -117,12 +117,6 @@ func (g *Game) RemovePlayer(playerID string) error {
 	if g == nil {
 		return ErrGameDoesNotExist
 	}
-	if g.State == nil {
-		return ErrGameNotPlaying
-	}
-	if g.round == nil {
-		return ErrRoundNotConfigured
-	}
 
 	removedPlayer, ok := g.Players[playerID]
 	if !ok {
@@ -143,7 +137,9 @@ func (g *Game) RemovePlayer(playerID string) error {
 		}
 	}
 
-	g.round.CurrentTrick.TurnOrder.Remove(playerID)
+	if g.round != nil && g.round.CurrentTrick != nil {
+		_ = g.round.CurrentTrick.TurnOrder.Remove(playerID)
+	}
 
 	playerLeftEvent := events.NewPlayerLeftEvent(
 		g.ID.String(),
@@ -164,6 +160,9 @@ func (g *Game) AddPlayer(player *player.Player, teamId string) {
 	if g == nil {
 		return
 	}
+	if player == nil {
+		return
+	}
 	g.Players[player.ID] = player
 	for _, t := range g.Teams {
 
@@ -172,17 +171,21 @@ func (g *Game) AddPlayer(player *player.Player, teamId string) {
 		}
 	}
 
-	g.round.CurrentTrick.TurnOrder.AddPlayer(player)
+	if g.round != nil && g.round.CurrentTrick != nil {
+		g.round.CurrentTrick.TurnOrder.AddPlayer(player)
+	}
 
 	event := events.NewPlayerJoinedEvent(
 		g.ID.String(),
 		player.ID,
-		g.RoomID,
+		player.Name,
 		player.Sequence,
 	)
 	g.AddEvent(event)
 
-	g.State.Update()
+	if g.State != nil {
+		g.State.Update()
+	}
 }
 
 func (g *Game) GetEvents() []events.Event {

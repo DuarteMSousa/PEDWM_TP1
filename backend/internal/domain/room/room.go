@@ -130,7 +130,7 @@ func (r *Room) RemovePlayer(playerID string) error {
 		playerErr := r.Game.RemovePlayer(playerID)
 
 		if playerErr != nil {
-			return playerErr
+			log.Printf("failed to sync game state after player %s left room %s: %v", playerID, r.ID, playerErr)
 		}
 	} else {
 		if r.EventBus != nil {
