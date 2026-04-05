@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	websocket_interfaces "backend/internal/infrastructure/websocket/interfaces"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -9,15 +10,17 @@ import (
 )
 
 type Handler struct {
-	Hub        *Hub
-	Upgrader   gws.Upgrader
-	Dispatcher *CommandDispatcher
+	Hub         *Hub
+	Upgrader    gws.Upgrader
+	Dispatcher  *CommandDispatcher
+	roomService websocket_interfaces.RoomService
 }
 
-func NewHandler(hub *Hub, dispatcher *CommandDispatcher) *Handler {
+func NewHandler(hub *Hub, dispatcher *CommandDispatcher, roomService websocket_interfaces.RoomService) *Handler {
 	return &Handler{
-		Hub:        hub,
-		Dispatcher: dispatcher,
+		Hub:         hub,
+		Dispatcher:  dispatcher,
+		roomService: roomService,
 		Upgrader: gws.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -41,7 +44,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	roomID := strings.TrimSpace(r.URL.Query().Get("roomId"))
 	if roomID == "" {
-		roomID = "lobby"
+		return
 	}
 
 	playerID := strings.TrimSpace(r.URL.Query().Get("playerId"))
@@ -54,7 +57,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := NewClient(playerID, roomID, conn, h.Hub, h.Dispatcher)
+	client := NewClient(playerID, roomID, conn, h.Hub, h.Dispatcher, h.roomService)
 	h.Hub.AddClient(roomID, client)
 
 	go client.WritePump()

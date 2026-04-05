@@ -12,8 +12,6 @@ import (
 	"backend/internal/domain/trick"
 	"backend/internal/domain/user"
 	"backend/internal/infrastructure/graph/model"
-	"encoding/json"
-	"log"
 	"sort"
 )
 
@@ -273,11 +271,6 @@ func mapGameSnapshot(snapshot *services.GameSnapshot) *model.GameSnapshot {
 		Scores:          scores,
 	}
 
-	b, err := json.MarshalIndent(snap, "", "  ")
-	if err != nil {
-		log.Println("Erro ao mapear:", err)
-	}
-	log.Printf("Mapped GameSnapshot:\n%s", string(b))
 	return snap
 }
 

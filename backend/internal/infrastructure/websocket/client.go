@@ -35,6 +35,7 @@ package websocket
 // através de WebSocket.
 
 import (
+	websocket_interfaces "backend/internal/infrastructure/websocket/interfaces"
 	"sync"
 	"time"
 
@@ -50,23 +51,25 @@ const (
 
 // Client wraps one websocket connection.
 type Client struct {
-	id         string
-	roomID     string
-	hub        *Hub
-	conn       *gws.Conn
-	send       chan []byte
-	once       sync.Once
-	dispatcher *CommandDispatcher
+	id          string
+	roomID      string
+	hub         *Hub
+	conn        *gws.Conn
+	send        chan []byte
+	once        sync.Once
+	dispatcher  *CommandDispatcher
+	roomService websocket_interfaces.RoomService
 }
 
-func NewClient(id string, roomID string, conn *gws.Conn, hub *Hub, dispatcher *CommandDispatcher) *Client {
+func NewClient(id string, roomID string, conn *gws.Conn, hub *Hub, dispatcher *CommandDispatcher, roomService websocket_interfaces.RoomService) *Client {
 	return &Client{
-		id:         id,
-		roomID:     roomID,
-		hub:        hub,
-		conn:       conn,
-		send:       make(chan []byte, 32),
-		dispatcher: dispatcher,
+		id:          id,
+		roomID:      roomID,
+		hub:         hub,
+		conn:        conn,
+		send:        make(chan []byte, 32),
+		dispatcher:  dispatcher,
+		roomService: roomService,
 	}
 }
 
@@ -89,6 +92,7 @@ func (c *Client) Close() {
 	}
 
 	c.once.Do(func() {
+		c.roomService.LeaveRoom(c.roomID, c.id)
 		if c.hub != nil {
 			c.hub.RemoveClient(c.roomID, c)
 		}

@@ -87,6 +87,7 @@ class GameController extends ChangeNotifier {
   @override
   void dispose() {
     _subscription?.cancel();
+    unawaited(_gameRepository.disconnect(roomId));
     super.dispose();
   }
 }

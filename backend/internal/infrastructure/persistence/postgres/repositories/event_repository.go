@@ -46,7 +46,11 @@ func (r *EventPostgresRepository) FindByRoomID(roomID string) ([]events.Event, e
 		FROM events e
 		JOIN games g ON e.game_id = g.id
 		WHERE g.room_id = $1
-		ORDER BY e.sequence ASC
+		ORDER BY
+			CASE WHEN e.sequence > 0 THEN 0 ELSE 1 END ASC,
+			e.sequence ASC,
+			e.timestamp ASC,
+			e.id ASC
 	`, roomID)
 	if err != nil {
 		return nil, err
@@ -72,7 +76,11 @@ func (r *EventPostgresRepository) FindByGameID(gameID string) ([]events.Event, e
 		SELECT id, game_id, event_type, sequence, timestamp, payload
 		FROM events
 		WHERE game_id = $1
-		ORDER BY sequence ASC
+		ORDER BY
+			CASE WHEN sequence > 0 THEN 0 ELSE 1 END ASC,
+			sequence ASC,
+			timestamp ASC,
+			id ASC
 	`, gameID)
 	if err != nil {
 		return nil, err

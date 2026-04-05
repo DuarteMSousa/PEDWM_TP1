@@ -16,7 +16,8 @@ var (
 
 // TurnOrder implementa uma fila circular (queue) para ordem de turnos.
 type TurnOrder struct {
-	players []*player.Player // fila de jogadores
+	players        []*player.Player // fila de jogadores
+	playersHistory []*player.Player // histórico de jogadores para reentrada
 }
 
 // NewTurnOrder cria uma fila de turnos começando pelo líder e seguindo a ordem original, circular.
@@ -86,5 +87,40 @@ func (o *TurnOrder) Dequeue() (string, error) {
 	}
 	first := o.players[0]
 	o.players = o.players[1:]
+	o.playersHistory = append(o.playersHistory, first)
 	return first.ID, nil
+}
+
+func (o *TurnOrder) Remove(playerID string) error {
+	for i, p := range o.players {
+		if p.ID == playerID {
+			o.players = append(o.players[:i], o.players[i+1:]...)
+			return nil
+		}
+	}
+	return ErrTurnOrderPlayerAbsent
+}
+
+func (o *TurnOrder) AddPlayer(player *player.Player) {
+	alreadyPlayed := false
+	for _, p := range o.playersHistory {
+		if p.Sequence == player.Sequence {
+			alreadyPlayed = true
+			break
+		}
+	}
+
+	if alreadyPlayed {
+		o.playersHistory = append(o.playersHistory, player)
+	} else {
+		o.players = append(o.players, player)
+	}
+
+	sort.Slice(o.players, func(i, j int) bool {
+		if o.players[i].Sequence == o.players[j].Sequence {
+			return o.players[i].ID < o.players[j].ID
+		}
+		return o.players[i].Sequence < o.players[j].Sequence
+	})
+
 }

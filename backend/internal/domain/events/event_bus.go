@@ -1,6 +1,9 @@
 package events
 
-import "sync"
+import (
+	"log"
+	"sync"
+)
 
 // Subject contract for domain events.
 type Subject interface {
@@ -77,6 +80,8 @@ func (b *EventBus) Publish(event Event) {
 	if b == nil {
 		return
 	}
+
+	log.Printf("Publishing event: %s, GameID: %s, RoomID: %s", event.Type, event.GameID, event.RoomID)
 
 	b.mu.RLock()
 	observers := make([]Observer, 0, len(b.subscribers))

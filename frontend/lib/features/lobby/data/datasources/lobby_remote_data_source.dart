@@ -16,10 +16,6 @@ class LobbyRemoteDataSource {
   final GraphqlService _graphqlService;
   final WebSocketService _webSocketService;
 
-  Future<void> connectLobby({required String playerId}) async {
-    await _webSocketService.connect(roomId: 'lobby', playerId: playerId);
-  }
-
   Future<void> connectRoom({
     required String roomId,
     required String playerId,
@@ -171,38 +167,8 @@ class LobbyRemoteDataSource {
     return _roomFromJson(payload);
   }
 
-  Future<RoomDetails> leaveRoom({
-    required String roomId,
-    required String playerId,
-  }) async {
-    final response = await _graphqlService.mutation(
-      document: '''
-        mutation LeaveRoom(\$roomId: ID!, \$userId: ID!) {
-          leaveRoom(input: { roomId: \$roomId, userId: \$userId }) {
-            id
-            hostId
-            status
-            players {
-              id
-              username
-            }
-          }
-        }
-      ''',
-      variables: <String, dynamic>{'roomId': roomId, 'userId': playerId},
-    );
-
-    final data = response['data'];
-    if (data is! Map<String, dynamic>) {
-      throw AppException('Invalid GraphQL response for leaveRoom.');
-    }
-
-    final payload = data['leaveRoom'];
-    if (payload is! Map<String, dynamic>) {
-      throw AppException('Room was not returned by GraphQL leaveRoom.');
-    }
-
-    return _roomDetailsFromJson(payload);
+  Future<void> leaveRoom() async {
+    return await disconnect();
   }
 
   Future<RoomDetails> startGame({required String roomId}) async {
@@ -248,9 +214,7 @@ class LobbyRemoteDataSource {
     );
   }
 
-  Future<void> changeBotStrategy({
-    required String strategy,
-  }) async {
+  Future<void> changeBotStrategy({required String strategy}) async {
     await _webSocketService.send('change_bot_strategy', <String, dynamic>{
       'option': strategy,
     });

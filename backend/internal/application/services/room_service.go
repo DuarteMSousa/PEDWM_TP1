@@ -10,7 +10,7 @@ import (
 	events_infrastructure "backend/internal/infrastructure/events"
 	"backend/internal/infrastructure/websocket"
 	"errors"
-	"time"
+	"log"
 
 	"github.com/google/uuid"
 )
@@ -92,7 +92,6 @@ func (s *RoomService) JoinRoom(roomID, userID string) (*room.Room, error) {
 	if err := s.repo.Save(room); err != nil {
 		return nil, err
 	}
-	s.publishRoomSyncedEvent(room)
 
 	return room, nil
 }
@@ -104,15 +103,21 @@ func (s *RoomService) LeaveRoom(roomID, userID string) (*room.Room, error) {
 	}
 
 	if err := room.RemovePlayer(userID); err != nil {
+		log.Printf("error in leaveroom: %v", err)
 		return nil, err
 	}
 
 	if err := s.repo.Save(room); err != nil {
 		return nil, err
 	}
-	s.publishRoomSyncedEvent(room)
-
 	return room, nil
+}
+
+func (s *RoomService) DeleteRoom(roomID string) error {
+	if err := s.repo.Delete(roomID); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *RoomService) StartGame(roomID string) (*room.Room, error) {
@@ -121,7 +126,7 @@ func (s *RoomService) StartGame(roomID string) (*room.Room, error) {
 		return nil, ErrRoomNotFound
 	}
 
-	if err := room.StartGame(); err != nil {
+	if err := room.CreateGame(); err != nil {
 		return nil, err
 	}
 
@@ -133,26 +138,10 @@ func (s *RoomService) StartGame(roomID string) (*room.Room, error) {
 			return nil, err
 		}
 	}
-	s.publishRoomSyncedEvent(room)
+
+	room.Game.State.Enter()
 
 	return room, nil
-}
-
-func (s *RoomService) publishRoomSyncedEvent(room *room.Room) {
-	if room == nil || room.EventBus == nil {
-		return
-	}
-
-	room.EventBus.Publish(events.Event{
-		ID:        uuid.NewString(),
-		Type:      events.EventType("ROOM_SYNCED"),
-		RoomID:    room.ID,
-		Timestamp: time.Now().UTC(),
-		Payload: map[string]any{
-			"status":       room.Status,
-			"playersCount": len(room.Players),
-		},
-	})
 }
 
 func (s *RoomService) GetRoom(id string) (*room.Room, error) {

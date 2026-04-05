@@ -9,12 +9,6 @@ class LobbyRepositoryImpl implements LobbyRepository {
     : _remoteDataSource = remoteDataSource;
 
   final LobbyRemoteDataSource _remoteDataSource;
-
-  @override
-  Future<void> connectLobby({required String playerId}) {
-    return _remoteDataSource.connectLobby(playerId: playerId);
-  }
-
   @override
   Future<void> connectRoom({required String roomId, required String playerId}) {
     return _remoteDataSource.connectRoom(roomId: roomId, playerId: playerId);
@@ -47,12 +41,8 @@ class LobbyRepositoryImpl implements LobbyRepository {
   }
 
   @override
-  Future<RoomDetails> leaveRoom({
-    required String roomId,
-    required String playerId,
-  }) {
-    return _remoteDataSource.leaveRoom(roomId: roomId, playerId: playerId);
-  }
+  Future<void> leaveRoom() => _remoteDataSource.leaveRoom();
+
 
   @override
   Future<RoomDetails> startGame({required String roomId}) {

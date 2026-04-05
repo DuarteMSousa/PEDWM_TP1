@@ -107,6 +107,20 @@ class GameRemoteDataSource {
     return _controllerFor(roomId).stream;
   }
 
+  Future<void> disconnect(String roomId) async {
+    await _eventSubscriptions[roomId]?.cancel();
+    _eventSubscriptions.remove(roomId);
+
+    final controller = _controllers[roomId];
+    if (controller != null && !controller.isClosed) {
+      await controller.close();
+    }
+    _controllers.remove(roomId);
+    _cachedGames.remove(roomId);
+
+    await _webSocketService.disconnect();
+  }
+
   void _startRealtimeSync(String roomId) {
     if (_eventSubscriptions.containsKey(roomId)) {
       return;
@@ -173,6 +187,10 @@ class GameRemoteDataSource {
     Logger.info('WebSocket event -> $rawEvent');
 
     switch (type) {
+      case 'PLAYER_LEFT':
+        return _applyPlayerLeftEvent(current, payloadMap);
+      case 'PLAYER_JOINED':
+        return _applyPlayerJoinedEvent(current, payloadMap);
       case 'GAME_STARTED':
         return current.copyWith(
           teams: _parseTeams(payloadMap['teams']),
@@ -247,10 +265,15 @@ class GameRemoteDataSource {
         );
       case 'TRICK_ENDED':
         final points = payloadMap['points'];
-        final team = current.teams.firstWhere(
-          (t) => t.players.any((p) => p.id == payloadMap['winnerId']),
-        );
-        team.roundScore += points is int ? points : 0;
+        final winnerId = payloadMap['winnerId']?.toString();
+        if (winnerId != null && winnerId.isNotEmpty) {
+          final winnerTeam = current.teams.where(
+            (t) => t.players.any((p) => p.id == winnerId),
+          );
+          if (winnerTeam.isNotEmpty) {
+            winnerTeam.first.roundScore += points is int ? points : 0;
+          }
+        }
         return current.copyWith(
           tableCards: <String, SuecaCard>{},
           phase: GamePhase.scoring,
@@ -285,6 +308,127 @@ class GameRemoteDataSource {
       default:
         return current;
     }
+  }
+
+  SuecaGameState _applyPlayerLeftEvent(
+    SuecaGameState current,
+    Map<String, dynamic> payload,
+  ) {
+    final playerId = payload['playerId']?.toString();
+    if (playerId == null || playerId.isEmpty) {
+      return current;
+    }
+
+    final updatedPlayers = current.players
+        .where((p) => p.id != playerId)
+        .toList(growable: false);
+
+    final updatedTeams = current.teams
+        .map(
+          (t) => t.copyWith(
+            players: t.players.where((p) => p.id != playerId).toList(),
+          ),
+        )
+        .toList(growable: false);
+
+    final updatedTableCards = Map<String, SuecaCard>.from(current.tableCards)
+      ..remove(playerId);
+
+    final nextCurrentPlayerId = current.currentPlayerId == playerId
+        ? (updatedPlayers.isNotEmpty
+              ? updatedPlayers.first.id
+              : current.currentPlayerId)
+        : current.currentPlayerId;
+
+    return current.copyWith(
+      players: updatedPlayers,
+      teams: updatedTeams,
+      tableCards: updatedTableCards,
+      currentPlayerId: nextCurrentPlayerId,
+    );
+  }
+
+  SuecaGameState _applyPlayerJoinedEvent(
+    SuecaGameState current,
+    Map<String, dynamic> payload,
+  ) {
+    final playerId = payload['playerId']?.toString();
+    if (playerId == null || playerId.isEmpty) {
+      return current;
+    }
+
+    final playerName = payload['name']?.toString().trim();
+    final slot = _toInt(payload['slot']) ?? 1;
+
+    final fallbackName = playerId.startsWith('b')
+        ? 'Bot ${playerId.substring(1)}'
+        : 'Jogador';
+    final hasInvalidBotName =
+      playerId.startsWith('b') &&
+      playerName != null &&
+      _looksLikeUuid(playerName);
+    final nickname =
+      (playerName == null || playerName.isEmpty || hasInvalidBotName)
+      ? fallbackName
+      : playerName;
+
+    final incomingPlayer = Player(
+      id: playerId,
+      nickname: nickname,
+      sequence: slot,
+    );
+
+    final updatedPlayers = <Player>[
+      ...current.players.where((p) => p.id != playerId),
+      incomingPlayer,
+    ]..sort((a, b) => a.sequence.compareTo(b.sequence));
+
+    final updatedTeams = _upsertPlayerInTeams(
+      teams: current.teams,
+      player: incomingPlayer,
+    );
+
+    return current.copyWith(
+      players: updatedPlayers,
+      teams: updatedTeams,
+    );
+  }
+
+  List<Team> _upsertPlayerInTeams({
+    required List<Team> teams,
+    required Player player,
+  }) {
+    final withoutPlayer = teams
+        .map(
+          (t) => t.copyWith(
+            players: t.players.where((p) => p.id != player.id).toList(),
+          ),
+        )
+        .toList(growable: false);
+
+    if (withoutPlayer.isEmpty) {
+      return withoutPlayer;
+    }
+
+    var targetIndex = withoutPlayer.indexWhere(
+      (t) => t.players.length < 2,
+    );
+    if (targetIndex == -1) {
+      targetIndex = 0;
+    }
+
+    final team = withoutPlayer[targetIndex];
+    final players = [...team.players, player]
+      ..sort((a, b) => a.sequence.compareTo(b.sequence));
+    withoutPlayer[targetIndex] = team.copyWith(players: players);
+
+    return withoutPlayer;
+  }
+
+  bool _looksLikeUuid(String value) {
+    return RegExp(
+      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
+    ).hasMatch(value);
   }
 
   Future<Map<String, dynamic>> _fetchRoom({required String roomId}) async {

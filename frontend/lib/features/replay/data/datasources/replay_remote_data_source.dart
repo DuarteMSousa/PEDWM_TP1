@@ -19,6 +19,43 @@ class ReplayRemoteDataSource {
               id
               username
             }
+            createdAt
+          }
+        }
+      ''',
+      variables: <String, dynamic>{'userId': userId},
+    );
+
+    final data = response['data'];
+    if (data is! Map<String, dynamic>) {
+      throw AppException('Invalid GraphQL response for userGames query.');
+    }
+
+    final rawGames = data['userGames'];
+    if (rawGames is! List) {
+      return const [];
+    }
+
+    return rawGames
+        .whereType<Map<String, dynamic>>()
+        .map(_gameSummaryFromJson)
+        .toList(growable: false);
+  }
+
+  Future<GameSummary> fetchGameReplay({
+    required String userId,
+    required String gameId,
+  }) async {
+    final response = await _graphqlService.query(
+      document: '''
+        query ReplayGame(\$userId: ID!) {
+          userGames(userId: \$userId) {
+            id
+            roomId
+            players {
+              id
+              username
+            }
             events {
               id
               type
@@ -104,18 +141,24 @@ class ReplayRemoteDataSource {
 
     final data = response['data'];
     if (data is! Map<String, dynamic>) {
-      throw AppException('Invalid GraphQL response for userGames query.');
+      throw AppException('Invalid GraphQL response for replay query.');
     }
 
     final rawGames = data['userGames'];
     if (rawGames is! List) {
-      return const [];
+      throw AppException('Replay nao encontrado.');
     }
 
-    return rawGames
-        .whereType<Map<String, dynamic>>()
-        .map(_gameSummaryFromJson)
-        .toList(growable: false);
+    for (final rawGame in rawGames) {
+      if (rawGame is! Map<String, dynamic>) {
+        continue;
+      }
+      if (rawGame['id']?.toString() == gameId) {
+        return _gameSummaryFromJson(rawGame);
+      }
+    }
+
+    throw AppException('Replay nao encontrado.');
   }
 
   GameSummary _gameSummaryFromJson(Map<String, dynamic> json) {
@@ -154,7 +197,14 @@ class ReplayRemoteDataSource {
       roomId: json['roomId']?.toString(),
       players: players,
       createdAt: createdAt,
-      events: events,
+      events: events
+        ..sort((a, b) {
+          final sequenceCompare = a.sequence.compareTo(b.sequence);
+          if (sequenceCompare != 0) {
+            return sequenceCompare;
+          }
+          return a.timestamp.compareTo(b.timestamp);
+        }),
     );
   }
 

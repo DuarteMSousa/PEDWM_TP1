@@ -43,7 +43,11 @@ class _ReplayListPageState extends State<ReplayListPage> {
   void _openReplay(GameSummary game) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ReplayPlayerPage(game: game),
+        builder: (_) => ReplayPlayerPage(
+          game: game,
+          userId: widget.userId,
+          replayRepository: widget.replayRepository,
+        ),
       ),
     );
   }
@@ -145,19 +149,6 @@ class _GameHistoryCard extends StatelessWidget {
         '${game.createdAt.year} '
         '${game.createdAt.hour.toString().padLeft(2, '0')}:'
         '${game.createdAt.minute.toString().padLeft(2, '0')}';
-    final eventCount = game.events.length;
-
-    final gameEndEvent = game.events
-        .where((e) => e.type == 'GAME_ENDED')
-        .toList();
-    String? winnerLabel;
-    if (gameEndEvent.isNotEmpty) {
-      final payload = gameEndEvent.first.payload;
-      if (payload != null) {
-        winnerLabel = payload['winner']?.toString();
-      }
-    }
-
     return SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,19 +175,9 @@ class _GameHistoryCard extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          if (winnerLabel != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Vencedor: $winnerLabel',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF155B42),
-                  ),
-            ),
-          ],
           const SizedBox(height: 4),
           Text(
-            '$eventCount eventos',
+            'Os eventos sao carregados ao abrir o replay.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 10),

@@ -74,8 +74,9 @@ func main() {
 	// Event Dispatcher
 	// ========================
 	eventDispatcher := events_infrastructure.GetEventDispatcherInstance()
-	eventDispatcher.Register("PLAYER_LEFT", events_infrastructure.NewPlayerLeftEventHandler(roomService))
-	eventDispatcher.Register("GAME_ENDED", events_infrastructure.NewGameEndedEventHandler(userStatsService, gameService))
+	eventDispatcher.Register(string(events.EventPlayerLeft), events_infrastructure.NewPlayerLeftEventHandler(roomService))
+	eventDispatcher.Register(string(events.EventGameEnded), events_infrastructure.NewGameEndedEventHandler(userStatsService, gameService))
+	eventDispatcher.Register(string(events.EventRoomClosed), events_infrastructure.NewRoomClosedEventHandler(roomService))
 
 	// ========================
 	// GraphQL
@@ -109,7 +110,7 @@ func main() {
 	// ========================
 	mux := http.NewServeMux()
 
-	mux.Handle("/ws", wstransport.NewHandler(hub, dispatcher))
+	mux.Handle("/ws", wstransport.NewHandler(hub, dispatcher, roomService))
 	mux.Handle("/graphql", srv)
 	mux.Handle("/", playground.Handler("GraphQL playground", "/graphql"))
 

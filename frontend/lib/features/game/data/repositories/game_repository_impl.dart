@@ -29,4 +29,9 @@ class GameRepositoryImpl implements GameRepository {
   Stream<SuecaGameState> watchGame(String roomId) {
     return _remoteDataSource.watchGame(roomId);
   }
+
+  @override
+  Future<void> disconnect(String roomId) {
+    return _remoteDataSource.disconnect(roomId);
+  }
 }

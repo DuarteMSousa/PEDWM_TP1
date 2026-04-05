@@ -87,10 +87,7 @@ class RoomWaitingController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _lobbyRepository.leaveRoom(
-        roomId: roomId,
-        playerId: currentPlayerId,
-      );
+      await _lobbyRepository.leaveRoom();
       return true;
     } catch (error) {
       errorMessage = error.toString();

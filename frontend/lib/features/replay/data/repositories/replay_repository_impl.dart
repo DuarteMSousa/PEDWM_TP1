@@ -12,4 +12,12 @@ class ReplayRepositoryImpl implements ReplayRepository {
   Future<List<GameSummary>> fetchUserGames(String userId) {
     return _remoteDataSource.fetchUserGames(userId);
   }
+
+  @override
+  Future<GameSummary> fetchGameReplay({
+    required String userId,
+    required String gameId,
+  }) {
+    return _remoteDataSource.fetchGameReplay(userId: userId, gameId: gameId);
+  }
 }

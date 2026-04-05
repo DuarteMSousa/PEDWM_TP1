@@ -78,6 +78,7 @@ func (r *Round) GetPlayer(playerID string) (*player.Player, error) {
 			}
 		}
 	}
+
 	return nil, ErrPlayerNotFound
 }
 

@@ -7,6 +7,7 @@ import (
 	"backend/internal/domain/player"
 	bot_strategy "backend/internal/domain/player/botStrategy"
 	"errors"
+	"log"
 	"math/rand"
 	"strings"
 	"time"
@@ -108,12 +109,11 @@ func (r *Room) AddPlayer(userID, username string) error {
 }
 
 func (r *Room) RemovePlayer(playerID string) error {
+	log.Printf("RemovePlayer entered for player %s in room %s", playerID, r.ID)
 	if r == nil {
 		return errors.New("room is nil")
 	}
-	if r.Status != OPEN {
-		return ErrRoomNotOpen
-	}
+
 	playerID = strings.TrimSpace(playerID)
 	if playerID == "" {
 		return ErrInvalidPlayerID
@@ -126,14 +126,19 @@ func (r *Room) RemovePlayer(playerID string) error {
 	removedPlayer := r.Players[playerID]
 	delete(r.Players, playerID)
 
-	if r.EventBus != nil {
-		gameID := ""
-		if r.Game != nil {
-			gameID = r.Game.ID.String()
+	if r.Game != nil {
+		playerErr := r.Game.RemovePlayer(playerID)
+
+		if playerErr != nil {
+			return playerErr
 		}
-		event := events.NewPlayerLeftEvent(gameID, removedPlayer.ID, r.ID)
-		event.RoomID = r.ID
-		r.EventBus.Publish(event)
+	} else {
+		if r.EventBus != nil {
+			gameID := ""
+			event := events.NewPlayerLeftEvent(gameID, removedPlayer.ID, r.ID)
+			event.RoomID = r.ID
+			r.EventBus.Publish(event)
+		}
 	}
 
 	if r.HostID == playerID {
@@ -147,12 +152,16 @@ func (r *Room) RemovePlayer(playerID string) error {
 		}
 	}
 
+	log.Printf("Player %s left room %s", removedPlayer.ID, r.ID)
+	log.Printf("CurrentPlayers: %d", len(r.Players))
+
 	if len(r.Players) == 0 {
 		r.Status = CLOSED
 		if r.EventBus != nil {
 			event := events.NewRoomClosedEvent(r.ID)
 			event.RoomID = r.ID
 			r.EventBus.Publish(event)
+			log.Printf("ROOMCLOSED PUBLISHED")
 		}
 	}
 
@@ -166,7 +175,7 @@ func (r *Room) CanStartGame() bool {
 	return r.Status == OPEN
 }
 
-func (r *Room) StartGame() error {
+func (r *Room) CreateGame() error {
 	if !r.CanStartGame() {
 		return ErrCannotStartGamePlayers
 	}
@@ -179,8 +188,6 @@ func (r *Room) StartGame() error {
 	r.Game = game_factory.CreateSuecaGame(gamePlayers, r.BotStrategy, r.EventBus)
 	r.Game.RoomID = r.ID
 	r.Status = IN_GAME
-
-	r.Game.State.Enter()
 
 	return nil
 }

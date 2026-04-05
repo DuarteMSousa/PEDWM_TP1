@@ -24,11 +24,9 @@ func (o *EventPersistanceObserver) Update(event domain.Event) {
 
 	gameId := strings.TrimSpace(event.GameID)
 
-	if gameId == "" {
-		return
+	if gameId != "" {
+		o.eventService.SaveEvent(event)
 	}
-
-	o.eventService.SaveEvent(event)
 
 	if o.eventDispatcher != nil {
 		o.eventDispatcher.Dispatch(event)

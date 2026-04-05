@@ -11,4 +11,5 @@ abstract class GameRepository {
     required SuecaCard card,
   });
   Stream<SuecaGameState> watchGame(String roomId);
+  Future<void> disconnect(String roomId);
 }

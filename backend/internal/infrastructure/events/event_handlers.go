@@ -9,6 +9,7 @@ import (
 	"backend/internal/domain/events"
 	"backend/internal/domain/game"
 	"errors"
+	"log"
 )
 
 var (
@@ -54,6 +55,22 @@ func NewGameEndedEventHandler(userStatsService UserStatsService, gameService Gam
 			return err
 		}
 
+		return nil
+	}
+}
+
+func NewRoomClosedEventHandler(roomService RoomService) EventHandler {
+	return func(event events.Event) error {
+		p := event.Payload.(events.RoomClosedPayload)
+		log.Printf("handling RoomClosed event for room %s", p.RoomID)
+
+		err := roomService.DeleteRoom(p.RoomID)
+		if err != nil {
+			log.Printf("Error deleting room %s: %v", p.RoomID, err)
+			return err
+		}
+
+		log.Printf("Room %s deleted successfully", p.RoomID)
 		return nil
 	}
 }
