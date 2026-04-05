@@ -16,4 +16,5 @@ abstract class LobbyRepository {
     required String playerId,
   });
   Future<RoomDetails> startGame({required String roomId});
+  Future<void> changeBotStrategy({required String strategy});
 }

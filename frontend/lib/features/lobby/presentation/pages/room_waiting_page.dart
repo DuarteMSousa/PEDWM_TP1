@@ -223,6 +223,57 @@ class _RoomWaitingPageState extends State<RoomWaitingPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
+                    if (_controller.isHost)
+                      SectionCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Dificuldade dos Bots',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _BotStrategyChip(
+                                    label: 'Facil',
+                                    icon: Icons.sentiment_satisfied_alt_rounded,
+                                    selected:
+                                        _controller.botStrategy == 'EASY',
+                                    onTap: () => _controller
+                                        .changeBotStrategy('EASY'),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _BotStrategyChip(
+                                    label: 'Dificil',
+                                    icon: Icons.psychology_rounded,
+                                    selected:
+                                        _controller.botStrategy == 'HARD',
+                                    onTap: () => _controller
+                                        .changeBotStrategy('HARD'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      SectionCard(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.smart_toy_outlined),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Bots: ${_controller.botStrategy == 'HARD' ? 'Dificil' : 'Facil'}',
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 12),
                     if (_controller.hasAllPlayers)
                       const SectionCard(
                         child: Row(
@@ -401,5 +452,62 @@ class _SeatCard extends StatelessWidget {
       return 'Jogador ligado';
     }
     return roles.join(' - ');
+  }
+}
+
+class _BotStrategyChip extends StatelessWidget {
+  const _BotStrategyChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          color: selected ? const Color(0xFF155B42) : const Color(0x1A6A4A2D),
+          border: Border.all(
+            color: selected
+                ? const Color(0xFFD7B46A)
+                : const Color(0x556A4A2D),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: selected
+                  ? const Color(0xFFF8F0DB)
+                  : const Color(0xFF6A4A2D),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                color: selected
+                    ? const Color(0xFFF8F0DB)
+                    : const Color(0xFF6A4A2D),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

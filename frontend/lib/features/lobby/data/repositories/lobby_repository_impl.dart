@@ -58,4 +58,9 @@ class LobbyRepositoryImpl implements LobbyRepository {
   Future<RoomDetails> startGame({required String roomId}) {
     return _remoteDataSource.startGame(roomId: roomId);
   }
+
+  @override
+  Future<void> changeBotStrategy({required String strategy}) {
+    return _remoteDataSource.changeBotStrategy(strategy: strategy);
+  }
 }

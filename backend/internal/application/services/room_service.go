@@ -156,6 +156,9 @@ func (s *RoomService) publishRoomSyncedEvent(room *room.Room) {
 }
 
 func (s *RoomService) GetRoom(id string) (*room.Room, error) {
+	if r := s.hub.GetRoom(id); r != nil {
+		return r, nil
+	}
 	return s.repo.FindByID(id)
 }
 

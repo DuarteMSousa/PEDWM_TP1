@@ -110,6 +110,7 @@ class LobbyRemoteDataSource {
             id
             hostId
             status
+            botStrategy
             players {
               id
               username
@@ -247,6 +248,14 @@ class LobbyRemoteDataSource {
     );
   }
 
+  Future<void> changeBotStrategy({
+    required String strategy,
+  }) async {
+    await _webSocketService.send('change_bot_strategy', <String, dynamic>{
+      'option': strategy,
+    });
+  }
+
   RoomDetails _roomDetailsFromJson(Map<String, dynamic> json) {
     final id = json['id']?.toString() ?? '';
     final players = _parsePlayers(json['players']);
@@ -256,6 +265,7 @@ class LobbyRemoteDataSource {
       name: _roomName(id),
       hostPlayerId: json['hostId']?.toString() ?? '',
       status: json['status']?.toString() ?? 'OPEN',
+      botStrategy: json['botStrategy']?.toString() ?? 'EASY',
       players: players,
     );
   }

@@ -197,10 +197,12 @@ func (r *Room) Close() {
 }
 
 func (r *Room) SetBotStrategy(strategy bot_strategy.IBotStrategy) {
-	if r == nil || r.Game == nil {
+	if r == nil {
 		return
 	}
 	r.BotStrategy = strategy
-	event := events.NewBotStrategyChangedEvent(r.ID, strategy.GetType())
-	r.EventBus.Publish(event)
+	if r.EventBus != nil {
+		event := events.NewBotStrategyChangedEvent(r.ID, strategy.GetType())
+		r.EventBus.Publish(event)
+	}
 }

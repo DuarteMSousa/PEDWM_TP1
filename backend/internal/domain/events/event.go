@@ -192,9 +192,13 @@ func NewGameEndedEvent(gameID string, finalScores map[string]int, winner string,
 }
 
 func NewRoomClosedEvent(roomID string) Event {
-	return newEvent(EventRoomClosed, "", RoomClosedPayload{RoomID: roomID})
+	event := newEvent(EventRoomClosed, "", RoomClosedPayload{RoomID: roomID})
+	event.RoomID = roomID
+	return event
 }
 
 func NewBotStrategyChangedEvent(roomID string, strategy bot_strategy.BotStrategyType) Event {
-	return newEvent(EventBotStrategyChanged, "", BotStrategyChangedPayload{RoomID: roomID, BotStrategy: strategy})
+	event := newEvent(EventBotStrategyChanged, "", BotStrategyChangedPayload{RoomID: roomID, BotStrategy: strategy})
+	event.RoomID = roomID
+	return event
 }

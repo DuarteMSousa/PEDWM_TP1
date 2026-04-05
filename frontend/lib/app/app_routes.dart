@@ -85,6 +85,7 @@ class AppRouter {
           beginOffset: const Offset(0.05, 0),
           builder: (_) => ProfilePage(
             profileRepository: _dependencies.profileRepository,
+            replayRepository: _dependencies.replayRepository,
             userId: userId,
           ),
         );

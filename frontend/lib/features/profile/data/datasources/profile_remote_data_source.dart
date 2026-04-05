@@ -19,6 +19,7 @@ class ProfileRemoteDataSource {
           userStats(userId: \$userId) {
             games
             wins
+            elo
           }
         }
       ''',
@@ -44,12 +45,16 @@ class ProfileRemoteDataSource {
     final wins = (statsPayload is Map<String, dynamic>)
         ? (statsPayload['wins'] as num?)?.toInt() ?? 0
         : 0;
+    final elo = (statsPayload is Map<String, dynamic>)
+        ? (statsPayload['elo'] as num?)?.toInt() ?? 1000
+        : 1000;
 
     return Profile(
       userId: userId,
       nickname: nickname,
       matchesPlayed: matchesPlayed,
       wins: wins,
+      elo: elo,
     );
   }
 }

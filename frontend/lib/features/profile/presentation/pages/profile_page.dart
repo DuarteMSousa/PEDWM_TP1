@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/shared_widgets/section_card.dart';
 import '../../../../core/shared_widgets/table_background.dart';
+import '../../../replay/domain/repositories/replay_repository.dart';
+import '../../../replay/presentation/pages/replay_list_page.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../state/profile_controller.dart';
 
@@ -10,10 +12,12 @@ class ProfilePage extends StatefulWidget {
     super.key,
     required this.profileRepository,
     required this.userId,
+    required this.replayRepository,
   });
 
   final ProfileRepository profileRepository;
   final String userId;
+  final ReplayRepository replayRepository;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -138,7 +142,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       LayoutBuilder(
                         builder: (context, constraints) {
                           final width = constraints.maxWidth;
-                          final cardsPerRow = width > 760 ? 3 : 1;
+                          final cardsPerRow = width > 760 ? 4 : 2;
                           final cardWidth =
                               (width - ((cardsPerRow - 1) * 10)) / cardsPerRow;
 
@@ -157,6 +161,11 @@ class _ProfilePageState extends State<ProfilePage> {
                               label: 'Taxa',
                               value: '${profile.winRate.toStringAsFixed(1)}%',
                               icon: Icons.trending_up_rounded,
+                            ),
+                            _StatCard(
+                              label: 'Elo',
+                              value: '${profile.elo}',
+                              icon: Icons.leaderboard_outlined,
                             ),
                           ];
 
@@ -198,6 +207,24 @@ class _ProfilePageState extends State<ProfilePage> {
                               '${profile.winRate.toStringAsFixed(1)}% de partidas vencidas',
                             ),
                           ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => ReplayListPage(
+                                  replayRepository: widget.replayRepository,
+                                  userId: widget.userId,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.history_rounded),
+                          label: const Text('Historico de Jogos'),
                         ),
                       ),
                     ],

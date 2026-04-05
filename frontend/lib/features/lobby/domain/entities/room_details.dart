@@ -9,6 +9,7 @@ class RoomDetails {
     required this.players,
     this.maxPlayers = 4,
     this.isPrivate = false,
+    this.botStrategy = 'EASY',
   });
 
   final String id;
@@ -18,6 +19,7 @@ class RoomDetails {
   final int maxPlayers;
   final bool isPrivate;
   final List<RoomMember> players;
+  final String botStrategy;
 
   int get playersCount => players.length;
   bool get isFull => playersCount >= maxPlayers;

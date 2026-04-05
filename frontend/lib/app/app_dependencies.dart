@@ -13,6 +13,9 @@ import '../features/lobby/domain/repositories/lobby_repository.dart';
 import '../features/profile/data/datasources/profile_remote_data_source.dart';
 import '../features/profile/data/repositories/profile_repository_impl.dart';
 import '../features/profile/domain/repositories/profile_repository.dart';
+import '../features/replay/data/datasources/replay_remote_data_source.dart';
+import '../features/replay/data/repositories/replay_repository_impl.dart';
+import '../features/replay/domain/repositories/replay_repository.dart';
 
 class AppDependencies {
   AppDependencies._({
@@ -22,6 +25,7 @@ class AppDependencies {
     required this.lobbyRepository,
     required this.gameRepository,
     required this.profileRepository,
+    required this.replayRepository,
     required GameRemoteDataSource gameRemoteDataSource,
   }) : _gameRemoteDataSource = gameRemoteDataSource;
 
@@ -32,6 +36,7 @@ class AppDependencies {
   final LobbyRepository lobbyRepository;
   final GameRepository gameRepository;
   final ProfileRepository profileRepository;
+  final ReplayRepository replayRepository;
 
   final GameRemoteDataSource _gameRemoteDataSource;
 
@@ -64,6 +69,10 @@ class AppDependencies {
       remoteDataSource: ProfileRemoteDataSource(graphqlService: graphqlService),
     );
 
+    final replayRepository = ReplayRepositoryImpl(
+      remoteDataSource: ReplayRemoteDataSource(graphqlService: graphqlService),
+    );
+
     return AppDependencies._(
       graphqlService: graphqlService,
       webSocketService: webSocketService,
@@ -71,6 +80,7 @@ class AppDependencies {
       lobbyRepository: lobbyRepository,
       gameRepository: gameRepository,
       profileRepository: profileRepository,
+      replayRepository: replayRepository,
       gameRemoteDataSource: gameRemoteDataSource,
     );
   }

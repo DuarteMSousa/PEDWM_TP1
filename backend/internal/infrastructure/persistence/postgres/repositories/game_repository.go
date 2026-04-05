@@ -41,6 +41,9 @@ func (r *GamePostgresRepository) Save(g *game.Game) error {
 		g.CreatedAt,
 		time.Now().UTC(),
 	)
+	if err != nil {
+		return err
+	}
 
 	gamePlayers := []*player.Player{}
 
@@ -62,6 +65,10 @@ func (r *GamePostgresRepository) Save(g *game.Game) error {
 	})
 
 	for idx, p := range orderedPlayers {
+		if p.Type == player.BOT {
+			continue
+		}
+
 		sequence := p.Sequence
 		if sequence <= 0 {
 			sequence = idx + 1

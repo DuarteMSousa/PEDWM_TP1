@@ -29,6 +29,17 @@ class RoomWaitingController extends ChangeNotifier {
   bool get hasAllPlayers => room?.hasRequiredPlayers == true;
   bool get isHost => room?.hostPlayerId == currentPlayerId;
   bool get hasGameStarted => room?.status == 'IN_GAME';
+  String get botStrategy => room?.botStrategy ?? 'EASY';
+
+  Future<void> changeBotStrategy(String strategy) async {
+    try {
+      await _lobbyRepository.changeBotStrategy(strategy: strategy);
+      await refreshRoom();
+    } catch (error) {
+      errorMessage = error.toString();
+      notifyListeners();
+    }
+  }
 
   Future<void> initialize() async {
     isLoading = true;

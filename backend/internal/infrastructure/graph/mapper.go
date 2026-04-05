@@ -63,13 +63,18 @@ func mapRoom(r *room.Room) *model.Room {
 		})
 	}
 
+	botStrategy := model.BotStrategyTypeEasy
+	if r.BotStrategy != nil {
+		botStrategy = model.BotStrategyType(r.BotStrategy.GetType())
+	}
+
 	return &model.Room{
 		ID:          r.ID,
 		HostID:      r.HostID,
 		Players:     players,
 		Status:      model.RoomStatus(r.Status),
 		CreatedAt:   r.CreatedAt,
-		BotStrategy: model.BotStrategyType(r.BotStrategy.GetType()),
+		BotStrategy: botStrategy,
 	}
 }
 
