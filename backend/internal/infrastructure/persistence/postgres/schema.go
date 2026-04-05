@@ -95,7 +95,7 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 		// =========================
 		`CREATE TABLE IF NOT EXISTS games (
 			id UUID PRIMARY KEY,
-			room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+			room_id UUID NOT NULL REFERENCES rooms(id),
 			status game_status NOT NULL,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
