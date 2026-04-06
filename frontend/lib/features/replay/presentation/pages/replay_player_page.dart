@@ -92,6 +92,8 @@ class _ReplayPlayerPageState extends State<ReplayPlayerPage> {
           }
 
           final frame = _controller.currentFrame;
+          final currentEvent = _controller.currentEvent;
+          final playerNames = _buildPlayerNames(_controller.game, frame);
 
           return TableBackground(
             child: SafeArea(
@@ -228,6 +230,40 @@ class _ReplayPlayerPageState extends State<ReplayPlayerPage> {
                       ),
                     ),
                   ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                    child: SectionCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Momentos recentes',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 10),
+                          if (_controller.recentEvents.isEmpty)
+                            const Text('Ainda não há eventos visíveis.')
+                          else
+                            SizedBox(
+                              height: 50,
+                              child: ListView.separated(
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 8),
+                                itemCount: _controller.recentEvents.length,
+                                itemBuilder: (context, index) {
+                                  final event = _controller.recentEvents[index];
+                                  return _EventTile(
+                                    event: event,
+                                    isHighlighted: event.id == currentEvent?.id,
+                                    playerNames: playerNames,
+                                  );
+                                },
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 12),
                 ],
               ),
@@ -288,80 +324,80 @@ class _ReplayBoard extends StatelessWidget {
                   ),
                 ),
                 child: Stack(
-              children: [
-                // Top
-                Align(
-                  alignment: Alignment.topCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 18),
-                    child: _SeatCluster(
-                      seat: frame.seats.length > 2 ? frame.seats[2] : null,
-                      isCurrent:
-                          frame.seats.length > 2 &&
-                          frame.seats[2]?.id == frame.currentPlayerId,
-                      isWinner:
-                          frame.seats.length > 2 &&
-                          frame.seats[2]?.id == frame.winnerId,
-                      verticalFan: false,
+                  children: [
+                    // Top
+                    Align(
+                      alignment: Alignment.topCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 18),
+                        child: _SeatCluster(
+                          seat: frame.seats.length > 2 ? frame.seats[2] : null,
+                          isCurrent:
+                              frame.seats.length > 2 &&
+                              frame.seats[2]?.id == frame.currentPlayerId,
+                          isWinner:
+                              frame.seats.length > 2 &&
+                              frame.seats[2]?.id == frame.winnerId,
+                          verticalFan: false,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                // Left
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 14),
-                    child: _SeatCluster(
-                      seat: frame.seats.length > 1 ? frame.seats[1] : null,
-                      isCurrent:
-                          frame.seats.length > 1 &&
-                          frame.seats[1]?.id == frame.currentPlayerId,
-                      isWinner:
-                          frame.seats.length > 1 &&
-                          frame.seats[1]?.id == frame.winnerId,
-                      verticalFan: true,
+                    // Left
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 14),
+                        child: _SeatCluster(
+                          seat: frame.seats.length > 1 ? frame.seats[1] : null,
+                          isCurrent:
+                              frame.seats.length > 1 &&
+                              frame.seats[1]?.id == frame.currentPlayerId,
+                          isWinner:
+                              frame.seats.length > 1 &&
+                              frame.seats[1]?.id == frame.winnerId,
+                          verticalFan: true,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                // Right
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 14),
-                    child: _SeatCluster(
-                      seat: frame.seats.length > 3 ? frame.seats[3] : null,
-                      isCurrent:
-                          frame.seats.length > 3 &&
-                          frame.seats[3]?.id == frame.currentPlayerId,
-                      isWinner:
-                          frame.seats.length > 3 &&
-                          frame.seats[3]?.id == frame.winnerId,
-                      verticalFan: true,
-                      reverseFan: true,
+                    // Right
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 14),
+                        child: _SeatCluster(
+                          seat: frame.seats.length > 3 ? frame.seats[3] : null,
+                          isCurrent:
+                              frame.seats.length > 3 &&
+                              frame.seats[3]?.id == frame.currentPlayerId,
+                          isWinner:
+                              frame.seats.length > 3 &&
+                              frame.seats[3]?.id == frame.winnerId,
+                          verticalFan: true,
+                          reverseFan: true,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                // Bottom
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 18),
-                    child: _SeatCluster(
-                      seat: frame.seats.isNotEmpty ? frame.seats[0] : null,
-                      isCurrent:
-                          frame.seats.isNotEmpty &&
-                          frame.seats[0]?.id == frame.currentPlayerId,
-                      isWinner:
-                          frame.seats.isNotEmpty &&
-                          frame.seats[0]?.id == frame.winnerId,
-                      verticalFan: false,
+                    // Bottom
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 18),
+                        child: _SeatCluster(
+                          seat: frame.seats.isNotEmpty ? frame.seats[0] : null,
+                          isCurrent:
+                              frame.seats.isNotEmpty &&
+                              frame.seats[0]?.id == frame.currentPlayerId,
+                          isWinner:
+                              frame.seats.isNotEmpty &&
+                              frame.seats[0]?.id == frame.winnerId,
+                          verticalFan: false,
+                        ),
+                      ),
                     ),
-                  ),
+                    Center(child: _TrickCenter(frame: frame)),
+                  ],
                 ),
-                Center(child: _TrickCenter(frame: frame)),
-              ],
-            ),
-          ),
+              ),
             ),
           ),
         ),
@@ -438,10 +474,7 @@ class _SeatCluster extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-          _MiniCardFan(
-            cards: seat!.handCards,
-            vertical: verticalFan,
-          )
+        _MiniCardFan(cards: seat!.handCards, vertical: verticalFan),
       ],
     );
   }
@@ -593,10 +626,7 @@ class _TablePlayedCard extends StatelessWidget {
 }
 
 class _MiniCardFan extends StatelessWidget {
-  const _MiniCardFan({
-    required this.cards,
-    required this.vertical,
-  });
+  const _MiniCardFan({required this.cards, required this.vertical});
 
   final List<SuecaCard> cards;
   final bool vertical;
@@ -685,6 +715,57 @@ class _SpeedChipGroup extends StatelessWidget {
   }
 }
 
+class _EventTile extends StatelessWidget {
+  const _EventTile({
+    required this.event,
+    required this.isHighlighted,
+    required this.playerNames,
+  });
+  final GameEvent event;
+  final bool isHighlighted;
+  final Map<String, String> playerNames;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: isHighlighted
+            ? const Color(0xFFD7B46A).withOpacity(0.2)
+            : Colors.black12,
+        borderRadius: BorderRadius.circular(8),
+        border: isHighlighted
+            ? Border.all(color: const Color(0xFFD7B46A))
+            : null,
+      ),
+      child: Row(
+        children: [
+          Icon(_iconForType(event.type), size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _labelForType(event.type),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  _descriptionForEvent(event, playerNames),
+                  style: TextStyle(fontSize: 11, color: Colors.grey[800]),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // Modelos de dados para organização do Trick (Vaza)
 class _PileCard {
   const _PileCard({
@@ -712,6 +793,167 @@ String _cardFrontAssetPath(SuecaCard card) {
   return 'assets/cards/svg-cards/${rankToken}_of_${card.suit.name.toLowerCase()}.svg';
 }
 
+Map<String, String> _buildPlayerNames(GameSummary game, ReplayFrame frame) {
+  final names = <String, String>{};
+
+  void addName(String? idRaw, String? nameRaw) {
+    final id = idRaw?.trim();
+    final name = nameRaw?.trim();
+    if (id == null || id.isEmpty || name == null || name.isEmpty) {
+      return;
+    }
+    names[id] = name;
+  }
+
+  for (final p in game.players) {
+    addName(p.id, p.username);
+  }
+
+  // Seats podem conter nomes mais completos mesmo quando game.players vem parcial.
+  for (final seat in frame.seats) {
+    addName(seat?.id, seat?.name);
+  }
+
+  for (final event in game.events) {
+    final payload = event.payload;
+    if (payload == null) {
+      continue;
+    }
+
+    if (event.type == 'PLAYER_JOINED') {
+      addName(payload['playerId']?.toString(), payload['name']?.toString());
+    }
+
+    for (final teamsKey in const ['teams']) {
+      final teamsRaw = payload[teamsKey];
+      if (teamsRaw is! List) {
+        continue;
+      }
+      for (final teamRaw in teamsRaw) {
+        if (teamRaw is! Map) {
+          continue;
+        }
+        final playersRaw = teamRaw['players'];
+        if (playersRaw is! List) {
+          continue;
+        }
+        for (final playerRaw in playersRaw) {
+          if (playerRaw is! Map) {
+            continue;
+          }
+          addName(
+            playerRaw['id']?.toString(),
+            playerRaw['name']?.toString() ?? playerRaw['username']?.toString(),
+          );
+        }
+      }
+    }
+  }
+
+  return names;
+}
+
+String _labelForType(String type) {
+  return switch (type) {
+    'PLAYER_JOINED' => 'Entrou',
+    'PLAYER_LEFT' => 'Saiu',
+    'GAME_STARTED' => 'Início',
+    'ROUND_STARTED' => 'Início da Ronda',
+    'TRICK_STARTED' => 'Início da Vaza',
+    'TURN_CHANGED' => 'Mudança de Vez',
+    'TRUMP_REVEALED' => 'Trunfo Revelado',
+    'CARD_DEALT' => 'Distribuição',
+    'CARD_PLAYED' => 'Jogada',
+    'TRICK_ENDED' => 'Fim da Vaza',
+    'ROUND_ENDED' => 'Fim da Ronda',
+    'GAME_SCORE_UPDATED' => 'Pontuação Atualizada',
+    'GAME_ENDED' => 'Fim do Jogo',
+    _ => type.replaceAll('_', ' '),
+  };
+}
+
+IconData _iconForType(String type) {
+  return switch (type) {
+    'PLAYER_JOINED' => Icons.login_rounded,
+    'PLAYER_LEFT' => Icons.logout_rounded,
+    'GAME_STARTED' => Icons.flag_circle_rounded,
+    'ROUND_STARTED' => Icons.looks_one_rounded,
+    'TRICK_STARTED' => Icons.playlist_play_rounded,
+    'TURN_CHANGED' => Icons.sync_alt_rounded,
+    'TRUMP_REVEALED' => Icons.visibility_rounded,
+    'CARD_DEALT' => Icons.style_rounded,
+    'CARD_PLAYED' => Icons.play_arrow,
+    'TRICK_ENDED' => Icons.check_circle,
+    'ROUND_ENDED' => Icons.task_alt_rounded,
+    'GAME_SCORE_UPDATED' => Icons.scoreboard_rounded,
+    'GAME_ENDED' => Icons.emoji_events,
+    _ => Icons.info_outline,
+  };
+}
+
+String _descriptionForEvent(GameEvent event, Map<String, String> names) {
+  final payload = event.payload ?? {};
+
+  String getName(String? idRaw) {
+    final id = idRaw?.trim();
+    if (id == null || id.isEmpty) {
+      return '?';
+    }
+
+    final direct = names[id];
+    if (direct != null && direct.isNotEmpty) {
+      return direct;
+    }
+
+    final lowerId = id.toLowerCase();
+    for (final entry in names.entries) {
+      if (entry.key.toLowerCase() == lowerId && entry.value.isNotEmpty) {
+        return entry.value;
+      }
+    }
+
+    return id.length > 4 ? id.substring(0, 4) : id;
+  }
+
+  String describeCard(dynamic cardRaw) {
+    if (cardRaw is! Map) {
+      return 'uma carta';
+    }
+    final rank = cardRaw['rank']?.toString() ?? '';
+    final suit = cardRaw['suit']?.toString() ?? '';
+    if (rank.isEmpty && suit.isEmpty) {
+      return 'uma carta';
+    }
+    return '${_rankLabel(rank)} de ${_suitLabel(suit)} ${_suitSymbol(suit)}';
+  }
+
+  return switch (event.type) {
+    'PLAYER_JOINED' =>
+      '${getName(payload['playerId']?.toString())} entrou na partida',
+    'PLAYER_LEFT' =>
+      '${getName(payload['playerId']?.toString())} saiu da partida',
+    'GAME_STARTED' => 'Partida iniciada',
+    'ROUND_STARTED' =>
+      'Ronda ${payload['roundNumber']?.toString() ?? '?'} (dealer: ${getName(payload['dealerId']?.toString())})',
+    'TRICK_STARTED' =>
+      'Nova vaza - lider ${getName(payload['leaderId']?.toString())}',
+    'TURN_CHANGED' => 'Vez de ${getName(payload['playerId']?.toString())}',
+    'TRUMP_REVEALED' => 'Trunfo: ${describeCard(payload['card'])}',
+    'CARD_DEALT' =>
+      '${getName(payload['playerId']?.toString())} recebeu ${describeCard(payload['card'])}',
+    'CARD_PLAYED' =>
+      '${getName(payload['playerId']?.toString())} jogou ${describeCard(payload['card'])}',
+    'TRICK_ENDED' =>
+      'Vencedor: ${getName(payload['winnerId']?.toString())} (+${payload['points']?.toString() ?? '0'} pts)',
+    'ROUND_ENDED' =>
+      'Ronda terminada - vencedor ${payload['winnerTeam']?.toString() ?? '?'}',
+    'GAME_SCORE_UPDATED' => 'Pontuação atualizada',
+    'GAME_ENDED' =>
+      'Jogo terminado - vencedor ${payload['winner']?.toString() ?? '?'}',
+    _ => '',
+  };
+}
+
 String _suitSymbol(String suit) {
   return switch (suit.toUpperCase()) {
     'HEARTS' => '♥',
@@ -719,6 +961,17 @@ String _suitSymbol(String suit) {
     'CLUBS' => '♣',
     'SPADES' => '♠',
     _ => suit,
+  };
+}
+
+String _rankLabel(String rank) {
+  return switch (rank.toUpperCase()) {
+    '1' || 'A' => 'Ás',
+    '11' || 'J' => 'Valete',
+    '12' || 'Q' => 'Dama',
+    '13' || 'K' => 'Rei',
+    '7' => 'Bisca',
+    _ => rank,
   };
 }
 
