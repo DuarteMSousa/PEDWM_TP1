@@ -4,7 +4,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/shared_widgets/section_card.dart';
 import '../../../../core/shared_widgets/table_background.dart';
 import '../../../game/domain/entities/card.dart';
-// Removido import de suit.dart se não for usado explicitamente como tipo
 import '../../domain/entities/game_summary.dart';
 import '../../domain/repositories/replay_repository.dart';
 import '../state/replay_player_controller.dart';
@@ -93,8 +92,6 @@ class _ReplayPlayerPageState extends State<ReplayPlayerPage> {
           }
 
           final frame = _controller.currentFrame;
-          final currentEvent = _controller.currentEvent;
-          final playerNames = _buildPlayerNames(_controller.game);
 
           return TableBackground(
             child: SafeArea(
@@ -146,7 +143,7 @@ class _ReplayPlayerPageState extends State<ReplayPlayerPage> {
                   // Tabuleiro Central
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
                       child: _ReplayBoard(frame: frame),
                     ),
                   ),
@@ -231,41 +228,7 @@ class _ReplayPlayerPageState extends State<ReplayPlayerPage> {
                       ),
                     ),
                   ),
-                  // Lista de Eventos Recentes
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                    child: SectionCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Momentos recentes',
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
-                          const SizedBox(height: 10),
-                          if (_controller.recentEvents.isEmpty)
-                            const Text('Ainda não há eventos visíveis.')
-                          else
-                            SizedBox(
-                              height: 50,
-                              child: ListView.separated(
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(height: 8),
-                                itemCount: _controller.recentEvents.length,
-                                itemBuilder: (context, index) {
-                                  final event = _controller.recentEvents[index];
-                                  return _EventTile(
-                                    event: event,
-                                    isHighlighted: event.id == currentEvent?.id,
-                                    playerNames: playerNames,
-                                  );
-                                },
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
@@ -294,16 +257,37 @@ class _ReplayBoard extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Expanded(
-          child: Container(
+          child: DecoratedBox(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              gradient: const RadialGradient(
-                colors: [Color(0xFF1B6A4E), Color(0xFF0F3D2E)],
-                radius: 0.95,
+              borderRadius: BorderRadius.circular(24),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF6A4A2D), Color(0xFF4A301C)],
               ),
-              border: Border.all(color: const Color(0x66D7B46A), width: 1.5),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x55000000),
+                  blurRadius: 20,
+                  offset: Offset(0, 12),
+                ),
+              ],
             ),
-            child: Stack(
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  gradient: const RadialGradient(
+                    colors: [Color(0xFF1B6A4E), Color(0xFF0F3D2E)],
+                    radius: 0.95,
+                  ),
+                  border: Border.all(
+                    color: const Color(0x58D7B46A),
+                    width: 1.2,
+                  ),
+                ),
+                child: Stack(
               children: [
                 // Top
                 Align(
@@ -378,6 +362,8 @@ class _ReplayBoard extends StatelessWidget {
               ],
             ),
           ),
+            ),
+          ),
         ),
       ],
     );
@@ -444,20 +430,18 @@ class _SeatCluster extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 10,
                   color: isCurrent
-                      ? const Color(0xFF155B42).withOpacity(0.7)
+                      ? const Color(0xFF155B42).withValues(alpha: 0.7)
                       : const Color(0xCCF8F0DB),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 8),
-        _CardBackFan(
-          count: seat!.handCount,
-          vertical: verticalFan,
-          reverse: reverseFan,
-          cardBackAssetPath: 'assets/cards/back/back_blue.svg',
-        ),
+        const SizedBox(height: 6),
+          _MiniCardFan(
+            cards: seat!.handCards,
+            vertical: verticalFan,
+          )
       ],
     );
   }
@@ -536,49 +520,6 @@ class _TrickCenter extends StatelessWidget {
   }
 }
 
-class _CardBackFan extends StatelessWidget {
-  const _CardBackFan({
-    required this.count,
-    required this.vertical,
-    required this.cardBackAssetPath,
-    this.reverse = false,
-  });
-
-  final int count;
-  final bool vertical;
-  final bool reverse;
-  final String cardBackAssetPath;
-
-  @override
-  Widget build(BuildContext context) {
-    final safeCount = count.clamp(0, 10);
-    if (safeCount == 0) return const SizedBox.shrink();
-
-    const cardWidth = 24.0;
-    const cardHeight = 36.0;
-    const spread = 6.0;
-
-    Widget fan = SizedBox(
-      width: cardWidth + ((safeCount - 1) * spread),
-      height: cardHeight,
-      child: Stack(
-        children: List.generate(safeCount, (index) {
-          return Positioned(
-            left: index * spread,
-            child: SvgPicture.asset(
-              cardBackAssetPath,
-              width: cardWidth,
-              height: cardHeight,
-            ),
-          );
-        }),
-      ),
-    );
-
-    return vertical ? RotatedBox(quarterTurns: 1, child: fan) : fan;
-  }
-}
-
 // Widgets de suporte e Helpers (Pills, Badges, Chips)
 class _TeamScorePill extends StatelessWidget {
   const _TeamScorePill({required this.team});
@@ -622,8 +563,78 @@ class _TablePlayedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Transform.rotate(
       angle: angle,
-      child: SvgPicture.asset(_cardFrontAssetPath(card), width: 60, height: 85),
+      child: SizedBox(
+        width: 60,
+        height: 85,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFAEE),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFB08D49), width: 1),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x35000000),
+                blurRadius: 8,
+                offset: Offset(0, 5),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(7),
+            child: SvgPicture.asset(
+              _cardFrontAssetPath(card),
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+      ),
     );
+  }
+}
+
+class _MiniCardFan extends StatelessWidget {
+  const _MiniCardFan({
+    required this.cards,
+    required this.vertical,
+  });
+
+  final List<SuecaCard> cards;
+  final bool vertical;
+
+  @override
+  Widget build(BuildContext context) {
+    final safeCards = cards.length > 10 ? cards.sublist(0, 10) : cards;
+    if (safeCards.isEmpty) return const SizedBox.shrink();
+
+    const cardWidth = 28.0;
+    const cardHeight = 40.0;
+    const spread = 7.0;
+
+    Widget fan = SizedBox(
+      width: cardWidth + ((safeCards.length - 1) * spread),
+      height: cardHeight,
+      child: Stack(
+        children: List.generate(safeCards.length, (index) {
+          final card = safeCards[index];
+          return Positioned(
+            left: index * spread,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: SizedBox(
+                width: cardWidth,
+                height: cardHeight,
+                child: SvgPicture.asset(
+                  _cardFrontAssetPath(card),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+
+    return vertical ? RotatedBox(quarterTurns: 1, child: fan) : fan;
   }
 }
 
@@ -674,57 +685,6 @@ class _SpeedChipGroup extends StatelessWidget {
   }
 }
 
-class _EventTile extends StatelessWidget {
-  const _EventTile({
-    required this.event,
-    required this.isHighlighted,
-    required this.playerNames,
-  });
-  final GameEvent event;
-  final bool isHighlighted;
-  final Map<String, String> playerNames;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: isHighlighted
-            ? const Color(0xFFD7B46A).withOpacity(0.2)
-            : Colors.black12,
-        borderRadius: BorderRadius.circular(8),
-        border: isHighlighted
-            ? Border.all(color: const Color(0xFFD7B46A))
-            : null,
-      ),
-      child: Row(
-        children: [
-          Icon(_iconForType(event.type), size: 16),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _labelForType(event.type),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-                Text(
-                  _descriptionForEvent(event, playerNames),
-                  style: TextStyle(fontSize: 11, color: Colors.grey[800]),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // Modelos de dados para organização do Trick (Vaza)
 class _PileCard {
   const _PileCard({
@@ -741,14 +701,6 @@ class _PileCard {
 
 // --- Métodos de Mapeamento e Labels ---
 
-Map<String, String> _buildPlayerNames(GameSummary game) {
-  final names = <String, String>{};
-  for (final p in game.players) {
-    names[p.id] = p.username;
-  }
-  return names;
-}
-
 String _cardFrontAssetPath(SuecaCard card) {
   final rankToken = switch (card.rank) {
     1 => 'ace',
@@ -758,70 +710,6 @@ String _cardFrontAssetPath(SuecaCard card) {
     _ => card.rank.toString(),
   };
   return 'assets/cards/svg-cards/${rankToken}_of_${card.suit.name.toLowerCase()}.svg';
-}
-
-String _labelForType(String type) {
-  return switch (type) {
-    'PLAYER_JOINED' => 'Entrou',
-    'GAME_STARTED' => 'Início',
-    'CARD_PLAYED' => 'Jogada',
-    'TRICK_ENDED' => 'Fim da Vaza',
-    'ROUND_ENDED' => 'Fim da Ronda',
-    _ => type.replaceAll('_', ' '),
-  };
-}
-
-IconData _iconForType(String type) {
-  return switch (type) {
-    'CARD_PLAYED' => Icons.play_arrow,
-    'TRICK_ENDED' => Icons.check_circle,
-    'GAME_ENDED' => Icons.emoji_events,
-    _ => Icons.info_outline,
-  };
-}
-
-String _descriptionForEvent(GameEvent event, Map<String, String> names) {
-  final payload = event.payload ?? {};
-  String getName(String? id) => names[id] ?? id?.substring(0, 4) ?? '?';
-
-  String describeCard(dynamic cardRaw) {
-    if (cardRaw is! Map) {
-      return 'uma carta';
-    }
-    final rank = cardRaw['rank']?.toString() ?? '';
-    final suit = cardRaw['suit']?.toString() ?? '';
-    if (rank.isEmpty && suit.isEmpty) {
-      return 'uma carta';
-    }
-    return '${_rankLabel(rank)} de ${_suitLabel(suit)} ${_suitSymbol(suit)}';
-  }
-
-  return switch (event.type) {
-    'PLAYER_JOINED' =>
-      '${getName(payload['playerId']?.toString())} entrou na partida',
-    'PLAYER_LEFT' =>
-      '${getName(payload['playerId']?.toString())} saiu da partida',
-    'GAME_STARTED' => 'Partida iniciada',
-    'ROUND_STARTED' =>
-      'Ronda ${payload['roundNumber']?.toString() ?? '?'} (dealer: ${getName(payload['dealerId']?.toString())})',
-    'TRICK_STARTED' =>
-      'Nova vaza - lider ${getName(payload['leaderId']?.toString())}',
-    'TURN_CHANGED' =>
-      'Vez de ${getName(payload['playerId']?.toString())}',
-    'TRUMP_REVEALED' =>
-      'Trunfo: ${describeCard(payload['card'])}',
-    'CARD_DEALT' =>
-      '${getName(payload['playerId']?.toString())} recebeu ${describeCard(payload['card'])}',
-    'CARD_PLAYED' =>
-      '${getName(payload['playerId']?.toString())} jogou ${describeCard(payload['card'])}',
-    'TRICK_ENDED' =>
-      'Vencedor: ${getName(payload['winnerId']?.toString())} (+${payload['points']?.toString() ?? '0'} pts)',
-    'ROUND_ENDED' =>
-      'Ronda terminada - vencedor ${payload['winnerTeam']?.toString() ?? '?'}',
-    'GAME_SCORE_UPDATED' => 'Pontuação atualizada',
-    'GAME_ENDED' => 'Jogo terminado - vencedor ${payload['winner']?.toString() ?? '?'}',
-    _ => '',
-  };
 }
 
 String _suitSymbol(String suit) {
@@ -841,16 +729,5 @@ String _suitLabel(String suit) {
     'CLUBS' => 'Paus',
     'SPADES' => 'Espadas',
     _ => suit,
-  };
-}
-
-String _rankLabel(String rank) {
-  return switch (rank.toUpperCase()) {
-    '1' || 'A' => 'Ás',
-    '11' || 'J' => 'Valete',
-    '12' || 'Q' => 'Dama',
-    '13' || 'K' => 'Rei',
-    '7' => 'Bisca',
-    _ => rank,
   };
 }

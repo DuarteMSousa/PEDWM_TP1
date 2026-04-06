@@ -163,7 +163,7 @@ class ReplayRemoteDataSource {
 
     final rawGames = data['userGames'];
     if (rawGames is! List) {
-      throw AppException('Replay nao encontrado.');
+      throw AppException('Replay não encontrado.');
     }
 
     for (final rawGame in rawGames) {
@@ -175,7 +175,7 @@ class ReplayRemoteDataSource {
       }
     }
 
-    throw AppException('Replay nao encontrado.');
+    throw AppException('Replay não encontrado.');
   }
 
   GameSummary _gameSummaryFromJson(Map<String, dynamic> json) {

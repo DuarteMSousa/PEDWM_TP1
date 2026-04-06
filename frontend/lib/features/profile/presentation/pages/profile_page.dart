@@ -78,7 +78,7 @@ class _ProfilePageState extends State<ProfilePage> {
             return const TableBackground(
               child: Center(
                 child: Text(
-                  'Perfil indisponivel.',
+                  'Perfil indisponível.',
                   style: TextStyle(color: Color(0xFFF8F0DB)),
                 ),
               ),
@@ -153,7 +153,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               icon: Icons.sports_esports_outlined,
                             ),
                             _StatCard(
-                              label: 'Vitorias',
+                              label: 'Vitórias',
                               value: '${profile.wins}',
                               icon: Icons.emoji_events_outlined,
                             ),
@@ -187,7 +187,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Eficiencia',
+                              'Eficiência',
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             const SizedBox(height: 10),
@@ -224,7 +224,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             );
                           },
                           icon: const Icon(Icons.history_rounded),
-                          label: const Text('Historico de Jogos'),
+                          label: const Text('Histórico de Jogos'),
                         ),
                       ),
                     ],

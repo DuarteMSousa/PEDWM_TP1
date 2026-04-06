@@ -240,7 +240,7 @@ class _GamePageState extends State<GamePage> {
                   child: SectionCard(
                     child: Text(
                       _controller.errorMessage ??
-                          'Estado de jogo indisponivel.',
+                          'Estado de jogo indisponível.',
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -1207,7 +1207,7 @@ class _FannedHandState extends State<_FannedHand> {
     if (widget.hand.isEmpty) {
       return Center(
         child: Text(
-          'Sem cartas na mao.',
+          'Sem cartas na mão.',
           style: Theme.of(
             context,
           ).textTheme.bodyMedium?.copyWith(color: const Color(0xFFF8F0DB)),
@@ -1367,9 +1367,9 @@ List<Player> _orderedPlayers(SuecaGameState state) {
 String _phaseLabel(GamePhase phase) {
   switch (phase) {
     case GamePhase.waitingForPlayers:
-      return 'A espera de jogadores';
+      return 'À espera de jogadores';
     case GamePhase.dealingCards:
-      return 'Distribuicao';
+      return 'Distribuição';
     case GamePhase.playingTrick:
       return 'A jogar a vaza';
     case GamePhase.scoring:

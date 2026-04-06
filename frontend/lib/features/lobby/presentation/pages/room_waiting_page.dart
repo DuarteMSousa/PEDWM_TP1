@@ -66,7 +66,7 @@ class _RoomWaitingPageState extends State<RoomWaitingPage> {
     }
 
     final message =
-        _controller.errorMessage ?? 'Nao foi possivel sair da sala.';
+        _controller.errorMessage ?? 'Não foi possível sair da sala.';
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
@@ -83,7 +83,7 @@ class _RoomWaitingPageState extends State<RoomWaitingPage> {
       return;
     }
     final message =
-        _controller.errorMessage ?? 'Nao foi possivel iniciar o jogo.';
+        _controller.errorMessage ?? 'Não foi possível iniciar o jogo.';
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
@@ -182,7 +182,7 @@ class _RoomWaitingPageState extends State<RoomWaitingPage> {
             final room = _controller.room;
             if (room == null) {
               return const TableBackground(
-                child: Center(child: Text('Nao foi possivel carregar a sala.')),
+                child: Center(child: Text('Não foi possível carregar a sala.')),
               );
             }
 
@@ -237,7 +237,7 @@ class _RoomWaitingPageState extends State<RoomWaitingPage> {
                               children: [
                                 Expanded(
                                   child: _BotStrategyChip(
-                                    label: 'Facil',
+                                    label: 'Fácil',
                                     icon: Icons.sentiment_satisfied_alt_rounded,
                                     selected:
                                         _controller.botStrategy == 'EASY',
@@ -248,7 +248,7 @@ class _RoomWaitingPageState extends State<RoomWaitingPage> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: _BotStrategyChip(
-                                    label: 'Dificil',
+                                    label: 'Difícil',
                                     icon: Icons.psychology_rounded,
                                     selected:
                                         _controller.botStrategy == 'HARD',
@@ -268,7 +268,7 @@ class _RoomWaitingPageState extends State<RoomWaitingPage> {
                             const Icon(Icons.smart_toy_outlined),
                             const SizedBox(width: 10),
                             Text(
-                              'Bots: ${_controller.botStrategy == 'HARD' ? 'Dificil' : 'Facil'}',
+                              'Bots: ${_controller.botStrategy == 'HARD' ? 'Difícil' : 'Fácil'}',
                             ),
                           ],
                         ),
@@ -285,7 +285,7 @@ class _RoomWaitingPageState extends State<RoomWaitingPage> {
                             SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                'Sala completa (4/4). Todos os jogadores estao conectados.',
+                                'Sala completa (4/4). Todos os jogadores estão conectados.',
                               ),
                             ),
                           ],

@@ -55,7 +55,7 @@ class _ReplayListPageState extends State<ReplayListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Historico de Jogos')),
+      appBar: AppBar(title: const Text('Histórico de Jogos')),
       body: AnimatedBuilder(
         animation: _controller,
         builder: (context, _) {
@@ -102,7 +102,7 @@ class _ReplayListPageState extends State<ReplayListPage> {
                   padding: EdgeInsets.all(24),
                   child: SectionCard(
                     child: Text(
-                      'Ainda nao tens jogos registados.',
+                      'Ainda não tens jogos registados.',
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -174,11 +174,6 @@ class _GameHistoryCard extends StatelessWidget {
             style: Theme.of(context).textTheme.bodySmall,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Os eventos sao carregados ao abrir o replay.',
-            style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 10),
           SizedBox(

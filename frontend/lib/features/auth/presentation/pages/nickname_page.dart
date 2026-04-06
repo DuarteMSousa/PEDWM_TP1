@@ -109,7 +109,7 @@ class _NicknamePageState extends State<NicknamePage> {
             obscureText: _obscurePassword,
             decoration: InputDecoration(
               labelText: 'Password',
-              hintText: 'minimo 6 caracteres',
+              hintText: 'mínimo 6 caracteres',
               prefixIcon: const Icon(Icons.lock_outline),
               suffixIcon: IconButton(
                 onPressed: () {
@@ -145,8 +145,8 @@ class _NicknamePageState extends State<NicknamePage> {
             onPressed: _controller.isLoading ? null : _toggleMode,
             child: Text(
               _isRegisterMode
-                  ? 'Ja tenho conta'
-                  : 'Nao tenho conta (registar)',
+                  ? 'Já tenho conta'
+                  : 'Não tenho conta (registar)',
             ),
           ),
         ],
@@ -249,7 +249,7 @@ class _IntroPanel extends StatelessWidget {
               border: Border.all(color: const Color(0x66D7B46A)),
             ),
             child: Text(
-              'TRUQUE, VAZA, VITORIA',
+              'TRUQUE, VAZA, VITÓRIA',
               style: textTheme.labelSmall?.copyWith(
                 color: foreground,
                 letterSpacing: 1.2,

@@ -311,6 +311,7 @@ class ReplayPlayerController extends ChangeNotifier {
           for (final player in players.values) {
             if (player.isActive) {
               player.handCount = hasCardDealtEvents ? 0 : 10;
+              player.hand.clear();
             }
           }
           phaseLabel = 'Jogo iniciado';
@@ -389,6 +390,10 @@ class ReplayPlayerController extends ChangeNotifier {
           for (final team in teams.values) {
             team.roundScore = 0;
           }
+          for (final player in players.values) {
+            player.hand.clear();
+            player.handCount = 0;
+          }
           break;
         case 'TRICK_STARTED':
           phaseLabel = 'Nova vaza';
@@ -398,7 +403,7 @@ class ReplayPlayerController extends ChangeNotifier {
           break;
         case 'TURN_CHANGED':
           currentPlayerId = payload['playerId']?.toString();
-          phaseLabel = 'Mudanca de turno';
+          phaseLabel = 'Mudança de turno';
           break;
         case 'TRUMP_REVEALED':
           trumpSuit = _parseSuit(
@@ -415,9 +420,13 @@ class ReplayPlayerController extends ChangeNotifier {
             final dealtPlayer = players[playerId];
             if (dealtPlayer != null) {
               dealtPlayer.handCount = (dealtPlayer.handCount + 1).clamp(0, 10);
+              final dealtCard = _parseCard(payload['card']);
+              if (dealtCard != null) {
+                dealtPlayer.hand.add(dealtCard);
+              }
             }
           }
-          phaseLabel = 'Cartas distribuidas';
+          phaseLabel = 'Cartas distribuídas';
           break;
         case 'CARD_PLAYED':
           final playerId = payload['playerId']?.toString();
@@ -425,8 +434,13 @@ class ReplayPlayerController extends ChangeNotifier {
           if (playerId != null && card != null) {
             tableCards[playerId] = card;
             final player = players[playerId];
-            if (player != null && player.handCount > 0) {
-              player.handCount--;
+            if (player != null) {
+              if (player.handCount > 0) {
+                player.handCount--;
+              }
+              player.hand.removeWhere(
+                (c) => c.suit == card.suit && c.rank == card.rank,
+              );
             }
           }
           phaseLabel = 'Carta jogada';
@@ -443,7 +457,7 @@ class ReplayPlayerController extends ChangeNotifier {
               team.first.roundScore += points;
             }
           }
-          phaseLabel = 'Vaza concluida';
+          phaseLabel = 'Vaza concluída';
           tableCards.clear();
           currentPlayerId = winnerId;
           break;
@@ -454,7 +468,7 @@ class ReplayPlayerController extends ChangeNotifier {
           break;
         case 'GAME_SCORE_UPDATED':
           applyScorePayload(payload['score'], round: false);
-          phaseLabel = 'Pontuacao atualizada';
+          phaseLabel = 'Pontuação atualizada';
           break;
         case 'GAME_ENDED':
           applyTeamsPayload(payload['teams']);
@@ -536,6 +550,7 @@ class ReplaySeat {
     required this.sequence,
     required this.teamId,
     required this.handCount,
+    this.handCards = const [],
   });
 
   factory ReplaySeat.fromMutable(_MutableReplayPlayer player) {
@@ -545,6 +560,7 @@ class ReplaySeat {
       sequence: player.sequence,
       teamId: player.teamId,
       handCount: player.handCount,
+      handCards: List<SuecaCard>.from(player.hand),
     );
   }
 
@@ -553,6 +569,7 @@ class ReplaySeat {
   final int sequence;
   final String? teamId;
   final int handCount;
+  final List<SuecaCard> handCards;
 }
 
 class ReplayTeamSnapshot {
@@ -602,6 +619,7 @@ class _MutableReplayPlayer {
   String? teamId;
   bool isActive;
   int handCount;
+  List<SuecaCard> hand = [];
 }
 
 class _MutableReplayTeam {

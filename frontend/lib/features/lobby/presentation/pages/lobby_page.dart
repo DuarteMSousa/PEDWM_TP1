@@ -92,7 +92,7 @@ class _LobbyPageState extends State<LobbyPage> {
     }
 
     final message =
-        _controller.errorMessage ?? 'Nao foi possivel entrar na sala.';
+        _controller.errorMessage ?? 'Não foi possível entrar na sala.';
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
@@ -112,7 +112,7 @@ class _LobbyPageState extends State<LobbyPage> {
     }
 
     final message =
-        _controller.errorMessage ?? 'Nao foi possivel criar a sala.';
+        _controller.errorMessage ?? 'Não foi possível criar a sala.';
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
@@ -200,7 +200,7 @@ class _LobbyPageState extends State<LobbyPage> {
                       if (_controller.rooms.isEmpty) {
                         return const SectionCard(
                           child: Text(
-                            'Sem salas disponiveis. Atualiza para procurar mesas ativas.',
+                            'Sem salas disponíveis. Atualiza para procurar mesas ativas.',
                           ),
                         );
                       }
@@ -303,7 +303,7 @@ class _LobbyHeader extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '$roomCount salas disponiveis para jogar agora',
+                    '$roomCount salas disponíveis para jogar agora',
                     style: subtitleStyle,
                   ),
                 ],
