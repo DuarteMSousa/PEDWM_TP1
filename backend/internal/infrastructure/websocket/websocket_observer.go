@@ -7,15 +7,18 @@ import (
 	domain "backend/internal/domain/events"
 )
 
-// Minimal bridge EventBus -> WebSocket room broadcast.
+// WebSocketObserver implements Observer and broadcasts domain events
+// to the respective WebSocket clients in the room.
 type WebSocketObserver struct {
 	hub *Hub
 }
 
+// NewWebSocketObserver creates a new WebSocket observer.
 func NewWebSocketObserver(hub *Hub) *WebSocketObserver {
 	return &WebSocketObserver{hub: hub}
 }
 
+// Update receives a domain event and broadcasts it to the room.
 func (o *WebSocketObserver) Update(event domain.Event) {
 	if o == nil || o.hub == nil {
 		return

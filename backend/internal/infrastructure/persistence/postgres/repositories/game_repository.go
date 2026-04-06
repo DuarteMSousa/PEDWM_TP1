@@ -11,14 +11,17 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// GamePostgresRepository implements GameRepository with PostgreSQL.
 type GamePostgresRepository struct {
 	pool *pgxpool.Pool
 }
 
+// NewGamePostgresRepository creates a new game repository.
 func NewGamePostgresRepository(pool *pgxpool.Pool) *GamePostgresRepository {
 	return &GamePostgresRepository{pool: pool}
 }
 
+// Save persists or updates a game and its players (transactional upsert).
 func (r *GamePostgresRepository) Save(g *game.Game) error {
 	ctx := context.Background()
 
@@ -90,6 +93,7 @@ func (r *GamePostgresRepository) Save(g *game.Game) error {
 	return tx.Commit(ctx)
 }
 
+// FindByID finds a game by its ID.
 func (r *GamePostgresRepository) FindByID(id string) (*game.Game, error) {
 	ctx := context.Background()
 
@@ -125,6 +129,7 @@ func (r *GamePostgresRepository) FindByID(id string) (*game.Game, error) {
 	return g, nil
 }
 
+// FindByRoomID finds games associated with a room.
 func (r *GamePostgresRepository) FindByRoomID(roomID string) ([]*game.Game, error) {
 	ctx := context.Background()
 
@@ -172,6 +177,7 @@ func (r *GamePostgresRepository) FindByRoomID(roomID string) ([]*game.Game, erro
 	return result, nil
 }
 
+// GetByUserID returns the games in which a user participated.
 func (r *GamePostgresRepository) GetByUserID(userID string) ([]*game.Game, error) {
 	ctx := context.Background()
 

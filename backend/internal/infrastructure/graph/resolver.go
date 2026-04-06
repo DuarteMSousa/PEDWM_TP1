@@ -2,11 +2,8 @@ package graph
 
 import "backend/internal/application/services"
 
-// This file will not be regenerated automatically.
-//
-// It serves as dependency injection for your app, add any dependencies you require
-// here.
-
+// Resolver groups the dependencies of the GraphQL resolvers.
+// It serves as a dependency injection point for all resolvers.
 type Resolver struct {
 	RoomService       *services.RoomService
 	UserService       *services.UserService

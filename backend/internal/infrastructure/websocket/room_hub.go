@@ -40,6 +40,7 @@ type RoomHub struct {
 	clients map[*Client]struct{}
 }
 
+// NewRoomHub cria um novo RoomHub para a sala indicada.
 func NewRoomHub(room *room.Room) *RoomHub {
 	return &RoomHub{
 		room:    room,
@@ -47,6 +48,7 @@ func NewRoomHub(room *room.Room) *RoomHub {
 	}
 }
 
+// GetRoom devolve a entidade Room da sala.
 func (r *RoomHub) GetRoom() *room.Room {
 	if r == nil {
 		return nil
@@ -54,6 +56,7 @@ func (r *RoomHub) GetRoom() *room.Room {
 	return r.room
 }
 
+// AddClient regista um cliente no RoomHub.
 func (r *RoomHub) AddClient(client *Client) {
 	if r == nil || client == nil {
 		return

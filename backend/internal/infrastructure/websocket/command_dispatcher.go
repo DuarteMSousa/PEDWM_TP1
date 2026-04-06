@@ -1,38 +1,38 @@
 package websocket
 
-// CommandDispatcher é o componente central responsável por encaminhar
-// mensagens WebSocket recebidas dos clientes para os respetivos handlers
-// de comando. Cada tipo de mensagem (identificado pelo campo "type") é
-// associado a um CommandHandler registado previamente.
+// CommandDispatcher is the central component responsible for routing
+// WebSocket messages received from clients to the appropriate command handlers.
+// Each message type (identified by the "type" field) is associated with a
+// previously registered CommandHandler.
 //
-// Esta abordagem permite desacoplar a camada de transporte WebSocket da
-// lógica de processamento de cada comando, facilitando a extensibilidade
-// do sistema — para suportar um novo comando basta registar um novo handler.
+// This approach allows decoupling the WebSocket transport layer from the
+// command processing logic, facilitating system extensibility — to support
+// a new command, simply register a new handler.
 
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"sync"
 )
 
-// CommandHandler define a assinatura de uma função capaz de processar
-// um comando recebido via WebSocket. Recebe o contexto do comando
-// (identificação do jogador, sala e referência ao cliente) e o payload
-// JSON específico do comando.
+// CommandHandler defines the signature of a function capable of processing
+// a command received via WebSocket. It receives the command context
+// (player identification, room, and reference to the client) and the specific
+// JSON payload of the command.
 type CommandHandler func(ctx *CommandContext, payload json.RawMessage) error
 
-// CommandContext encapsula a informação contextual associada a um comando
-// recebido: o identificador do jogador, a sala a que pertence e a
-// referência ao cliente WebSocket que originou o comando.
+// CommandContext encapsulates the contextual information associated with a command
+// received: the player identifier, the room it belongs to, and the
+// reference to the WebSocket client that originated the command.
 type CommandContext struct {
 	PlayerID string
 	RoomID   string
 	Client   *Client
 }
 
-// CommandDispatcher mantém um registo de handlers indexados pelo tipo
-// de mensagem e encaminha cada mensagem recebida para o handler adequado.
+// CommandDispatcher maintains a registry of handlers indexed by message type
+// and routes each received message to the appropriate handler.
 type CommandDispatcher struct {
 	mu       sync.RWMutex
 	handlers map[string]CommandHandler
@@ -43,6 +43,7 @@ var (
 	onceCommandDispatcher     sync.Once
 )
 
+// GetCommandDispatcherInstance returns the singleton instance of CommandDispatcher.
 func GetCommandDispatcherInstance() *CommandDispatcher {
 	onceCommandDispatcher.Do(func() {
 		commandDispatcherInstance = &CommandDispatcher{
@@ -52,8 +53,8 @@ func GetCommandDispatcherInstance() *CommandDispatcher {
 	return commandDispatcherInstance
 }
 
-// Register associa um tipo de mensagem a um CommandHandler. Se já existir
-// um handler para o mesmo tipo, este é substituído.
+// Register associates a message type with a CommandHandler. If a handler
+// already exists for the same type, it is replaced.
 func (d *CommandDispatcher) Register(messageType string, handler CommandHandler) {
 	if d == nil || handler == nil {
 		return
@@ -61,10 +62,10 @@ func (d *CommandDispatcher) Register(messageType string, handler CommandHandler)
 	d.handlers[messageType] = handler
 }
 
-// Dispatch encaminha uma ClientMessage para o handler registado para o
-// respetivo tipo. Caso o comando provoque um panic (situação comum nos
-// comandos de domínio existentes), este é recuperado e devolvido como erro.
-// Se não existir handler para o tipo de mensagem, é devolvido um erro.
+// Dispatch routes a ClientMessage to the registered handler for the
+// respective type. If the command causes a panic (common in existing
+// domain commands), it is recovered and returned as an error.
+// If no handler exists for the message type, an error is returned.
 func (d *CommandDispatcher) Dispatch(ctx *CommandContext, msg ClientMessage) (err error) {
 	if d == nil {
 		return fmt.Errorf("dispatcher not configured")
@@ -75,12 +76,12 @@ func (d *CommandDispatcher) Dispatch(ctx *CommandContext, msg ClientMessage) (er
 		return fmt.Errorf("unknown command: %s", msg.Type)
 	}
 
-	// Os comandos de domínio existentes utilizam panic para sinalizar erros.
-	// Recuperamos aqui para devolver uma resposta de erro ao cliente em vez
-	// de terminar a goroutine.
+	// Existing domain commands use panic to signal errors.
+	// We recover here to return an error response to the client instead
+	// of terminating the goroutine.
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[dispatcher] panic recovered for command %q: %v", msg.Type, r)
+			slog.Error("panic recovered in dispatcher", "command", msg.Type, "panic", r)
 			if e, ok := r.(error); ok {
 				err = e
 			} else {
@@ -92,10 +93,10 @@ func (d *CommandDispatcher) Dispatch(ctx *CommandContext, msg ClientMessage) (er
 	return handler(ctx, msg.Payload)
 }
 
-// HandleMessage é o ponto de entrada principal invocado pelo ReadPump do
-// cliente. Faz o parsing da mensagem JSON, constrói o contexto e despacha
-// para o handler adequado. A resposta (sucesso ou erro) é enviada de volta
-// ao cliente que originou o comando.
+// HandleMessage is the main entry point invoked by the client's ReadPump.
+// It parses the JSON message, constructs the context, and dispatches
+// it to the appropriate handler. The response (success or error) is sent back
+// to the client that originated the command.
 func (d *CommandDispatcher) HandleMessage(client *Client, raw []byte) {
 	if d == nil || client == nil {
 		return
@@ -126,6 +127,7 @@ func (d *CommandDispatcher) HandleMessage(client *Client, raw []byte) {
 	d.sendSuccess(client, msg.Type)
 }
 
+// sendError constructs an error response message and enqueues it to the client.
 func (d *CommandDispatcher) sendError(client *Client, msgType string, errMsg string) {
 	resp := ServerMessage{
 		Type:    msgType,
@@ -139,6 +141,7 @@ func (d *CommandDispatcher) sendError(client *Client, msgType string, errMsg str
 	client.Enqueue(data)
 }
 
+// sendSuccess constructs a success response message and enqueues it to the client.
 func (d *CommandDispatcher) sendSuccess(client *Client, msgType string) {
 	resp := ServerMessage{
 		Type:    msgType,

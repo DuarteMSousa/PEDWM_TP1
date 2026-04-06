@@ -14,6 +14,7 @@ var (
 	ErrInvalidPassword  = errors.New("invalid password")
 )
 
+// User representa um utilizador registado no sistema.
 type User struct {
 	ID       string `json:"id"`
 	Username string `json:"username"`

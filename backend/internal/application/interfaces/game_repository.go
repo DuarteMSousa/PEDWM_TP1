@@ -2,6 +2,7 @@ package interfaces
 
 import "backend/internal/domain/game"
 
+// GameRepository defines the contract for game persistence.
 type GameRepository interface {
 	Save(g *game.Game) error
 	FindByID(id string) (*game.Game, error)

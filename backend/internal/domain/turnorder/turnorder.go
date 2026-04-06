@@ -12,15 +12,15 @@ var (
 	ErrTurnOrderPlayerAbsent = errors.New("player id not present in turn order")
 )
 
-// TurnOrder garante ordem determinística de turnos (crítico em Go, não usar map iteration).
+// TurnOrder implements a deterministic turn order.
 
-// TurnOrder implementa uma fila circular (queue) para ordem de turnos.
+// TurnOrder implements a circular queue for turn order.
 type TurnOrder struct {
-	players        []*player.Player // fila de jogadores
-	playersHistory []*player.Player // histórico de jogadores para reentrada
+	players        []*player.Player // queue of players
+	playersHistory []*player.Player // history of players for re-entry
 }
 
-// NewTurnOrder cria uma fila de turnos começando pelo líder e seguindo a ordem original, circular.
+// NewTurnOrder creates a turn order starting from the leader and following the original order.
 func NewTurnOrder(leaderId string, players []*player.Player) (TurnOrder, error) {
 	if len(players) != 4 {
 		return TurnOrder{}, ErrTurnOrderInvalidSize
@@ -51,7 +51,7 @@ func NewTurnOrder(leaderId string, players []*player.Player) (TurnOrder, error) 
 	if leaderIdx == -1 {
 		return TurnOrder{}, errors.New("leader id not found in players")
 	}
-	// Rearranjar para começar pelo líder
+	// Reorder players starting from leader
 	cp := make([]*player.Player, len(orderedPlayers))
 	for i := 0; i < len(orderedPlayers); i++ {
 		cp[i] = orderedPlayers[(leaderIdx+i)%len(orderedPlayers)]
@@ -59,7 +59,7 @@ func NewTurnOrder(leaderId string, players []*player.Player) (TurnOrder, error) 
 	return TurnOrder{players: cp}, nil
 }
 
-// Contains verifica se o jogador está na fila.
+// Contains checks if the player is in the queue.
 func (o TurnOrder) Contains(playerID string) bool {
 	for _, p := range o.players {
 		if p.ID == playerID {
@@ -69,7 +69,7 @@ func (o TurnOrder) Contains(playerID string) bool {
 	return false
 }
 
-// Next retorna o próximo jogador
+// Next returns the next player
 func (o TurnOrder) Next() (string, error) {
 	if len(o.players) == 0 {
 		return "", errors.New("turn order is empty")
@@ -77,10 +77,12 @@ func (o TurnOrder) Next() (string, error) {
 	return o.players[0].ID, nil
 }
 
+// Enqueue adds a player to the end of the queue.
 func (o *TurnOrder) Enqueue(player *player.Player) {
 	o.players = append(o.players, player)
 }
 
+// Dequeue removes and returns the first player in the queue.
 func (o *TurnOrder) Dequeue() (string, error) {
 	if len(o.players) == 0 {
 		return "", errors.New("turn order is empty")
@@ -91,6 +93,7 @@ func (o *TurnOrder) Dequeue() (string, error) {
 	return first.ID, nil
 }
 
+// Remove removes a player from the queue by ID.
 func (o *TurnOrder) Remove(playerID string) error {
 	for i, p := range o.players {
 		if p.ID == playerID {
@@ -101,6 +104,9 @@ func (o *TurnOrder) Remove(playerID string) error {
 	return ErrTurnOrderPlayerAbsent
 }
 
+// AddPlayer adds a player back to the queue.
+// If the player has already played, they are added to the end of the queue.
+// Otherwise, they are added in their original position.
 func (o *TurnOrder) AddPlayer(player *player.Player) {
 	alreadyPlayed := false
 	for _, p := range o.playersHistory {

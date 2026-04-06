@@ -5,11 +5,11 @@ import (
 	"backend/internal/domain/events"
 	"backend/internal/domain/player"
 	"errors"
-	"log"
+	"log/slog"
 	"math/rand"
 )
 
-// RoundPlayingState implementa RoundState
+// RoundPlayingState implements RoundState
 type RoundPlayingState struct {
 	round *Round
 }
@@ -20,10 +20,12 @@ var (
 	ErrBotCardNotFound   = errors.New("bot card not found")
 )
 
+// NewRoundPlayingState creates a new instance of RoundPlayingState
 func NewRoundPlayingState(r *Round) *RoundPlayingState {
 	return &RoundPlayingState{round: r}
 }
 
+// Enter initializes the round by selecting a random player to start the first trick and then updates the state.
 func (s *RoundPlayingState) Enter() {
 	players := make([]*player.Player, 0)
 
@@ -40,6 +42,11 @@ func (s *RoundPlayingState) Enter() {
 	s.round.State.Update()
 }
 
+// Update checks if the current trick has ended.
+// If it has, it calculates the points for the trick, determines the winner, and updates the scores.
+// If the round has ended, it transitions to the RoundFinishedState.
+// If not, it starts a new trick with the winning player as the leader.
+// If the current trick has not ended, it determines the next player and if it's a bot, it uses the bot strategy to choose a card to play.
 func (s *RoundPlayingState) Update() {
 
 	if s.round.CurrentTrick.RuleStrategy.HasEnded(*s.round.CurrentTrick) {
@@ -104,7 +111,7 @@ func (s *RoundPlayingState) Update() {
 
 			err = s.round.PlayCard(nextPlayer.ID, chosenCard.ID)
 
-			log.Printf("Bot %s played card %s of suit %s", nextPlayer.Name, chosenCard.Rank, chosenCard.Suit)
+			slog.Debug("bot played card", "bot", nextPlayer.Name, "rank", chosenCard.Rank, "suit", chosenCard.Suit)
 			if err != nil {
 				panic(err)
 			}

@@ -9,6 +9,7 @@ import (
 	gws "github.com/gorilla/websocket"
 )
 
+// Handler manages the HTTP → WebSocket upgrade for client connections.
 type Handler struct {
 	Hub         *Hub
 	Upgrader    gws.Upgrader
@@ -16,6 +17,7 @@ type Handler struct {
 	roomService websocket_interfaces.RoomService
 }
 
+// NewHandler creates a new WebSocket handler.
 func NewHandler(hub *Hub, dispatcher *CommandDispatcher, roomService websocket_interfaces.RoomService) *Handler {
 	return &Handler{
 		Hub:         hub,
@@ -36,6 +38,8 @@ func NewHandler(hub *Hub, dispatcher *CommandDispatcher, roomService websocket_i
 	}
 }
 
+// ServeHTTP processes the HTTP request, upgrades it to a WebSocket, and starts
+// the read and write goroutines.
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h == nil || h.Hub == nil {
 		http.Error(w, "websocket hub not configured", http.StatusInternalServerError)

@@ -6,6 +6,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// EnsureSchema creates the necessary tables, ENUM types, and indexes in the database.
+// The operations are idempotent (IF NOT EXISTS).
 func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 	statements := []string{
 

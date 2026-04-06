@@ -6,12 +6,15 @@ var (
 	ErrRoundNotEnded = errors.New("round not ended")
 )
 
+// SuecaRoundRuleStrategy implements the rules of Sueca at the round level.
 type SuecaRoundRuleStrategy struct{}
 
+// NewSuecaRoundRuleStrategy creates a new instance of the strategy.
 func NewSuecaRoundRuleStrategy() *SuecaRoundRuleStrategy {
 	return &SuecaRoundRuleStrategy{}
 }
 
+// Winner returns the ID of the team that won the round.
 func (s *SuecaRoundRuleStrategy) Winner(Round *Round) string {
 
 	if !Round.RuleStrategy.HasEnded(Round) {
@@ -30,6 +33,7 @@ func (s *SuecaRoundRuleStrategy) Winner(Round *Round) string {
 	return winner
 }
 
+// HasEnded checks if the round has ended (all hands are empty).
 func (s *SuecaRoundRuleStrategy) HasEnded(Round *Round) bool {
 	endedHands := 0
 	totalPlayers := 0
@@ -45,6 +49,8 @@ func (s *SuecaRoundRuleStrategy) HasEnded(Round *Round) bool {
 	return endedHands == totalPlayers
 }
 
+// CalculateCurrentTrickRoundPoints calculates the round points
+// awarded to each team based on the current trick.
 func (s *SuecaRoundRuleStrategy) CalculateCurrentTrickRoundPoints(Round *Round) map[string]int {
 	points := make(map[string]int)
 

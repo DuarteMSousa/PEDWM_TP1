@@ -10,6 +10,9 @@ import (
 	"strconv"
 )
 
+// CreateSuecaGame creates a Sueca game from the players in the room.
+// Players are alternately distributed into two teams. If there are
+// fewer than 4 players, bots are automatically added.
 func CreateSuecaGame(players map[string]*player.Player, botStrategy bot_strategy.IBotStrategy, eventBus *events.EventBus) *game.Game {
 	roomPlayers := make([]*player.Player, 0, len(players))
 	for _, p := range players {

@@ -1,5 +1,6 @@
 package user
 
+// UserStats armazena as estatísticas de jogo de um utilizador.
 type UserStats struct {
 	UserId string `json:"user_id"`
 	Games  int    `json:"games"`
@@ -7,6 +8,7 @@ type UserStats struct {
 	Elo    int    `json:"elo"`
 }
 
+// NewUserStats cria estatísticas iniciais com ELO base de 1000.
 func NewUserStats(userId string) *UserStats {
 	return &UserStats{
 		UserId: userId,
@@ -16,6 +18,7 @@ func NewUserStats(userId string) *UserStats {
 	}
 }
 
+// RecordGame regista o resultado de um jogo, atualizando contagens e ELO (±10).
 func (s *UserStats) RecordGame(won bool) {
 	s.Games++
 	if won {

@@ -2,6 +2,7 @@ package player
 
 import "backend/internal/domain/hand"
 
+// PlayerType distinguishes between human players and bots.
 type PlayerType string
 
 const (
@@ -9,6 +10,7 @@ const (
 	BOT   PlayerType = "BOT"
 )
 
+// Player represents a player in a room or game.
 type Player struct {
 	ID       string     `json:"id"`
 	Name     string     `json:"name"`
@@ -17,6 +19,7 @@ type Player struct {
 	Hand     *hand.Hand `json:"hand"`
 }
 
+// NewPlayer creates a human player with an empty hand.
 func NewPlayer(id, name string, sequence int) *Player {
 	return &Player{
 		ID:       id,

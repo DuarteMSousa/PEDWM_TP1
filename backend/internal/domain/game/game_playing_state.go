@@ -5,20 +5,23 @@ import (
 	"backend/internal/domain/round"
 )
 
-// GamePlayingState implementa GameState
+// GamePlayingState implements GameState
 type GamePlayingState struct {
 	game *Game
 }
 
+// NewGamePlayingState creates a new game playing state.
 func NewGamePlayingState(g *Game) *GamePlayingState {
 	return &GamePlayingState{game: g}
 }
 
+// Enter sets the game status to IN_PROGRESS and updates the game state.
 func (s *GamePlayingState) Enter() {
 	s.game.Status = IN_PROGRESS
 	s.game.State.Update()
 }
 
+// Update checks if the current round has ended and updates the game state accordingly.
 func (s *GamePlayingState) Update() {
 	s.game.UpdateRoundState()
 

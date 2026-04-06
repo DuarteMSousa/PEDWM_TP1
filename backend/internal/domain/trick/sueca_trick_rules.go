@@ -5,6 +5,7 @@ import (
 	"errors"
 )
 
+// SuecaTrickRules implements the rules of Sueca for a trick.
 type SuecaTrickRules struct{}
 
 var (
@@ -12,6 +13,9 @@ var (
 	ErrWinningPlayerNotFound = errors.New("winning player not found in any team")
 )
 
+// WinningPlayer determines the player who won the trick.
+// The winner is determined by the highest card of the leading suit,
+// or by a trump card if present.
 func (s SuecaTrickRules) WinningPlayer(trick Trick) (string, error) {
 	if !trick.RuleStrategy.HasEnded(trick) {
 		return "", ErrTrickNotEnded
@@ -32,6 +36,7 @@ func (s SuecaTrickRules) WinningPlayer(trick Trick) (string, error) {
 	return winningPlay.PlayerID, nil
 }
 
+// CardStrength returns the strength of a card in Sueca (A=10, 7=9, K=8, ...).
 func (s SuecaTrickRules) CardStrength(r card.Rank) int {
 	switch r {
 	case card.A:
@@ -59,6 +64,7 @@ func (s SuecaTrickRules) CardStrength(r card.Rank) int {
 	}
 }
 
+// WinningTeam returns the ID of the team that won the trick.
 func (s SuecaTrickRules) WinningTeam(trick Trick) (string, error) {
 	winningPlayerID, err := s.WinningPlayer(trick)
 	if err != nil {
@@ -77,6 +83,7 @@ func (s SuecaTrickRules) WinningTeam(trick Trick) (string, error) {
 
 }
 
+// HasEnded checks if all players have played in this trick.
 func (s SuecaTrickRules) HasEnded(trick Trick) bool {
 	playerCount := 0
 	for _, team := range trick.Teams {
@@ -86,6 +93,8 @@ func (s SuecaTrickRules) HasEnded(trick Trick) bool {
 	return len(trick.Plays) == playerCount
 }
 
+// ValidatePlay checks if the play respects the rules of Sueca
+// (turn order, obligation to follow the leading suit).
 func (s SuecaTrickRules) ValidatePlay(trick Trick, play Play) bool {
 
 	if trick.RuleStrategy.HasEnded(trick) {

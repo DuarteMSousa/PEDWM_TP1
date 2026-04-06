@@ -5,6 +5,7 @@ import (
 	"backend/internal/domain/deck"
 )
 
+// CreateSuecaDeck cria um baralho de Sueca com 40 cartas (4 naipes × 10 valores).
 func CreateSuecaDeck() *deck.Deck {
 
 	cards := make([]card.Card, 0, 40)

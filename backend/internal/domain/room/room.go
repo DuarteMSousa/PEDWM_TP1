@@ -7,12 +7,13 @@ import (
 	"backend/internal/domain/player"
 	bot_strategy "backend/internal/domain/player/botStrategy"
 	"errors"
-	"log"
+	"log/slog"
 	"math/rand"
 	"strings"
 	"time"
 )
 
+// RoomStatus represents the status of a room.
 type RoomStatus string
 
 const (
@@ -33,6 +34,7 @@ var (
 	ErrInvalidPlayerID        = errors.New("invalid player id")
 )
 
+// Room is the root aggregate that represents a game room.
 type Room struct {
 	ID       string                    `json:"id"`
 	HostID   string                    `json:"hostId"`
@@ -45,6 +47,7 @@ type Room struct {
 	CreatedAt   time.Time                 `json:"createdAt"`
 }
 
+// NewRoom creates a new open room with the specified host.
 func NewRoom(id string, hostId string, hostUsername string) (*Room, error) {
 	id = strings.TrimSpace(id)
 	if id == "" {
@@ -73,6 +76,7 @@ func NewRoom(id string, hostId string, hostUsername string) (*Room, error) {
 	}, nil
 }
 
+// AddPlayer adds a player to the room (maximum 4). Publishes PlayerJoinedEvent.
 func (r *Room) AddPlayer(userID, username string) error {
 	if r == nil {
 		return errors.New("room is nil")
@@ -108,8 +112,10 @@ func (r *Room) AddPlayer(userID, username string) error {
 	return nil
 }
 
+// RemovePlayer removes a player from the room. If the game is active,
+// the player is replaced by a bot. If the room becomes empty, it is closed.
 func (r *Room) RemovePlayer(playerID string) error {
-	log.Printf("RemovePlayer entered for player %s in room %s", playerID, r.ID)
+	slog.Debug("removing a player", "playerID", playerID, "roomID", r.ID)
 	if r == nil {
 		return errors.New("room is nil")
 	}
@@ -130,7 +136,7 @@ func (r *Room) RemovePlayer(playerID string) error {
 		playerErr := r.Game.RemovePlayer(playerID)
 
 		if playerErr != nil {
-			log.Printf("failed to sync game state after player %s left room %s: %v", playerID, r.ID, playerErr)
+			slog.Warn("failed to synchronize game state after player left", "playerID", playerID, "roomID", r.ID, "error", playerErr)
 		}
 	} else {
 		if r.EventBus != nil {
@@ -152,8 +158,8 @@ func (r *Room) RemovePlayer(playerID string) error {
 		}
 	}
 
-	log.Printf("Player %s left room %s", removedPlayer.ID, r.ID)
-	log.Printf("CurrentPlayers: %d", len(r.Players))
+	slog.Info("player left the room", "playerID", removedPlayer.ID, "roomID", r.ID)
+	slog.Debug("remaining players in the room", "roomID", r.ID, "count", len(r.Players))
 
 	if len(r.Players) == 0 {
 		r.Status = CLOSED
@@ -161,13 +167,14 @@ func (r *Room) RemovePlayer(playerID string) error {
 			event := events.NewRoomClosedEvent(r.ID)
 			event.RoomID = r.ID
 			r.EventBus.Publish(event)
-			log.Printf("ROOMCLOSED PUBLISHED")
+			slog.Info("ROOM_CLOSED event published", "roomID", r.ID)
 		}
 	}
 
 	return nil
 }
 
+// CanStartGame checks if the room is in the OPEN state.
 func (r *Room) CanStartGame() bool {
 	if r == nil {
 		return false
@@ -175,6 +182,7 @@ func (r *Room) CanStartGame() bool {
 	return r.Status == OPEN
 }
 
+// CreateGame creates a Sueca game from the players in the room.
 func (r *Room) CreateGame() error {
 	if !r.CanStartGame() {
 		return ErrCannotStartGamePlayers
@@ -192,10 +200,12 @@ func (r *Room) CreateGame() error {
 	return nil
 }
 
+// SetEventBus sets the event bus for publishing room events.
 func (r *Room) SetEventBus(eventBus *events.EventBus) {
 	r.EventBus = eventBus
 }
 
+// Close closes the room by setting its status to CLOSED.
 func (r *Room) Close() {
 	if r == nil {
 		return
@@ -203,6 +213,7 @@ func (r *Room) Close() {
 	r.Status = CLOSED
 }
 
+// SetBotStrategy sets the bot strategy and publishes BotStrategyChangedEvent.
 func (r *Room) SetBotStrategy(strategy bot_strategy.IBotStrategy) {
 	if r == nil {
 		return

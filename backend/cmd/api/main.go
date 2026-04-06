@@ -1,3 +1,6 @@
+// The main package is the entry point for the Sueca game's backend application.
+// It configures and initializes all system components: database, event bus,
+// WebSocket hub, application services, GraphQL, and HTTP server.
 package main
 
 import (
@@ -9,7 +12,7 @@ import (
 	"backend/internal/infrastructure/persistence/postgres/repositories"
 	wstransport "backend/internal/infrastructure/websocket"
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -23,11 +26,22 @@ import (
 )
 
 func main() {
+	// Configure the global structured logger.
+	logLevel := slog.LevelInfo
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: logLevel,
+	}))
+
+	slog.SetDefault(logger)
+
 	ctx := context.Background()
 
 	// ========================
-	// Infra base
+	// Base infrastructure
 	// ========================
+	slog.Info("initializing base infrastructure")
+
 	hub := wstransport.GetHubInstance()
 
 	eventBus := events.NewEventBus()
@@ -37,14 +51,19 @@ func main() {
 	// ========================
 	// Persistence
 	// ========================
+	slog.Info("establishing database connection")
+
 	pool, err := postgres.NewPostgresPool(ctx, os.Getenv("DATABASE_URL"))
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("failed to connect to database", "error", err)
+		os.Exit(1)
 	}
 
 	if err := postgres.EnsureSchema(ctx, pool); err != nil {
-		log.Fatal(err)
+		slog.Error("failed to ensure database schema", "error", err)
+		os.Exit(1)
 	}
+	slog.Info("database schema verified successfully")
 
 	repo := repositories.NewRoomPostgresRepository(pool)
 	userRepo := repositories.NewUserPostgresRepository(pool)
@@ -56,6 +75,8 @@ func main() {
 	// ========================
 	// Command Dispatcher
 	// ========================
+	slog.Info("registering command handlers")
+
 	dispatcher := wstransport.GetCommandDispatcherInstance()
 	dispatcher.Register("play_card", wstransport.NewPlayCardHandler(hub))
 	dispatcher.Register("change_bot_strategy", wstransport.NewChangeBotStrategyHandler(hub))
@@ -63,6 +84,8 @@ func main() {
 	// ========================
 	// Application
 	// ========================
+	slog.Info("initializing application services")
+
 	eventService := services.NewEventService(eventRepo)
 	roomService := services.NewRoomService(repo, gameRepo, userRepo, eventService, hub)
 	userService := services.NewUserService(userRepo, userStatsRepo)
@@ -73,6 +96,8 @@ func main() {
 	// ========================
 	// Event Dispatcher
 	// ========================
+	slog.Info("registering event handlers")
+
 	eventDispatcher := events_infrastructure.GetEventDispatcherInstance()
 	eventDispatcher.Register(string(events.EventPlayerLeft), events_infrastructure.NewPlayerLeftEventHandler(roomService))
 	eventDispatcher.Register(string(events.EventGameEnded), events_infrastructure.NewGameEndedEventHandler(userStatsService, gameService))
@@ -81,6 +106,8 @@ func main() {
 	// ========================
 	// GraphQL
 	// ========================
+	slog.Info("configuring GraphQL server")
+
 	resolver := &graph.Resolver{
 		RoomService:       roomService,
 		UserService:       userService,
@@ -119,13 +146,15 @@ func main() {
 		addr = ":7000"
 	}
 
-	log.Printf("server running at http://localhost%s", addr)
+	slog.Info("servidor HTTP a iniciar", "addr", addr)
 
 	if err := http.ListenAndServe(addr, withCORS(mux)); err != nil {
-		log.Fatal(err)
+		slog.Error("servidor HTTP terminou com erro", "error", err)
+		os.Exit(1)
 	}
 }
 
+// withCORS wraps an http.Handler with permissive CORS headers.
 func withCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")

@@ -8,14 +8,17 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// EventPostgresRepository implements EventRepository with PostgreSQL.
 type EventPostgresRepository struct {
 	pool *pgxpool.Pool
 }
 
+// NewEventPostgresRepository creates a new event repository.
 func NewEventPostgresRepository(pool *pgxpool.Pool) *EventPostgresRepository {
 	return &EventPostgresRepository{pool: pool}
 }
 
+// Save persists or updates an event (upsert).
 func (r *EventPostgresRepository) Save(event events.Event) error {
 	ctx := context.Background()
 
@@ -39,6 +42,7 @@ func (r *EventPostgresRepository) Save(event events.Event) error {
 	return err
 }
 
+// FindByRoomID returns the events associated with a room (via games).
 func (r *EventPostgresRepository) FindByRoomID(roomID string) ([]events.Event, error) {
 	ctx := context.Background()
 	rows, err := r.pool.Query(ctx, `
@@ -70,6 +74,7 @@ func (r *EventPostgresRepository) FindByRoomID(roomID string) ([]events.Event, e
 	return eventsList, nil
 }
 
+// FindByGameID returns the events associated with a game.
 func (r *EventPostgresRepository) FindByGameID(gameID string) ([]events.Event, error) {
 	ctx := context.Background()
 	rows, err := r.pool.Query(ctx, `
@@ -100,6 +105,7 @@ func (r *EventPostgresRepository) FindByGameID(gameID string) ([]events.Event, e
 	return eventsList, nil
 }
 
+// UnmarshalPayload deserializes the JSON payload of an event according to its type.
 func UnmarshalPayload(eventType events.EventType, raw []byte) any {
 	if len(raw) == 0 {
 		return nil

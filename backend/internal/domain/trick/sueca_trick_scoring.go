@@ -2,8 +2,10 @@ package trick
 
 import "backend/internal/domain/card"
 
+// SuecaTrickScoring implements the scoring of cards in Sueca.
 type SuecaTrickScoring struct{}
 
+// CardPoints returns the points of a card in Sueca (A=11, 7=10, K=4, J=3, Q=2, rest=0).
 func (s SuecaTrickScoring) CardPoints(card card.Card) int {
 	switch card.Rank {
 	case "A":
@@ -21,6 +23,7 @@ func (s SuecaTrickScoring) CardPoints(card card.Card) int {
 	}
 }
 
+// TrickPoints calculates the total points of a trick.
 func (s SuecaTrickScoring) TrickPoints(plays []Play) int {
 
 	total := 0

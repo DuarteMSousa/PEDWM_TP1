@@ -9,10 +9,10 @@ import (
 	"github.com/google/uuid"
 )
 
+// EventType identifies the type of a domain event.
 type EventType string
 
 const (
-	// EventGameCreated   EventType = "GAME_CREATED"
 	EventRoundStarted  EventType = "ROUND_STARTED"
 	EventTrickStarted  EventType = "TRICK_STARTED"
 	EventTrumpRevealed EventType = "TRUMP_REVEALED"
@@ -32,6 +32,8 @@ const (
 	EventBotStrategyChanged EventType = "BOT_STRATEGY_CHANGED"
 )
 
+// Event represents an immutable domain event that records a
+// significant occurrence in the system (e.g., card played, round ended).
 type Event struct {
 	ID        string    `json:"id"`
 	Type      EventType `json:"type"`
@@ -42,6 +44,7 @@ type Event struct {
 	Payload   any       `json:"payload,omitempty"`
 }
 
+// Payload structs for different event types. Each struct captures the relevant data for its corresponding event.
 type GameCreatedPayload struct {
 	CreatorID string `json:"creatorId"`
 	Settings  any    `json:"settings,omitempty"`
@@ -119,11 +122,13 @@ type BotStrategyChangedPayload struct {
 	BotStrategy bot_strategy.BotStrategyType `json:"botStrategy"`
 }
 
+// WithPayload returns a copy of the event with the specified payload.
 func (e Event) WithPayload(payload any) Event {
 	e.Payload = payload
 	return e
 }
 
+// newEvent creates a base event with ID, type, timestamp, and payload.
 func newEvent(typ EventType, gameID string, payload any) Event {
 	now := time.Now().UTC()
 	return Event{
@@ -134,10 +139,6 @@ func newEvent(typ EventType, gameID string, payload any) Event {
 		Payload:   payload,
 	}
 }
-
-// func NewGameCreatedEvent(gameID string, creatorID string, settings any) Event {
-// 	return newEvent(EventGameCreated, gameID, GameCreatedPayload{CreatorID: creatorID, Settings: settings})
-// }
 
 func NewPlayerJoinedEvent(gameID string, playerID string, name string, slot int) Event {
 	return newEvent(EventPlayerJoined, gameID, PlayerJoinedPayload{PlayerID: playerID, Name: name, Slot: slot})

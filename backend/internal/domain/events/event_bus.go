@@ -1,23 +1,24 @@
 package events
 
 import (
-	"log"
+	"log/slog"
 	"sync"
 )
 
-// Subject contract for domain events.
+// Subject represents the contract for domain events.
 type Subject interface {
 	Subscribe(observer Observer)
 	Unsubscribe(observer Observer)
 	Publish(event Event)
 }
 
-// Observer contract for domain events.
+// Observer represents the contract for domain events.
 type Observer interface {
 	Update(event Event)
 }
 
-// EventBus dispatches domain events to subscribed observers.
+// EventBus distributes domain events to registered observers.
+// It is thread-safe through sync.RWMutex.
 type EventBus struct {
 	mu          sync.RWMutex
 	subscribers []Observer
@@ -28,18 +29,21 @@ var (
 	defaultBus   = NewEventBus()
 )
 
+// NewEventBus creates a new event bus without observers.
 func NewEventBus() *EventBus {
 	return &EventBus{
 		subscribers: make([]Observer, 0),
 	}
 }
 
+// DefaultBus returns the global instance of the event bus.
 func DefaultBus() *EventBus {
 	defaultBusMu.RLock()
 	defer defaultBusMu.RUnlock()
 	return defaultBus
 }
 
+// SetDefaultBus replaces the global instance of the event bus.
 func SetDefaultBus(bus *EventBus) {
 	if bus == nil {
 		return
@@ -50,6 +54,7 @@ func SetDefaultBus(bus *EventBus) {
 	defaultBusMu.Unlock()
 }
 
+// Subscribe registers an observer to receive events.
 func (b *EventBus) Subscribe(observer Observer) {
 	if b == nil || observer == nil {
 		return
@@ -61,6 +66,7 @@ func (b *EventBus) Subscribe(observer Observer) {
 	b.subscribers = append(b.subscribers, observer)
 }
 
+// Unsubscribe removes an observer from the bus.
 func (b *EventBus) Unsubscribe(observer Observer) {
 	if b == nil || observer == nil {
 		return
@@ -76,12 +82,13 @@ func (b *EventBus) Unsubscribe(observer Observer) {
 	}
 }
 
+// Publish notifies all registered observers with the given event.
 func (b *EventBus) Publish(event Event) {
 	if b == nil {
 		return
 	}
 
-	log.Printf("Publishing event: %s, GameID: %s, RoomID: %s", event.Type, event.GameID, event.RoomID)
+	slog.Debug("publishing event", "type", event.Type, "gameID", event.GameID, "roomID", event.RoomID)
 
 	b.mu.RLock()
 	observers := make([]Observer, 0, len(b.subscribers))

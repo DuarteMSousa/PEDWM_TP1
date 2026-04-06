@@ -6,6 +6,8 @@ import (
 	"sync"
 )
 
+// Hub manages all the active RoomHubs, indexed by roomID.
+// It is a thread-safe singleton.
 type Hub struct {
 	mu    sync.RWMutex
 	rooms map[string]*RoomHub
@@ -16,6 +18,7 @@ var (
 	onceHub     sync.Once
 )
 
+// GetHubInstance returns the singleton instance of the Hub.
 func GetHubInstance() *Hub {
 	onceHub.Do(func() {
 		hubInstance = &Hub{
@@ -25,6 +28,7 @@ func GetHubInstance() *Hub {
 	return hubInstance
 }
 
+// CreateRoomHub creates and registers a new RoomHub for the given room.
 func (h *Hub) CreateRoomHub(room *room.Room) *RoomHub {
 	if h == nil || room == nil {
 		return nil
@@ -43,6 +47,7 @@ func (h *Hub) CreateRoomHub(room *room.Room) *RoomHub {
 	return roomHub
 }
 
+// GetRoomHub returns the RoomHub associated with a room.
 func (h *Hub) GetRoomHub(roomID string) *RoomHub {
 	roomID = strings.TrimSpace(roomID)
 	if roomID == "" {
@@ -59,6 +64,7 @@ func (h *Hub) GetRoomHub(roomID string) *RoomHub {
 	return nil
 }
 
+// GetRoom returns the Room entity of a room.
 func (h *Hub) GetRoom(roomID string) *room.Room {
 	roomHub := h.GetRoomHub(roomID)
 	if roomHub == nil {
@@ -69,6 +75,7 @@ func (h *Hub) GetRoom(roomID string) *room.Room {
 
 }
 
+// AddClient registers a client in an existing RoomHub.
 func (h *Hub) AddClient(roomID string, client *Client) {
 	if h == nil || client == nil {
 		return
@@ -88,6 +95,7 @@ func (h *Hub) AddClient(roomID string, client *Client) {
 	roomHub.AddClient(client)
 }
 
+// RemoveClient removes a client from the RoomHub. If the room becomes empty, it is removed.
 func (h *Hub) RemoveClient(roomID string, client *Client) {
 	if h == nil || client == nil {
 		return
@@ -119,6 +127,7 @@ func (h *Hub) RemoveClient(roomID string, client *Client) {
 	//Aqui trata se quando o user sai e fecha se a sala e altera se oos players do game
 }
 
+// BroadcastToRoom sends a payload to all clients in a room.
 func (h *Hub) BroadcastToRoom(roomID string, payload []byte) {
 	if h == nil || len(payload) == 0 {
 		return

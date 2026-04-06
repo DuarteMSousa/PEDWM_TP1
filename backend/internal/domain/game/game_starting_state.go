@@ -6,15 +6,17 @@ import (
 	"backend/internal/domain/team"
 )
 
-// GameStartingState implementa GameState
+// GameStartingState implements GameState
 type GameStartingState struct {
 	game *Game
 }
 
+// NewGameStartingState creates a new starting game state.
 func NewGameStartingState(g *Game) *GameStartingState {
 	return &GameStartingState{game: g}
 }
 
+// Enter initializes the game, creates the first round, and transitions to the playing state.
 func (s *GameStartingState) Enter() {
 	teams := make([]team.Team, len(s.game.Teams))
 	i := 0
@@ -38,6 +40,7 @@ func (s *GameStartingState) Enter() {
 	s.game.State.Update()
 }
 
+// Update transitions the game to the playing state.
 func (s *GameStartingState) Update() {
 	s.game.State = NewGamePlayingState(s.game)
 	s.game.State.Enter()

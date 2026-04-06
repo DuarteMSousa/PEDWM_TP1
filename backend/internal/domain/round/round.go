@@ -22,6 +22,8 @@ var (
 	ErrTrickNotStarted       = errors.New("trick not started")
 )
 
+// Round represents a round of a Sueca game. It manages the deck,
+// the trump suit, the tricks, and the accumulated score of each team.
 type Round struct {
 	gameId       uuid.UUID
 	TrumpSuit    card.Suit
@@ -36,6 +38,7 @@ type Round struct {
 	events []events.Event
 }
 
+// NewRound creates a new round with the specified teams and bot strategy.
 func NewRound(gameId uuid.UUID, teams map[string]*team.Team, botStrategy bot_strategy.IBotStrategy) *Round {
 	round := &Round{
 		gameId:       gameId,
@@ -52,6 +55,7 @@ func NewRound(gameId uuid.UUID, teams map[string]*team.Team, botStrategy bot_str
 	return round
 }
 
+// StartNewTrick starts a new trick with the specified leader.
 func (r *Round) StartNewTrick(leaderID string) {
 	r.CurrentTrick = trick.NewTrick(leaderID, r.TrumpSuit, r.Teams)
 	r.AddEvent(events.NewTrickStartedEvent(r.gameId.String(), leaderID))
@@ -59,6 +63,7 @@ func (r *Round) StartNewTrick(leaderID string) {
 	r.State.Update()
 }
 
+// GetPlayerTeamId returns the ID of the team to which the player belongs.
 func (r *Round) GetPlayerTeamId(playerID string) (string, error) {
 	for _, team := range r.Teams {
 		for _, player := range team.Players {
@@ -70,6 +75,7 @@ func (r *Round) GetPlayerTeamId(playerID string) (string, error) {
 	return "", ErrWinningPlayerNotFound
 }
 
+// GetPlayer returns the player with the specified ID.
 func (r *Round) GetPlayer(playerID string) (*player.Player, error) {
 	for _, team := range r.Teams {
 		for _, player := range team.Players {
@@ -82,6 +88,7 @@ func (r *Round) GetPlayer(playerID string) (*player.Player, error) {
 	return nil, ErrPlayerNotFound
 }
 
+// PlayCard executes a card play, validating rules and advancing the state.
 func (r *Round) PlayCard(playerID string, cardId string) error {
 	if r.State == nil {
 		return ErrRoundNotStarted
@@ -128,15 +135,18 @@ func (r *Round) PlayCard(playerID string, cardId string) error {
 	return nil
 }
 
+// GetScore returns the current score of the round by team.
 func (r *Round) GetScore() map[string]int {
 	return r.score
 }
 
+// AddEvent adds an event to the round's event queue.
 func (r *Round) AddEvent(event events.Event) events.Event {
 	r.events = append(r.events, event)
 	return event
 }
 
+// CollectEvents returns and clears the accumulated events of the round.
 func (r *Round) CollectEvents() []events.Event {
 	collectedEvents := r.events
 	r.events = []events.Event{}

@@ -1,38 +1,32 @@
 package websocket
 
-// Client representa uma ligação WebSocket individual estabelecida entre um
-// cliente remoto e o servidor. Este componente é responsável por encapsular
-// a conexão ativa, gerir o envio assíncrono de mensagens e controlar o ciclo
-// de vida da comunicação associada a um utilizador dentro de uma determinada sala.
+// Client represents an individual WebSocket connection established between a
+// remote client and the server. This component is responsible for encapsulating
+// the active connection, managing asynchronous message sending, and controlling
+// the lifecycle of the communication associated with a user within a specific room.
 //
-// Cada instância de Client mantém a identificação do cliente, o identificador
-// da sala a que pertence, uma referência ao Hub responsável pela gestão global
-// das salas e a conexão WebSocket subjacente. Adicionalmente, dispõe de um
-// canal interno de envio (send), utilizado para enfileirar mensagens a transmitir
-// de forma assíncrona para o cliente.
+// Each Client instance maintains the client ID, the room ID it belongs to, a reference
+// to the Hub responsible for global room management, and the underlying WebSocket
+// connection. Additionally, it has an internal send channel used to queue messages
+// for asynchronous transmission to the client.
 //
-// A arquitetura adotada separa explicitamente as operações de leitura e de
-// escrita através dos métodos ReadPump e WritePump. O método ReadPump é
-// responsável por consumir mensagens recebidas da ligação WebSocket e por
-// monitorizar a continuidade da ligação através da receção de frames Pong.
-// Por sua vez, o método WritePump trata do envio de mensagens pendentes e da
-// transmissão periódica de frames Ping, permitindo verificar se a ligação se
-// mantém ativa.
+// The adopted architecture explicitly separates read and write operations through
+// the ReadPump and WritePump methods. The ReadPump method is responsible for
+// consuming messages received from the WebSocket connection and monitoring the
+// connection's continuity through the reception of Pong frames. Conversely, the
+// WritePump method handles sending pending messages and periodically transmitting
+// Ping frames, allowing verification of the connection's active status.
 //
-// Para reforçar a robustez do sistema, o componente define limites de leitura,
-// tempos máximos de espera e mecanismos de heartbeat baseados em Ping/Pong.
-// Esta abordagem reduz o risco de ligações bloqueadas ou inativas permanecerem
-// abertas indefinidamente.
+// To reinforce system robustness, the component defines read limits,
+// maximum wait times, and heartbeat mechanisms based on Ping/Pong.
+// This approach reduces the risk of blocked or inactive connections remaining
+// open indefinitely.
 //
-// O encerramento da ligação é controlado de forma segura através de sync.Once,
-// garantindo que a operação de fecho é executada apenas uma única vez, mesmo
-// em cenários concorrentes. Durante esse processo, o cliente é também removido
-// da sala correspondente no Hub, assegurando a consistência do estado interno
-// do sistema.
-//
-// Em conjunto, este componente constitui a unidade fundamental da comunicação
-// em tempo real, servindo de abstração para cada participante ligado ao sistema
-// através de WebSocket.
+// The closure of the connection is safely managed using sync.Once,
+// ensuring that the close operation is executed only once, even
+// in concurrent scenarios. During this process, the client is also removed
+// from the corresponding room in the Hub, ensuring the consistency of the internal
+// system state.
 
 import (
 	websocket_interfaces "backend/internal/infrastructure/websocket/interfaces"
@@ -61,6 +55,7 @@ type Client struct {
 	roomService websocket_interfaces.RoomService
 }
 
+// NewClient creates a new WebSocket client.
 func NewClient(id string, roomID string, conn *gws.Conn, hub *Hub, dispatcher *CommandDispatcher, roomService websocket_interfaces.RoomService) *Client {
 	return &Client{
 		id:          id,
@@ -73,6 +68,7 @@ func NewClient(id string, roomID string, conn *gws.Conn, hub *Hub, dispatcher *C
 	}
 }
 
+// Enqueue adds a message to the client's send queue.
 func (c *Client) Enqueue(payload []byte) bool {
 	if c == nil || len(payload) == 0 {
 		return false
@@ -86,6 +82,7 @@ func (c *Client) Enqueue(payload []byte) bool {
 	}
 }
 
+// Close safely closes the WebSocket connection (sync.Once).
 func (c *Client) Close() {
 	if c == nil {
 		return
@@ -100,6 +97,7 @@ func (c *Client) Close() {
 	})
 }
 
+// ReadPump reads messages from the WebSocket and forwards them to the dispatcher.
 func (c *Client) ReadPump() {
 	if c == nil {
 		return
@@ -124,6 +122,7 @@ func (c *Client) ReadPump() {
 	}
 }
 
+// WritePump sends pending messages and periodic ping/heartbeat.
 func (c *Client) WritePump() {
 	if c == nil {
 		return
@@ -147,6 +146,7 @@ func (c *Client) WritePump() {
 	}
 }
 
+// write sends a message to the WebSocket connection with a specified message type.
 func (c *Client) write(messageType int, payload []byte) error {
 	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 	return c.conn.WriteMessage(messageType, payload)

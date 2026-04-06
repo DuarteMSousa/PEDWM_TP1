@@ -1,24 +1,18 @@
 package events_infrastructure
 
-// Este ficheiro contém as implementações concretas dos CommandHandler
-// para cada tipo de comando suportado pelo sistema de WebSocket.
-// Cada handler é uma função que recebe o contexto do comando e o payload
-// JSON, e interage com os repositórios e comandos de domínio adequados.
-
 import (
 	"backend/internal/domain/events"
 	"backend/internal/domain/game"
 	"errors"
-	"log"
+	"log/slog"
 )
 
 var (
 	ErrMissingPlayer = errors.New("playerId is required")
 )
 
-// NewPlayCardHandler cria um handler para o comando "play_card".
-// O handler localiza o jogo ativo na sala do cliente, cria um
-// PlayCardCommand e executa-o sobre o jogo.
+// NewPlayerLeftEventHandler creates a handler for the PLAYER_LEFT event.
+// It removes the player from the room through the RoomService.
 func NewPlayerLeftEventHandler(roomService RoomService) EventHandler {
 	return func(event events.Event) error {
 		p := event.Payload.(events.PlayerLeftPayload)
@@ -36,6 +30,8 @@ func NewPlayerLeftEventHandler(roomService RoomService) EventHandler {
 	}
 }
 
+// NewGameEndedEventHandler creates a handler for the GAME_ENDED event.
+// It records the game result for each player and updates the game status.
 func NewGameEndedEventHandler(userStatsService UserStatsService, gameService GameService) EventHandler {
 	return func(event events.Event) error {
 		p := event.Payload.(events.GameEndedPayload)
@@ -59,18 +55,20 @@ func NewGameEndedEventHandler(userStatsService UserStatsService, gameService Gam
 	}
 }
 
+// NewRoomClosedEventHandler creates a handler for the ROOM_CLOSED event.
+// It deletes the room from persistence.
 func NewRoomClosedEventHandler(roomService RoomService) EventHandler {
 	return func(event events.Event) error {
 		p := event.Payload.(events.RoomClosedPayload)
-		log.Printf("handling RoomClosed event for room %s", p.RoomID)
+		slog.Info("processing ROOM_CLOSED event", "roomID", p.RoomID)
 
 		err := roomService.DeleteRoom(p.RoomID)
 		if err != nil {
-			log.Printf("Error deleting room %s: %v", p.RoomID, err)
+			slog.Error("error deleting room", "roomID", p.RoomID, "error", err)
 			return err
 		}
 
-		log.Printf("Room %s deleted successfully", p.RoomID)
+		slog.Info("room deleted successfully", "roomID", p.RoomID)
 		return nil
 	}
 }

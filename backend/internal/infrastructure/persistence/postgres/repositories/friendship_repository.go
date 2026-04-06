@@ -7,14 +7,17 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// FriendshipPostgresRepository implements FriendshipRepository with PostgreSQL.
 type FriendshipPostgresRepository struct {
 	pool *pgxpool.Pool
 }
 
+// NewFriendshipPostgresRepository creates a new friendship repository.
 func NewFriendshipPostgresRepository(pool *pgxpool.Pool) *FriendshipPostgresRepository {
 	return &FriendshipPostgresRepository{pool: pool}
 }
 
+// Save persists or updates a friendship (upsert).
 func (r *FriendshipPostgresRepository) Save(f *friendship.Friendship) error {
 	ctx := context.Background()
 
@@ -29,6 +32,7 @@ func (r *FriendshipPostgresRepository) Save(f *friendship.Friendship) error {
 	return err
 }
 
+// Find finds a friendship by the direction requester → addressee.
 func (r *FriendshipPostgresRepository) Find(requesterID, addresseeID string) (*friendship.Friendship, error) {
 	ctx := context.Background()
 
@@ -49,6 +53,7 @@ func (r *FriendshipPostgresRepository) Find(requesterID, addresseeID string) (*f
 	return &f, nil
 }
 
+// FindByUser returns the accepted friendships of a user.
 func (r *FriendshipPostgresRepository) FindByUser(userID string) ([]*friendship.Friendship, error) {
 	ctx := context.Background()
 
@@ -65,6 +70,7 @@ func (r *FriendshipPostgresRepository) FindByUser(userID string) ([]*friendship.
 	return scanFriendships(rows)
 }
 
+// FindPendingForUser returns the pending friendship requests for a user.
 func (r *FriendshipPostgresRepository) FindPendingForUser(userID string) ([]*friendship.Friendship, error) {
 	ctx := context.Background()
 
@@ -81,6 +87,7 @@ func (r *FriendshipPostgresRepository) FindPendingForUser(userID string) ([]*fri
 	return scanFriendships(rows)
 }
 
+// Delete removes a friendship.
 func (r *FriendshipPostgresRepository) Delete(requesterID, addresseeID string) error {
 	ctx := context.Background()
 	_, err := r.pool.Exec(ctx, `
@@ -90,12 +97,14 @@ func (r *FriendshipPostgresRepository) Delete(requesterID, addresseeID string) e
 	return err
 }
 
+// scannable is an interface that abstracts both pgx.Rows and pgx.Row for scanning.
 type scannable interface {
 	Scan(dest ...any) error
 	Next() bool
 	Close()
 }
 
+// scanFriendships is a helper function to scan multiple friendship rows.
 func scanFriendships(rows scannable) ([]*friendship.Friendship, error) {
 	var result []*friendship.Friendship
 

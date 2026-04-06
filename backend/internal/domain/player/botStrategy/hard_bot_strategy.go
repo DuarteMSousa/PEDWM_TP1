@@ -5,12 +5,16 @@ import (
 	"backend/internal/domain/hand"
 )
 
+// HardBotStrategy implements an advanced strategy: plays the strongest card
+// of the leading suit, or the strongest card in hand if it doesn't have the suit.
 type HardBotStrategy struct{}
 
+// NewHardBotStrategy creates a new instance of the hard strategy.
 func NewHardBotStrategy() *HardBotStrategy {
 	return &HardBotStrategy{}
 }
 
+// ChooseCard chooses the card to play according to the hard strategy.
 func (h *HardBotStrategy) ChooseCard(hand hand.Hand, leadSuit card.Suit, cardStrengthProvider CardStrengthProvider) card.Card {
 	if len(hand.Cards) == 0 {
 		return card.Card{}
@@ -39,6 +43,7 @@ func (h *HardBotStrategy) ChooseCard(hand hand.Hand, leadSuit card.Suit, cardStr
 	return best
 }
 
+// GetType returns the type of the strategy (HARD).
 func (h *HardBotStrategy) GetType() BotStrategyType {
 	return HARD
 }

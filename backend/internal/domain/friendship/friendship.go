@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// FriendshipStatus represents the current state of a friendship.
 type FriendshipStatus string
 
 const (
@@ -24,6 +25,7 @@ var (
 	ErrFriendshipAlreadySent = errors.New("friend request already sent")
 )
 
+// Friendship represents a friendship relationship between two users.
 type Friendship struct {
 	RequesterID string           `json:"requester_id"`
 	AddresseeID string           `json:"addressee_id"`
@@ -32,6 +34,8 @@ type Friendship struct {
 	UpdatedAt   time.Time        `json:"updated_at"`
 }
 
+// NewFriendship creates a new friendship request in the PENDING state.
+// Returns an error if the IDs are empty or identical.
 func NewFriendship(requesterID, addresseeID string) (*Friendship, error) {
 	if requesterID == "" {
 		return nil, ErrRequesterRequired
@@ -53,6 +57,7 @@ func NewFriendship(requesterID, addresseeID string) (*Friendship, error) {
 	}, nil
 }
 
+// Accept changes the friendship status to ACCEPTED. It can only be called when the status is PENDING.
 func (f *Friendship) Accept() error {
 	if f.Status != StatusPending {
 		return ErrNotPending
@@ -62,6 +67,7 @@ func (f *Friendship) Accept() error {
 	return nil
 }
 
+// Reject changes the friendship status to REJECTED. It can only be called when the status is PENDING.
 func (f *Friendship) Reject() error {
 	if f.Status != StatusPending {
 		return ErrNotPending

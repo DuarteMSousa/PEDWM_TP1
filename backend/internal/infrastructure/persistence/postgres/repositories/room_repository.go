@@ -4,21 +4,26 @@ import (
 	"backend/internal/domain/player"
 	"backend/internal/domain/room"
 	"context"
+	"log/slog"
 	"sort"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// RoomPostgresRepository implements RoomRepository with PostgreSQL.
 type RoomPostgresRepository struct {
 	pool *pgxpool.Pool
 }
 
+// NewRoomPostgresRepository creates a new room repository.
 func NewRoomPostgresRepository(pool *pgxpool.Pool) *RoomPostgresRepository {
 	return &RoomPostgresRepository{pool: pool}
 }
 
+// Save persists or updates a room and its players (transactional upsert).
 func (r *RoomPostgresRepository) Save(rm *room.Room) error {
 	ctx := context.Background()
+	slog.Debug("persisting room", "roomID", rm.ID, "status", rm.Status, "players", len(rm.Players))
 
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -81,6 +86,7 @@ func (r *RoomPostgresRepository) Save(rm *room.Room) error {
 	return tx.Commit(ctx)
 }
 
+// FindByID finds a room by its ID, including the players.
 func (r *RoomPostgresRepository) FindByID(id string) (*room.Room, error) {
 	ctx := context.Background()
 
@@ -128,6 +134,7 @@ func (r *RoomPostgresRepository) FindByID(id string) (*room.Room, error) {
 	return &rm, nil
 }
 
+// FindAll returns all rooms.
 func (r *RoomPostgresRepository) FindAll() ([]*room.Room, error) {
 	ctx := context.Background()
 
@@ -156,8 +163,13 @@ func (r *RoomPostgresRepository) FindAll() ([]*room.Room, error) {
 	return result, nil
 }
 
+// Delete removes a room by its ID.
 func (r *RoomPostgresRepository) Delete(id string) error {
 	ctx := context.Background()
+	slog.Debug("deleting room from database", "roomID", id)
 	_, err := r.pool.Exec(ctx, `DELETE FROM rooms WHERE id = $1`, id)
+	if err != nil {
+		slog.Error("error deleting room", "roomID", id, "error", err)
+	}
 	return err
 }

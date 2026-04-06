@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// GameStatus represents the current status of a game.
 type GameStatus string
 
 const (
@@ -34,6 +35,8 @@ var (
 	ErrGameDoesNotExist   = errors.New("game does not exist")
 )
 
+// Game é o agregado raiz que representa uma partida de Sueca.
+// Gere jogadores, equipas, pontuação, rondas e eventos.
 type Game struct {
 	ID      uuid.UUID
 	RoomID  string
@@ -56,6 +59,8 @@ type Game struct {
 	UpdatedAt time.Time
 }
 
+// NewGame cria um novo jogo com as equipas, estratégia de pontuação e
+// estratégia de bot indicadas. O jogo inicia no estado GameStartingState.
 func NewGame(teams []*team.Team, scoringStrategy IGameScoringStrategy, botStrategy bot_strategy.IBotStrategy) *Game {
 	g := &Game{
 		ID:                   uuid.New(),
@@ -89,6 +94,8 @@ func NewGame(teams []*team.Team, scoringStrategy IGameScoringStrategy, botStrate
 	return g
 }
 
+// AddEvent adiciona um evento ao jogo, preenchendo GameID e RoomID,
+// e publica-o através do event bus.
 func (g *Game) AddEvent(e events.Event) {
 	if g == nil {
 		return
@@ -113,6 +120,8 @@ func (g *Game) AddEvent(e events.Event) {
 
 }
 
+// RemovePlayer remove um jogador do jogo e substitui-o por um bot
+// para manter a consistência da partida.
 func (g *Game) RemovePlayer(playerID string) error {
 	if g == nil {
 		return ErrGameDoesNotExist
@@ -156,6 +165,7 @@ func (g *Game) RemovePlayer(playerID string) error {
 	return nil
 }
 
+// AddPlayer adiciona um jogador ao jogo e à equipa indicada.
 func (g *Game) AddPlayer(player *player.Player, teamId string) {
 	if g == nil {
 		return
@@ -188,10 +198,12 @@ func (g *Game) AddPlayer(player *player.Player, teamId string) {
 	}
 }
 
+// GetEvents devolve todos os eventos registados no jogo.
 func (g *Game) GetEvents() []events.Event {
 	return g.Events
 }
 
+// PlayCard executa a jogada de uma carta por um jogador.
 func (g *Game) PlayCard(playerId string, cardId string) error {
 	if g == nil {
 		return ErrGameDoesNotExist
@@ -216,6 +228,8 @@ func (g *Game) PlayCard(playerId string, cardId string) error {
 	return nil
 }
 
+// UpdateRoundState atualiza o estado da ronda atual e coleta os eventos
+// gerados, propagando-os para o jogo.
 func (g *Game) UpdateRoundState() {
 	g.round.State.Update()
 	events := g.round.CollectEvents()
@@ -227,10 +241,12 @@ func (g *Game) UpdateRoundState() {
 	}
 }
 
+// SetEventBus define o event bus para publicação de eventos.
 func (g *Game) SetEventBus(eventBus *events.EventBus) {
 	g.eventBus = eventBus
 }
 
+// CurrentRound devolve a ronda atualmente em curso.
 func (g *Game) CurrentRound() *round.Round {
 	if g == nil {
 		return nil
@@ -238,6 +254,7 @@ func (g *Game) CurrentRound() *round.Round {
 	return g.round
 }
 
+// GetPlayer devolve o jogador com o ID indicado.
 func (g *Game) GetPlayer(playerID string) (*player.Player, error) {
 	if g == nil {
 		return nil, ErrGameDoesNotExist
@@ -249,6 +266,7 @@ func (g *Game) GetPlayer(playerID string) (*player.Player, error) {
 	return p, nil
 }
 
+// GetPlayerTeam devolve a equipa a que o jogador pertence.
 func (g *Game) GetPlayerTeam(playerID string) (*team.Team, error) {
 	if g == nil {
 		return nil, ErrGameDoesNotExist
