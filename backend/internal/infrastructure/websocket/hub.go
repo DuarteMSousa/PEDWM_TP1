@@ -75,6 +75,22 @@ func (h *Hub) GetRoom(roomID string) *room.Room {
 
 }
 
+// DeleteRoom removes the RoomHub and all attached clients from the Hub.
+func (h *Hub) DeleteRoom(roomID string) {
+	if h == nil {
+		return
+	}
+
+	roomID = strings.TrimSpace(roomID)
+	if roomID == "" {
+		return
+	}
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	delete(h.rooms, roomID)
+}
+
 // AddClient registers a client in an existing RoomHub.
 func (h *Hub) AddClient(roomID string, client *Client) {
 	if h == nil || client == nil {

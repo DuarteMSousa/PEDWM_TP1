@@ -1,6 +1,7 @@
 package events_infrastructure
 
 import (
+	"log/slog"
 	"strings"
 
 	"backend/internal/application/interfaces"
@@ -22,13 +23,19 @@ func NewEventPersistanceObserver(eventService interfaces.EventService, eventDisp
 // Update persists the event and forwards it to the dispatcher.
 func (o *EventPersistanceObserver) Update(event domain.Event) {
 	if o == nil || o.eventService == nil {
+		slog.Warn("event persistence observer failed: missing eventService")
 		return
 	}
 
 	gameId := strings.TrimSpace(event.GameID)
 
 	if gameId != "" {
-		o.eventService.SaveEvent(event)
+		err := o.eventService.SaveEvent(event)
+		if err != nil {
+			slog.Error("failed to save event to database", "eventType", event.Type, "gameID", gameId, "error", err)
+		}
+	} else {
+		slog.Debug("skipping event persistence: no gameID", "eventType", event.Type)
 	}
 
 	if o.eventDispatcher != nil {

@@ -108,6 +108,8 @@ func (r *RoomHub) Broadcast(payload []byte) {
 			continue
 		}
 		// Slow clients are disconnected to keep room broadcast healthy.
-		client.Close()
+		// Run close asynchronously to avoid re-entrant deadlocks when Close()
+		// is already in progress and this broadcast happens in that same flow.
+		go client.Close()
 	}
 }

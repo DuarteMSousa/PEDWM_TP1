@@ -128,18 +128,11 @@ func (s *RoomService) LeaveRoom(roomID, userID string) (*room.Room, error) {
 		return nil, err
 	}
 
-	if rm.Status == room.CLOSED {
-		slog.Info("room is empty, deleting", "roomID", roomID)
-		if err := s.repo.Delete(rm.ID); err != nil {
-			slog.Error("failed to delete room", "roomID", roomID, "error", err)
+	if rm.Status != room.CLOSED {
+		if err := s.repo.Save(rm); err != nil {
+			slog.Error("failed to persist room after leave", "roomID", roomID, "error", err)
 			return nil, err
 		}
-		return rm, nil
-	}
-
-	if err := s.repo.Save(rm); err != nil {
-		slog.Error("failed to persist room after leave", "roomID", roomID, "error", err)
-		return nil, err
 	}
 
 	slog.Info("player left room", "roomID", roomID, "userID", userID, "remainingPlayers", len(rm.Players))
@@ -149,6 +142,7 @@ func (s *RoomService) LeaveRoom(roomID, userID string) (*room.Room, error) {
 // DeleteRoom removes a room from persistence.
 func (s *RoomService) DeleteRoom(roomID string) error {
 	slog.Info("deleting room", "roomID", roomID)
+	s.hub.DeleteRoom(roomID)
 	if err := s.repo.Delete(roomID); err != nil {
 		slog.Error("failed to delete room", "roomID", roomID, "error", err)
 		return err

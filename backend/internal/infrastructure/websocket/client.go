@@ -89,11 +89,15 @@ func (c *Client) Close() {
 	}
 
 	c.once.Do(func() {
-		c.roomService.LeaveRoom(c.roomID, c.id)
+		if c.roomService != nil {
+			_, _ = c.roomService.LeaveRoom(c.roomID, c.id)
+		}
 		if c.hub != nil {
 			c.hub.RemoveClient(c.roomID, c)
 		}
-		_ = c.conn.Close()
+		if c.conn != nil {
+			_ = c.conn.Close()
+		}
 	})
 }
 

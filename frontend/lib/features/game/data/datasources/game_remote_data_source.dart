@@ -237,6 +237,7 @@ class GameRemoteDataSource {
         final updatedHand = List<SuecaCard>.from(current.hand);
         if (!updatedHand.contains(dealtCard)) {
           updatedHand.add(dealtCard);
+          updatedHand.sort(_compareCards);
         }
         return current.copyWith(
           hand: updatedHand,
@@ -256,6 +257,7 @@ class GameRemoteDataSource {
         final updatedHand = List<SuecaCard>.from(current.hand);
         if (playerId == current.myPlayerId) {
           updatedHand.remove(playedCard);
+          updatedHand.sort(_compareCards);
         }
 
         return current.copyWith(
@@ -543,6 +545,8 @@ class GameRemoteDataSource {
         }
       }
     }
+
+    hand.sort(_compareCards);
 
     final tableCards = <String, SuecaCard>{};
     if (tablePlaysRaw is List) {
@@ -864,6 +868,13 @@ class GameRemoteDataSource {
       currentPlayerId: playerId,
       myPlayerId: playerId,
     );
+  }
+
+  int _compareCards(SuecaCard a, SuecaCard b) {
+    if (a.suit != b.suit) {
+      return a.suit.index.compareTo(b.suit.index);
+    }
+    return (b.rank).compareTo(a.rank);
   }
 
   void dispose() {

@@ -38,12 +38,23 @@ class SuecaGameState {
     String? currentPlayerId,
     String? myPlayerId
   }) {
+
+    final sortedHand = List<SuecaCard>.from(hand ?? this.hand);
+
+
+    sortedHand.sort((a, b) {
+      if (a.suit != b.suit) {
+        return a.suit.index.compareTo(b.suit.index);
+      }
+      return (b.rank).compareTo(a.rank); 
+    });
+
     return SuecaGameState(
       roomId: roomId,
       phase: phase ?? this.phase,
       players: players ?? this.players,
       teams: teams ?? this.teams,
-      hand: hand ?? this.hand,
+      hand: sortedHand,
       tableCards: tableCards ?? this.tableCards,
       trumpSuit: trumpSuit ?? this.trumpSuit,
       currentPlayerId: currentPlayerId ?? this.currentPlayerId,
