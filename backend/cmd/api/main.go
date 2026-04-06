@@ -146,10 +146,10 @@ func main() {
 		addr = ":7000"
 	}
 
-	slog.Info("servidor HTTP a iniciar", "addr", addr)
+	slog.Info("HTTP server starting", "addr", addr)
 
 	if err := http.ListenAndServe(addr, withCORS(mux)); err != nil {
-		slog.Error("servidor HTTP terminou com erro", "error", err)
+		slog.Error("HTTP server terminated with error", "error", err)
 		os.Exit(1)
 	}
 }

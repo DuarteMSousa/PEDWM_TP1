@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -14,5 +15,12 @@ func NewPostgresPool(ctx context.Context, url string) (*pgxpool.Pool, error) {
 		return nil, errors.New("DATABASE_URL is required")
 	}
 
-	return pgxpool.New(ctx, url)
+	slog.Info("creating PostgreSQL connection pool")
+	pool, err := pgxpool.New(ctx, url)
+	if err != nil {
+		slog.Error("failed to create PostgreSQL connection pool", "error", err)
+		return nil, err
+	}
+	slog.Info("PostgreSQL connection pool created successfully")
+	return pool, nil
 }

@@ -33,7 +33,7 @@ type GameSnapshot struct {
 	Scores          map[string]int
 }
 
-// RoomService orquestra operações sobre salas: criar, entrar, sair, iniciar jogo.
+// RoomService orchestrates room operations: create, join, leave, start game.
 type RoomService struct {
 	repo            interfaces.RoomRepository
 	gameRepo        interfaces.GameRepository
@@ -43,24 +43,24 @@ type RoomService struct {
 	hub             *websocket.Hub
 }
 
-// NewRoomService cria um novo RoomService.
+// NewRoomService creates a new RoomService.
 func NewRoomService(repo interfaces.RoomRepository, gameRepo interfaces.GameRepository, userRepo interfaces.UserRepository, eventService *EventService, hub *websocket.Hub) *RoomService {
 	return &RoomService{repo: repo, gameRepo: gameRepo, userRepo: userRepo, eventService: eventService, hub: hub}
 }
 
-// CreateRoom cria uma nova sala e configura o event bus e observers.
+// CreateRoom creates a new room and configures the event bus and observers.
 func (s *RoomService) CreateRoom(hostID string) (*room.Room, error) {
-	slog.Info("a criar sala", "hostID", hostID)
+	slog.Info("creating room", "hostID", hostID)
 
 	user, err := s.userRepo.FindByID(hostID)
 	if err != nil || user == nil {
-		slog.Warn("criação de sala falhada: host não encontrado", "hostID", hostID)
+		slog.Warn("room creation failed: host not found", "hostID", hostID)
 		return nil, err
 	}
 
 	r, err := room.NewRoom(uuid.New().String(), hostID, user.Username)
 	if err != nil {
-		slog.Error("erro ao criar sala", "hostID", hostID, "error", err)
+		slog.Error("failed to create room", "hostID", hostID, "error", err)
 		return nil, err
 	}
 
@@ -79,117 +79,117 @@ func (s *RoomService) CreateRoom(hostID string) (*room.Room, error) {
 
 	s.hub.CreateRoomHub(r)
 
-	slog.Info("sala criada com sucesso", "roomID", r.ID, "hostID", hostID)
+	slog.Info("room created successfully", "roomID", r.ID, "hostID", hostID)
 	return r, s.repo.Save(r)
 }
 
-// JoinRoom adiciona um jogador a uma sala existente.
+// JoinRoom adds a player to an existing room.
 func (s *RoomService) JoinRoom(roomID, userID string) (*room.Room, error) {
-	slog.Info("a entrar na sala", "roomID", roomID, "userID", userID)
+	slog.Info("joining room", "roomID", roomID, "userID", userID)
 
 	room := s.hub.GetRoom(roomID)
 	if room == nil {
-		slog.Warn("entrada na sala falhada: sala não encontrada", "roomID", roomID)
+		slog.Warn("join room failed: room not found", "roomID", roomID)
 		return nil, ErrRoomNotFound
 	}
 
 	user, err := s.userRepo.FindByID(userID)
 	if err != nil || user == nil {
-		slog.Warn("entrada na sala falhada: utilizador não encontrado", "userID", userID)
+		slog.Warn("join room failed: user not found", "userID", userID)
 		return nil, err
 	}
 
 	if err := room.AddPlayer(userID, user.Username); err != nil {
-		slog.Warn("erro ao adicionar jogador à sala", "roomID", roomID, "userID", userID, "error", err)
+		slog.Warn("failed to add player to room", "roomID", roomID, "userID", userID, "error", err)
 		return nil, err
 	}
 
 	if err := s.repo.Save(room); err != nil {
-		slog.Error("erro ao persistir sala após entrada", "roomID", roomID, "error", err)
+		slog.Error("failed to persist room after join", "roomID", roomID, "error", err)
 		return nil, err
 	}
 
-	slog.Info("jogador entrou na sala", "roomID", roomID, "userID", userID, "totalPlayers", len(room.Players))
+	slog.Info("player joined room", "roomID", roomID, "userID", userID, "totalPlayers", len(room.Players))
 	return room, nil
 }
 
-// LeaveRoom remove um jogador de uma sala. Fecha a sala se ficar vazia.
+// LeaveRoom removes a player from a room. Closes the room if it becomes empty.
 func (s *RoomService) LeaveRoom(roomID, userID string) (*room.Room, error) {
-	slog.Info("a sair da sala", "roomID", roomID, "userID", userID)
+	slog.Info("leaving room", "roomID", roomID, "userID", userID)
 
 	rm := s.hub.GetRoom(roomID)
 	if rm == nil {
-		slog.Warn("saída da sala falhada: sala não encontrada", "roomID", roomID)
+		slog.Warn("leave room failed: room not found", "roomID", roomID)
 		return nil, ErrRoomNotFound
 	}
 
 	if err := rm.RemovePlayer(userID); err != nil {
-		slog.Error("erro ao remover jogador da sala", "roomID", roomID, "userID", userID, "error", err)
+		slog.Error("failed to remove player from room", "roomID", roomID, "userID", userID, "error", err)
 		return nil, err
 	}
 
 	if rm.Status == room.CLOSED {
-		slog.Info("sala vazia, a eliminar", "roomID", roomID)
+		slog.Info("room is empty, deleting", "roomID", roomID)
 		if err := s.repo.Delete(rm.ID); err != nil {
-			slog.Error("erro ao eliminar sala", "roomID", roomID, "error", err)
+			slog.Error("failed to delete room", "roomID", roomID, "error", err)
 			return nil, err
 		}
 		return rm, nil
 	}
 
 	if err := s.repo.Save(rm); err != nil {
-		slog.Error("erro ao persistir sala após saída", "roomID", roomID, "error", err)
+		slog.Error("failed to persist room after leave", "roomID", roomID, "error", err)
 		return nil, err
 	}
 
-	slog.Info("jogador saiu da sala", "roomID", roomID, "userID", userID, "remainingPlayers", len(rm.Players))
+	slog.Info("player left room", "roomID", roomID, "userID", userID, "remainingPlayers", len(rm.Players))
 	return rm, nil
 }
 
-// DeleteRoom remove uma sala da persistência.
+// DeleteRoom removes a room from persistence.
 func (s *RoomService) DeleteRoom(roomID string) error {
-	slog.Info("a eliminar sala", "roomID", roomID)
+	slog.Info("deleting room", "roomID", roomID)
 	if err := s.repo.Delete(roomID); err != nil {
-		slog.Error("erro ao eliminar sala", "roomID", roomID, "error", err)
+		slog.Error("failed to delete room", "roomID", roomID, "error", err)
 		return err
 	}
-	slog.Info("sala eliminada", "roomID", roomID)
+	slog.Info("room deleted", "roomID", roomID)
 	return nil
 }
 
-// StartGame inicia um jogo de Sueca na sala indicada.
+// StartGame starts a Sueca game in the specified room.
 func (s *RoomService) StartGame(roomID string) (*room.Room, error) {
-	slog.Info("a iniciar jogo", "roomID", roomID)
+	slog.Info("starting game", "roomID", roomID)
 
 	room := s.hub.GetRoom(roomID)
 	if room == nil {
-		slog.Warn("início de jogo falhado: sala não encontrada", "roomID", roomID)
+		slog.Warn("start game failed: room not found", "roomID", roomID)
 		return nil, ErrRoomNotFound
 	}
 
 	if err := room.CreateGame(); err != nil {
-		slog.Error("erro ao criar jogo", "roomID", roomID, "error", err)
+		slog.Error("failed to create game", "roomID", roomID, "error", err)
 		return nil, err
 	}
 
 	if err := s.repo.Save(room); err != nil {
-		slog.Error("erro ao persistir sala após criação de jogo", "roomID", roomID, "error", err)
+		slog.Error("failed to persist room after game creation", "roomID", roomID, "error", err)
 		return nil, err
 	}
 	if room.Game != nil {
 		if err := s.gameRepo.Save(room.Game); err != nil {
-			slog.Error("erro ao persistir jogo", "roomID", roomID, "gameID", room.Game.ID, "error", err)
+			slog.Error("failed to persist game", "roomID", roomID, "gameID", room.Game.ID, "error", err)
 			return nil, err
 		}
 	}
 
 	room.Game.State.Enter()
 
-	slog.Info("jogo iniciado com sucesso", "roomID", roomID, "gameID", room.Game.ID)
+	slog.Info("game started successfully", "roomID", roomID, "gameID", room.Game.ID)
 	return room, nil
 }
 
-// GetRoom devolve uma sala pelo ID (hub em memória ou base de dados).
+// GetRoom returns a room by ID (in-memory hub or database).
 func (s *RoomService) GetRoom(id string) (*room.Room, error) {
 	if r := s.hub.GetRoom(id); r != nil {
 		return r, nil
@@ -197,14 +197,14 @@ func (s *RoomService) GetRoom(id string) (*room.Room, error) {
 	return s.repo.FindByID(id)
 }
 
-// GetRooms devolve todas as salas.
+// GetRooms returns all rooms.
 func (s *RoomService) GetRooms() ([]*room.Room, error) {
 	return s.repo.FindAll()
 }
 
-// GetGameSnapshot devolve o estado atual de um jogo visível para um jogador.
+// GetGameSnapshot returns the current game state visible to a player.
 func (s *RoomService) GetGameSnapshot(roomID, playerID string) (*GameSnapshot, error) {
-	slog.Debug("a obter snapshot do jogo", "roomID", roomID, "playerID", playerID)
+	slog.Debug("fetching game snapshot", "roomID", roomID, "playerID", playerID)
 	room := s.hub.GetRoom(roomID)
 	if room == nil {
 		return nil, ErrRoomNotFound

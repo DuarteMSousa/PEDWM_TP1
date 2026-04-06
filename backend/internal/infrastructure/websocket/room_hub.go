@@ -56,7 +56,7 @@ func (r *RoomHub) GetRoom() *room.Room {
 	return r.room
 }
 
-// AddClient regista um cliente no RoomHub.
+// AddClient registers a client in the RoomHub.
 func (r *RoomHub) AddClient(client *Client) {
 	if r == nil || client == nil {
 		return
