@@ -6,7 +6,7 @@ skinparam packageStyle rectangle
 
 package "App" {
   component "main.dart" as Main
-  component "SuecaApp" as App
+  component "SuecaApp" as SuecaApp
   component "AppRouter" as Router
   component "AppDependencies" as DI
 }
@@ -57,9 +57,9 @@ package "Features" {
 }
 
 Main --> DI
-Main --> App
-App --> Router
-App --> DI
+Main --> SuecaApp
+SuecaApp --> Router
+SuecaApp --> DI
 
 DI --> Env
 DI --> GqlService
