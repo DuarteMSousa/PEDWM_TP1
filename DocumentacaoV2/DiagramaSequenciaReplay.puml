@@ -1,0 +1,78 @@
+﻿@startuml
+title Sueca - Sequencia: Perfil e Replay (Estado Atual)
+
+actor "Jogador" as User
+participant "ProfilePage" as ProfileUI
+participant "ReplayListPage" as ReplayListUI
+participant "ReplayPlayerPage" as ReplayPlayerUI
+participant "ProfileController" as ProfileCtrl
+participant "ReplayListController" as ListCtrl
+participant "ReplayPlayerController" as PlayerCtrl
+participant "ProfileRepository" as ProfileRepo
+participant "ReplayRepository" as ReplayRepo
+participant "ProfileRemoteDataSource" as ProfileDS
+participant "ReplayRemoteDataSource" as ReplayDS
+participant "GraphqlService" as GQLClient
+participant "GraphQL API" as GQL
+participant "GameResolver.Events" as EventsResolver
+participant "EventService" as EventSvc
+participant "EventRepository" as EventRepo
+
+== 1) Abrir perfil ==
+User -> ProfileUI : abrir perfil
+ProfileUI -> ProfileCtrl : loadProfile()
+ProfileCtrl -> ProfileRepo : fetchProfile(userId)
+ProfileRepo -> ProfileDS : fetchProfile(userId)
+ProfileDS -> GQLClient : query user + userStats
+GQLClient -> GQL : GraphQL request
+GQL --> GQLClient : user, userStats
+GQLClient --> ProfileDS : payload
+ProfileDS --> ProfileRepo : Profile
+ProfileRepo --> ProfileCtrl : Profile
+ProfileCtrl --> ProfileUI : render perfil
+
+== 2) Abrir historico ==
+User -> ProfileUI : clicar "Historico de Jogos"
+ProfileUI -> ReplayListUI : navegar
+ReplayListUI -> ListCtrl : loadGames()
+ListCtrl -> ReplayRepo : fetchUserGames(userId)
+ReplayRepo -> ReplayDS : fetchUserGames(userId)
+ReplayDS -> GQLClient : query userGames (metadata)
+GQLClient -> GQL : GraphQL request
+GQL --> GQLClient : games (id, roomId, players, createdAt)
+GQLClient --> ReplayDS : payload
+ReplayDS --> ReplayRepo : List<GameSummary>
+ReplayRepo --> ListCtrl : lista
+ListCtrl --> ReplayListUI : render jogos
+
+== 3) Abrir replay de um jogo ==
+User -> ReplayListUI : selecionar jogo
+ReplayListUI -> ReplayPlayerUI : navegar
+ReplayPlayerUI -> PlayerCtrl : load()
+PlayerCtrl -> ReplayRepo : fetchGameReplay(userId, gameId)
+ReplayRepo -> ReplayDS : fetchGameReplay(...)
+ReplayDS -> GQLClient : query userGames + events
+GQLClient -> GQL : GraphQL request
+
+loop para cada game.events
+  GQL -> EventsResolver : resolver field events(gameId)
+  EventsResolver -> EventSvc : GetEventsByGameID(gameId)
+  EventSvc -> EventRepo : FindByGameID(gameId)
+  EventRepo --> EventSvc : events ordenados
+  EventSvc --> EventsResolver : events
+end
+
+GQL --> GQLClient : jogo + eventos
+GQLClient --> ReplayDS : payload
+ReplayDS --> ReplayRepo : GameSummary(events)
+ReplayRepo --> PlayerCtrl : replay completo
+PlayerCtrl -> PlayerCtrl : build frames locais
+PlayerCtrl --> ReplayPlayerUI : timeline pronta
+
+== 4) Playback ==
+User -> ReplayPlayerUI : play/pause/seek
+ReplayPlayerUI -> PlayerCtrl : play()/pause()/seekTo()
+PlayerCtrl -> PlayerCtrl : avanca indice e frame local
+PlayerCtrl --> ReplayPlayerUI : atualiza mesa e eventos
+
+@enduml

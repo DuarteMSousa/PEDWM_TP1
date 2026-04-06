@@ -1,0 +1,52 @@
+﻿@startuml
+title Sueca - Estados Agregados (Room + Game + Round)
+
+hide empty description
+skinparam shadowing false
+
+[*] --> RoomOpen : createRoom()
+
+RoomOpen : room.status = OPEN
+RoomOpen --> RoomOpen : joinRoom()
+RoomOpen --> RoomOpen : leaveRoom()
+RoomOpen --> GamePending : startGame(roomId)
+RoomOpen --> RoomClosed : players == 0
+
+GamePending : game.status = PENDING\nGameStartingState.Enter()
+GamePending --> GameInProgress : GamePlayingState.Enter()
+
+state GameInProgress {
+  [*] --> RoundSetup
+
+  RoundSetup : RoundSetupState\nshuffle + deal + trump
+  RoundSetup --> TrickPlaying : RoundPlayingState.Enter()
+
+  TrickPlaying : jogadores jogam cartas\ncomandos WS play_card
+  TrickPlaying --> TrickPlaying : TURN_CHANGED / CARD_PLAYED
+  TrickPlaying --> TrickScoring : trick completa
+  TrickPlaying --> TrickPlaying : PLAYER_LEFT -> bot replacement
+
+  TrickScoring : TRICK_ENDED\nupdate round score
+  TrickScoring --> TrickPlaying : ronda nao terminou
+  TrickScoring --> RoundFinished : todas as maos vazias
+
+  RoundFinished : ROUND_ENDED
+  RoundFinished --> RoundSetup : score de jogo < 4
+  RoundFinished --> GameFinished : score de jogo >= 4
+}
+
+GameFinished : game.status = FINISHED\nGAME_ENDED
+GameFinished --> RoomInGameEnded
+
+RoomInGameEnded : room.status = IN_GAME\npartida terminada
+RoomInGameEnded --> RoomClosed : todos saem da sala
+
+RoomClosed : room.status = CLOSED
+RoomClosed --> [*]
+
+note right of RoomOpen
+No estado atual, startGame nao exige 4 humanos.
+GameFactory completa a mesa com bots ate 4 jogadores.
+end note
+
+@enduml

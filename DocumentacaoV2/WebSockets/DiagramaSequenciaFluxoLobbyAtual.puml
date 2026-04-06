@@ -1,0 +1,73 @@
+﻿@startuml
+title Sueca - Fluxo Atual Lobby/Waiting (GraphQL + WebSocket)
+
+actor "Jogador" as User
+participant "Flutter UI" as UI
+participant "GraphqlService" as GQLClient
+participant "GraphQL API" as GQL
+participant "LobbyRepository" as LobbyRepo
+participant "WebSocketService" as WSF
+participant "Hub/RoomHub" as Hub
+participant "RoomWaitingController" as WaitCtrl
+
+== 1) Login/Register ==
+User -> UI : autenticar
+UI -> GQLClient : mutation login/register
+GQLClient -> GQL : request
+GQL --> GQLClient : user{id,username}
+GQLClient --> UI : sessao iniciada
+
+== 2) Lobby list ==
+UI -> LobbyRepo : fetchRooms()
+LobbyRepo -> GQLClient : query rooms
+GQLClient -> GQL : request
+GQL --> GQLClient : rooms[]
+GQLClient --> UI : lista de salas
+
+note right of UI
+A lista de salas e carregada por query GraphQL.
+Nao ha stream realtime continuo no lobby principal.
+end note
+
+== 3) Criar/Entrar sala ==
+alt criar sala
+  UI -> GQLClient : mutation createRoom(hostId)
+  GQLClient -> GQL : request
+  GQL --> GQLClient : room{id,status,players}
+else entrar sala
+  UI -> GQLClient : mutation joinRoom(roomId,userId)
+  GQLClient -> GQL : request
+  GQL --> GQLClient : room atualizada
+end
+
+== 4) Waiting room websocket ==
+UI -> WSF : connect(roomId, playerId)
+WSF -> Hub : /ws?roomId&playerId
+Hub --> WSF : socket ativo
+
+UI -> WaitCtrl : initialize()
+WaitCtrl -> GQLClient : query room(id)
+GQLClient -> GQL : request
+GQL --> GQLClient : room details
+GQLClient --> WaitCtrl : RoomDetails
+
+loop quando chega evento WS da sala
+  Hub --> WSF : event JSON
+  WSF --> WaitCtrl : LobbyRealtimeEvent
+  WaitCtrl -> GQLClient : query room(id)
+  GQLClient -> GQL : request
+  GQL --> GQLClient : room atualizado
+  GQLClient --> WaitCtrl : refresh estado local
+end
+
+== 5) Acoes na waiting room ==
+alt mudar bot strategy
+  UI -> WSF : send(change_bot_strategy, option)
+else iniciar jogo
+  UI -> GQLClient : mutation startGame(roomId)
+  GQLClient -> GQL : request
+  GQL --> GQLClient : room status=IN_GAME
+  UI -> UI : navegar para GamePage
+end
+
+@enduml

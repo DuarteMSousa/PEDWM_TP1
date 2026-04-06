@@ -1,0 +1,115 @@
+﻿@startuml
+title Sueca - Arquitetura Frontend Flutter (Estado Atual)
+
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+
+package "App" {
+  component "main.dart" as Main
+  component "SuecaApp" as App
+  component "AppRouter" as Router
+  component "AppDependencies" as DI
+}
+
+package "Core" {
+  component "AppEnv" as Env
+  component "GraphqlService" as GqlService
+  component "WebSocketService" as WsService
+}
+
+package "Features" {
+  package "Auth" {
+    component "NicknamePage" as AuthPage
+    component "AuthController" as AuthCtrl
+    component "AuthRepository" as AuthRepo
+    component "AuthRemoteDataSource" as AuthDS
+  }
+
+  package "Lobby" {
+    component "LobbyPage/RoomWaitingPage" as LobbyPages
+    component "LobbyController" as LobbyCtrl
+    component "RoomWaitingController" as WaitCtrl
+    component "LobbyRepository" as LobbyRepo
+    component "LobbyRemoteDataSource" as LobbyDS
+  }
+
+  package "Game" {
+    component "GamePage" as GamePage
+    component "GameController" as GameCtrl
+    component "GameRepository" as GameRepo
+    component "GameRemoteDataSource" as GameDS
+  }
+
+  package "Profile" {
+    component "ProfilePage" as ProfilePage
+    component "ProfileController" as ProfileCtrl
+    component "ProfileRepository" as ProfileRepo
+    component "ProfileRemoteDataSource" as ProfileDS
+  }
+
+  package "Replay" {
+    component "ReplayListPage/ReplayPlayerPage" as ReplayPages
+    component "ReplayListController" as ReplayListCtrl
+    component "ReplayPlayerController" as ReplayPlayerCtrl
+    component "ReplayRepository" as ReplayRepo
+    component "ReplayRemoteDataSource" as ReplayDS
+  }
+}
+
+Main --> DI
+Main --> App
+App --> Router
+App --> DI
+
+DI --> Env
+DI --> GqlService
+DI --> WsService
+
+DI --> AuthRepo
+DI --> LobbyRepo
+DI --> GameRepo
+DI --> ProfileRepo
+DI --> ReplayRepo
+
+AuthPage --> AuthCtrl
+AuthCtrl --> AuthRepo
+AuthRepo --> AuthDS
+AuthDS --> GqlService
+
+LobbyPages --> LobbyCtrl
+LobbyPages --> WaitCtrl
+LobbyCtrl --> LobbyRepo
+WaitCtrl --> LobbyRepo
+LobbyRepo --> LobbyDS
+LobbyDS --> GqlService
+LobbyDS --> WsService
+
+GamePage --> GameCtrl
+GameCtrl --> GameRepo
+GameRepo --> GameDS
+GameDS --> GqlService
+GameDS --> WsService
+
+ProfilePage --> ProfileCtrl
+ProfileCtrl --> ProfileRepo
+ProfileRepo --> ProfileDS
+ProfileDS --> GqlService
+
+ReplayPages --> ReplayListCtrl
+ReplayPages --> ReplayPlayerCtrl
+ReplayListCtrl --> ReplayRepo
+ReplayPlayerCtrl --> ReplayRepo
+ReplayRepo --> ReplayDS
+ReplayDS --> GqlService
+
+note right of GameDS
+Carrega snapshot inicial por GraphQL,
+depois aplica eventos em tempo real por WebSocket.
+end note
+
+note right of WaitCtrl
+Sala de espera atualiza detalhes da sala
+apos eventos WS e tambem por refresh explicito.
+end note
+
+@enduml

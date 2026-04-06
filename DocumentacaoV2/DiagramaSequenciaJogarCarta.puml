@@ -1,0 +1,72 @@
+﻿@startuml
+title Sueca - Sequencia: Jogar Carta por WebSocket (Estado Atual)
+
+actor "Jogador" as Player
+participant "Flutter GamePage" as UI
+participant "WebSocketService" as WSF
+participant "Client(/ws)" as WSClient
+participant "CommandDispatcher" as Dispatcher
+participant "PlayCardHandler" as PlayHandler
+participant "PlayCardCommand" as Cmd
+participant "Game Aggregate" as Game
+participant "Round" as Round
+participant "TrickRuleStrategy" as Rule
+participant "EventBus" as Bus
+participant "WebSocketObserver" as WSObs
+participant "EventPersistenceObserver" as PersistObs
+participant "EventRepository" as EventRepo
+participant "Outros Clientes" as Others
+
+Player -> UI : selecionar carta
+UI -> WSF : send(type=play_card, cardId)
+WSF -> WSClient : frame JSON
+WSClient -> Dispatcher : HandleMessage(client, raw)
+Dispatcher -> PlayHandler : Dispatch(play_card)
+PlayHandler -> Cmd : NewPlayCardCommand(playerId, cardId)
+PlayHandler -> Cmd : Execute(game)
+Cmd -> Game : PlayCard(playerId, cardId)
+Game -> Round : PlayCard(playerId, cardId)
+Round -> Rule : ValidatePlay(trick, play)
+
+alt jogada invalida
+  Rule --> Round : false
+  Round --> Game : error
+  Game --> Dispatcher : error
+  Dispatcher -> WSClient : ServerMessage{success:false,error}
+  WSClient -> UI : comando falhou
+else jogada valida
+  Rule --> Round : true
+  Round -> Round : remove carta da hand + add play
+  Round -> Game : evento CARD_PLAYED/TURN_CHANGED...
+  Game -> Game : UpdateRoundState()
+
+  loop para cada evento gerado
+    Game -> Bus : Publish(event)
+    Bus -> WSObs : Update(event)
+    WSObs -> Others : broadcast room event
+
+    Bus -> PersistObs : Update(event)
+    alt event.gameId preenchido
+      PersistObs -> EventRepo : Save(event)
+    else sem gameId
+      PersistObs -> PersistObs : ignora persistencia
+    end
+  end
+
+  opt trick terminou
+    Game -> Bus : TRICK_ENDED
+  end
+
+  opt round terminou
+    Game -> Bus : ROUND_ENDED + GAME_SCORE_UPDATED
+  end
+
+  opt jogo terminou
+    Game -> Bus : GAME_ENDED
+  end
+
+  Dispatcher -> WSClient : ServerMessage{success:true}
+  WSClient -> UI : comando confirmado
+end
+
+@enduml

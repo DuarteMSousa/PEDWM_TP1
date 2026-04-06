@@ -1,0 +1,104 @@
+﻿@startuml
+title WebSocket por Salas - Diagrama de Classes (Estado Atual)
+
+skinparam classAttributeIconSize 0
+
+class Handler {
+  +ServeHTTP(w,r)
+}
+
+class Hub {
+  -rooms : map<string, RoomHub>
+  +CreateRoomHub(room): RoomHub
+  +GetRoomHub(roomID): RoomHub
+  +AddClient(roomID, client): void
+  +RemoveClient(roomID, client): void
+  +BroadcastToRoom(roomID, payload): void
+}
+
+class RoomHub {
+  -room : Room
+  -clients : map<Client, struct>
+  +AddClient(client): void
+  +RemoveClient(client): bool
+  +Broadcast(payload): void
+}
+
+class Client {
+  -id : string
+  -roomID : string
+  -send : chan []byte
+  -conn : websocket.Conn
+  +ReadPump(): void
+  +WritePump(): void
+  +Enqueue(payload): bool
+  +Close(): void
+}
+
+class CommandDispatcher {
+  -handlers : map<string, CommandHandler>
+  +Register(type, handler): void
+  +HandleMessage(client, raw): void
+  +Dispatch(ctx, message): error
+}
+
+class CommandContext {
+  +PlayerID : string
+  +RoomID : string
+  +Client : Client
+}
+
+class ClientMessage {
+  +Type : string
+  +Payload : json.RawMessage
+}
+
+class ServerMessage {
+  +Type : string
+  +Success : bool
+  +Error : string
+}
+
+class WebSocketObserver {
+  -hub : Hub
+  +Update(event): void
+}
+
+class EventPersistenceObserver {
+  -eventService : EventService
+  -eventDispatcher : EventDispatcher
+  +Update(event): void
+}
+
+class EventDispatcher {
+  -handlers : map<string, EventHandler>
+  +Register(type, handler): void
+  +Dispatch(event): error
+}
+
+class RoomService
+class EventService
+
+Handler --> Hub
+Handler --> Client
+Handler --> CommandDispatcher
+
+Hub "1" *-- "0..*" RoomHub
+RoomHub "1" *-- "0..*" Client
+Client --> CommandDispatcher
+Client --> RoomService : LeaveRoom on Close
+
+CommandDispatcher --> CommandContext
+CommandDispatcher --> ClientMessage
+CommandDispatcher --> ServerMessage
+
+WebSocketObserver --> Hub : BroadcastToRoom
+EventPersistenceObserver --> EventService : SaveEvent
+EventPersistenceObserver --> EventDispatcher : Dispatch
+
+note right of Client
+ReadPump: recebe comandos do cliente.
+WritePump: envia eventos e respostas de comando.
+end note
+
+@enduml

@@ -1,0 +1,82 @@
+﻿@startuml
+title Sueca - Sequencia: Login/Entrar Sala/Iniciar Jogo (Estado Atual)
+
+actor "Jogador" as User
+participant "Flutter UI\n(Nickname/Lobby/RoomWaiting)" as UI
+participant "GraphQL API" as GQL
+participant "UserService" as UserSvc
+participant "RoomService" as RoomSvc
+participant "Room Aggregate" as Room
+participant "Hub/RoomHub" as Hub
+participant "WebSocketService" as WSF
+participant "EventBus" as Bus
+participant "WebSocketObserver" as WSObs
+participant "EventPersistenceObserver" as PersistObs
+participant "RoomRepository" as RoomRepo
+database "PostgreSQL" as PG
+
+== 1) Autenticacao ==
+User -> UI : login/register
+UI -> GQL : mutation login/register
+GQL -> UserSvc : Login/Register
+UserSvc -> PG : users + user_stats
+GQL --> UI : userId
+
+== 2) Criar sala ==
+User -> UI : criar sala
+UI -> GQL : mutation createRoom(hostId)
+GQL -> RoomSvc : CreateRoom(hostId)
+RoomSvc -> Room : NewRoom(...)
+RoomSvc -> Room : SetEventBus(new EventBus)
+RoomSvc -> Bus : Subscribe(WebSocketObserver)
+RoomSvc -> Bus : Subscribe(EventPersistenceObserver)
+RoomSvc -> Hub : CreateRoomHub(room)
+RoomSvc -> RoomRepo : Save(room)
+RoomRepo -> PG : UPSERT rooms + room_players
+GQL --> UI : roomId
+
+== 3) Entrar na sala de espera ==
+UI -> WSF : connect(roomId, playerId)
+WSF -> Hub : /ws?roomId&playerId
+Hub --> WSF : cliente conectado
+
+== 4) Outro jogador entra ==
+User -> UI : entrar na sala
+UI -> GQL : mutation joinRoom(roomId,userId)
+GQL -> RoomSvc : JoinRoom(roomId,userId)
+RoomSvc -> Room : AddPlayer(userId,username)
+Room -> Bus : Publish(PLAYER_JOINED)
+Bus -> WSObs : Update(event)
+WSObs -> Hub : BroadcastToRoom(roomId,event)
+Bus -> PersistObs : Update(event)
+PersistObs -> PersistObs : gameId vazio -> nao persiste
+RoomSvc -> RoomRepo : Save(room)
+RoomRepo -> PG : UPSERT room_players
+GQL --> UI : room atualizada
+
+== 5) Iniciar jogo ==
+User -> UI : iniciar jogo
+UI -> GQL : mutation startGame(roomId)
+GQL -> RoomSvc : StartGame(roomId)
+RoomSvc -> Room : CreateGame()
+
+alt jogadores humanos < 4
+  Room -> Room : GameFactory adiciona bots ate 4
+end
+
+RoomSvc -> RoomRepo : Save(room status=IN_GAME)
+RoomSvc -> PG : Save game + game_players
+RoomSvc -> Room : Game.State.Enter()
+
+loop eventos iniciais de jogo
+  Room -> Bus : GAME_STARTED / TRUMP_REVEALED / CARD_DEALT / ROUND_STARTED / TRICK_STARTED / TURN_CHANGED
+  Bus -> WSObs : Update(event)
+  WSObs -> Hub : BroadcastToRoom(roomId,event)
+  Bus -> PersistObs : Update(event)
+  PersistObs -> PG : persistir se gameId preenchido
+end
+
+GQL --> UI : room(status=IN_GAME)
+UI -> UI : navegar para GamePage
+
+@enduml

@@ -1,0 +1,145 @@
+﻿@startuml
+title Sueca - Diagrama de Classes WebSocket (Estado Atual)
+
+skinparam classAttributeIconSize 0
+
+class Handler {
+  +ServeHTTP(w, r)
+}
+
+class Client {
+  -id: string
+  -roomID: string
+  -conn: websocket.Conn
+  -send: chan []byte
+  +ReadPump(): void
+  +WritePump(): void
+  +Enqueue(payload): bool
+  +Close(): void
+}
+
+class Hub {
+  -rooms: map<string, RoomHub>
+  +CreateRoomHub(room): RoomHub
+  +GetRoomHub(roomID): RoomHub
+  +GetRoom(roomID): Room
+  +AddClient(roomID, client): void
+  +RemoveClient(roomID, client): void
+  +BroadcastToRoom(roomID, payload): void
+}
+
+class RoomHub {
+  -room: Room
+  -clients: map<Client, struct>
+  +AddClient(client): void
+  +RemoveClient(client): bool
+  +Broadcast(payload): void
+  +IsEmpty(): bool
+}
+
+class CommandDispatcher {
+  -handlers: map<string, CommandHandler>
+  +Register(type, handler): void
+  +HandleMessage(client, raw): void
+  +Dispatch(ctx, message): error
+}
+
+class CommandContext {
+  +PlayerID: string
+  +RoomID: string
+  +Client: Client
+}
+
+class ClientMessage {
+  +Type: string
+  +Payload: json.RawMessage
+}
+
+class ServerMessage {
+  +Type: string
+  +Success: bool
+  +Error: string
+}
+
+class PlayCardHandler <<CommandHandler>>
+class ChangeBotStrategyHandler <<CommandHandler>>
+
+class WebSocketObserver {
+  -hub: Hub
+  +Update(event): void
+}
+
+class EventPersistenceObserver {
+  -eventService: EventService
+  -eventDispatcher: EventDispatcher
+  +Update(event): void
+}
+
+class EventDispatcher {
+  -handlers: map<string, EventHandler>
+  +Register(type, handler): void
+  +Dispatch(event): error
+}
+
+class PlayerLeftEventHandler <<EventHandler>>
+class GameEndedEventHandler <<EventHandler>>
+class RoomClosedEventHandler <<EventHandler>>
+
+class EventBus {
+  +Subscribe(observer): void
+  +Publish(event): void
+}
+
+class RoomService
+class EventService
+class GameService
+class UserStatsService
+
+Handler --> Hub : AddClient / RemoveClient
+Handler --> CommandDispatcher
+
+Hub "1" *-- "0..*" RoomHub
+RoomHub "1" *-- "0..*" Client
+Client --> CommandDispatcher : HandleMessage
+Client --> RoomService : LeaveRoom on Close
+Client --> Hub : RemoveClient on Close
+
+CommandDispatcher --> CommandContext
+CommandDispatcher --> ClientMessage
+CommandDispatcher --> ServerMessage
+CommandDispatcher --> PlayCardHandler
+CommandDispatcher --> ChangeBotStrategyHandler
+
+PlayCardHandler --> Hub : find room/game
+ChangeBotStrategyHandler --> Hub : find room
+
+EventBus --> WebSocketObserver
+EventBus --> EventPersistenceObserver
+
+WebSocketObserver --> Hub : BroadcastToRoom(roomID,event)
+EventPersistenceObserver --> EventService : SaveEvent(game events)
+EventPersistenceObserver --> EventDispatcher : Dispatch(event)
+
+EventDispatcher --> PlayerLeftEventHandler
+EventDispatcher --> GameEndedEventHandler
+EventDispatcher --> RoomClosedEventHandler
+
+PlayerLeftEventHandler --> RoomService
+GameEndedEventHandler --> UserStatsService
+GameEndedEventHandler --> GameService
+RoomClosedEventHandler --> RoomService
+
+note right of Handler
+/ws exige roomId.
+playerId vazio usa remoteAddr.
+
+Ao conectar cria Client e inicia
+ReadPump + WritePump.
+end note
+
+note right of Hub
+Hub nao cria sala implicitamente no AddClient.
+A sala precisa existir antes via CreateRoomHub.
+end note
+
+@enduml

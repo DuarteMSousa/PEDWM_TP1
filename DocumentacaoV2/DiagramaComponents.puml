@@ -1,0 +1,119 @@
+﻿@startuml
+title Sueca - Arquitetura de Componentes (Estado Atual)
+
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+
+package "Frontend Flutter" {
+  component "Pages\nAuth/Lobby/Game/Profile/Replay" as FE_Pages
+  component "Controllers\n(ChangeNotifier)" as FE_Ctrl
+  component "Repositories" as FE_Repo
+  component "Remote Data Sources" as FE_DS
+  component "GraphqlService" as FE_GQL
+  component "WebSocketService" as FE_WS
+}
+
+package "Backend Go API" {
+  component "GraphQL Handler\n(/graphql)" as BE_GQL
+  component "WebSocket Handler\n(/ws)" as BE_WS
+
+  package "Application" {
+    component "UserService" as AppUser
+    component "FriendshipService" as AppFriend
+    component "UserStatsService" as AppStats
+    component "RoomService" as AppRoom
+    component "GameService" as AppGame
+    component "EventService" as AppEvent
+  }
+
+  package "Domain" {
+    component "Room Aggregate" as DRoom
+    component "Game Aggregate" as DGame
+    component "Round + Trick + Team" as DRound
+    component "EventBus" as DEBus
+    component "Commands\nPlayCard/ChangeBotStrategy" as DCmd
+  }
+
+  package "Realtime + Events" {
+    component "Hub / RoomHub / Client" as WSInfra
+    component "CommandDispatcher" as CmdDispatcher
+    component "WebSocketObserver" as WSObserver
+    component "EventPersistenceObserver" as PersistObserver
+    component "EventDispatcher" as EventDispatcher
+    component "Event Handlers\nPLAYER_LEFT / GAME_ENDED / ROOM_CLOSED" as EventHandlers
+  }
+
+  package "Persistence" {
+    component "UserRepository" as RepoUser
+    component "FriendshipRepository" as RepoFriend
+    component "UserStatsRepository" as RepoStats
+    component "RoomRepository" as RepoRoom
+    component "GameRepository" as RepoGame
+    component "EventRepository" as RepoEvent
+  }
+}
+
+database "PostgreSQL" as PG
+
+FE_Pages --> FE_Ctrl
+FE_Ctrl --> FE_Repo
+FE_Repo --> FE_DS
+FE_DS --> FE_GQL : queries/mutations
+FE_DS --> FE_WS : connect/send
+
+FE_GQL --> BE_GQL : HTTP JSON
+FE_WS --> BE_WS : WS frames
+
+BE_GQL --> AppUser
+BE_GQL --> AppFriend
+BE_GQL --> AppStats
+BE_GQL --> AppRoom
+BE_GQL --> AppGame
+BE_GQL --> AppEvent
+
+BE_WS --> CmdDispatcher
+CmdDispatcher --> DCmd
+DCmd --> DGame
+DCmd --> DRoom
+
+AppRoom --> DRoom
+AppGame --> DGame
+DGame --> DRound
+
+DRoom --> DEBus : publish room events
+DGame --> DEBus : publish game events
+
+DEBus --> WSObserver
+WSObserver --> WSInfra : broadcastToRoom(roomId,event)
+
+DEBus --> PersistObserver
+PersistObserver --> AppEvent : SaveEvent(game events)
+PersistObserver --> EventDispatcher : Dispatch(event)
+EventDispatcher --> EventHandlers
+EventHandlers --> AppRoom
+EventHandlers --> AppStats
+EventHandlers --> AppGame
+
+BE_WS --> WSInfra : add/remove clients
+
+AppUser --> RepoUser
+AppFriend --> RepoFriend
+AppStats --> RepoStats
+AppRoom --> RepoRoom
+AppRoom --> RepoGame
+AppGame --> RepoGame
+AppEvent --> RepoEvent
+
+RepoUser --> PG
+RepoFriend --> PG
+RepoStats --> PG
+RepoRoom --> PG
+RepoGame --> PG
+RepoEvent --> PG
+
+note right of PersistObserver
+Apenas eventos com gameId sao persistidos na tabela events.
+Eventos de sala sem gameId seguem para dispatch e websocket.
+end note
+
+@enduml

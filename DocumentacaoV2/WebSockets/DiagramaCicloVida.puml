@@ -1,0 +1,66 @@
+﻿@startuml
+title Ciclo de Vida WebSocket por Sala (Estado Atual)
+
+hide empty description
+skinparam shadowing false
+
+[*] --> AwaitingRequest
+
+AwaitingRequest : GET /ws?roomId&playerId
+AwaitingRequest --> ValidateRequest : pedido recebido
+
+state ValidateRequest {
+  ValidateRequest : roomId obrigatorio
+  ValidateRequest : playerId opcional (fallback remoteAddr)
+}
+
+ValidateRequest --> Rejected : roomId vazio / erro upgrade
+ValidateRequest --> Upgrading : parametros validos
+
+Rejected : conexao rejeitada
+Rejected --> [*]
+
+state Upgrading {
+  Upgrading : criar Client
+  Upgrading : hub.AddClient(roomId, client)
+  Upgrading : iniciar ReadPump + WritePump
+}
+
+Upgrading --> Connected
+
+state Connected {
+  [*] --> Idle
+
+  Idle : cliente inscrito no RoomHub
+
+  Idle --> Reading : frame recebido do cliente
+  Reading : dispatcher.HandleMessage(client, raw)
+  Reading --> Idle
+
+  Idle --> Writing : evento/comando enfileirado
+  Writing : writePump envia frame
+  Writing --> Idle
+
+  Idle --> Disconnecting : erro read/write ou close
+}
+
+state Disconnecting {
+  Disconnecting : roomService.LeaveRoom(roomId, playerId)
+  Disconnecting : hub.RemoveClient(roomId, client)
+}
+
+Disconnecting --> RemoveRoom : roomHub vazio
+Disconnecting --> AwaitingRequest : roomHub com clientes
+
+state RemoveRoom {
+  RemoveRoom : hub remove roomId
+}
+
+RemoveRoom --> AwaitingRequest
+
+note right of Connected
+Eventos do dominio chegam por:
+EventBus -> WebSocketObserver -> Hub.BroadcastToRoom
+end note
+
+@enduml

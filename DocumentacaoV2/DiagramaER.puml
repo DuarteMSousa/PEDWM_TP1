@@ -1,0 +1,98 @@
+﻿@startuml
+title Sueca - Diagrama ER (Persistencia Atual)
+
+hide methods
+skinparam classAttributeIconSize 0
+
+entity "users" as users {
+  * id : UUID <<PK>>
+  --
+  username : VARCHAR <<UNIQUE>>
+  password : VARCHAR
+}
+
+entity "friendships" as friendships {
+  * requester_id : UUID <<PK,FK>>
+  * addressee_id : UUID <<PK,FK>>
+  --
+  status : friendship_status
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+}
+
+entity "user_stats" as user_stats {
+  * user_id : UUID <<PK,FK>>
+  --
+  games : INT
+  wins : INT
+  elo : INT
+}
+
+entity "rooms" as rooms {
+  * id : UUID <<PK>>
+  --
+  host_id : UUID <<FK>>
+  status : room_status
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+}
+
+entity "room_players" as room_players {
+  * room_id : UUID <<PK,FK>>
+  * user_id : UUID <<PK,FK>>
+  --
+  sequence : INT
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+}
+
+entity "games" as games {
+  * id : UUID <<PK>>
+  --
+  room_id : UUID <<FK>>
+  status : game_status
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+}
+
+entity "game_players" as game_players {
+  * game_id : UUID <<PK,FK>>
+  * user_id : UUID <<PK,FK>>
+  --
+  sequence : INT
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+}
+
+entity "events" as events {
+  * id : UUID <<PK>>
+  --
+  game_id : UUID <<FK>>
+  event_type : TEXT
+  sequence : INT
+  timestamp : TIMESTAMPTZ
+  payload : JSONB
+}
+
+users ||--o{ friendships : requester_id
+users ||--o{ friendships : addressee_id
+users ||--|| user_stats : user_id
+
+users ||--o{ rooms : host_id
+rooms ||--o{ room_players : room_id
+users ||--o{ room_players : user_id
+
+rooms ||--o{ games : room_id
+
+games ||--o{ game_players : game_id
+users ||--o{ game_players : user_id
+
+games ||--o{ events : game_id
+
+note right of games
+Indice unico parcial:
+one_active_game_per_room
+(room_id) WHERE status='IN_PROGRESS'
+end note
+
+@enduml

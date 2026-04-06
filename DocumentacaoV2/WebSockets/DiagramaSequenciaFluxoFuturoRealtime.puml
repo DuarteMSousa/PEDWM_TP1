@@ -1,0 +1,67 @@
+﻿@startuml
+title Sueca - Fluxo Realtime de Partida (Atual)
+
+actor "Jogador" as Player
+participant "GamePage/GameController" as GameUI
+participant "GameRepository" as GameRepo
+participant "GameRemoteDataSource" as GameDS
+participant "GraphqlService" as GQLClient
+participant "GraphQL API" as GQL
+participant "WebSocketService" as WSF
+participant "WebSocket Backend" as WSB
+participant "CommandDispatcher" as Dispatcher
+participant "Game Domain" as Game
+participant "EventBus" as Bus
+participant "WebSocketObserver" as WSObs
+participant "EventPersistenceObserver" as Persist
+
+== 1) Entrada no jogo ==
+Player -> GameUI : abrir GamePage
+GameUI -> GameRepo : loadGame(roomId,playerId)
+GameRepo -> GameDS : loadGame(...)
+GameDS -> WSF : connect(roomId,playerId)
+GameDS -> GQLClient : query room(id)
+GameDS -> GQLClient : query gameSnapshot(roomId,playerId)
+GQLClient -> GQL : requests
+GQL --> GQLClient : room + snapshot
+GQLClient --> GameDS : payloads
+GameDS --> GameUI : estado inicial
+
+== 2) Stream realtime ==
+GameDS -> WSF : listen events
+WSB --> WSF : domain events JSON
+WSF --> GameDS : raw event
+GameDS -> GameDS : aplica evento no estado cached
+GameDS --> GameUI : emit novo SuecaGameState
+
+== 3) Jogar carta ==
+Player -> GameUI : escolher carta
+GameUI -> GameRepo : playCard(roomId,card)
+GameRepo -> GameDS : playCard(...)
+GameDS -> WSF : send(play_card, cardId)
+WSF -> WSB : frame JSON
+WSB -> Dispatcher : HandleMessage
+Dispatcher -> Game : PlayCardCommand.Execute
+
+alt jogada invalida
+  Game --> Dispatcher : error
+  Dispatcher --> WSB : ServerMessage{success:false,error}
+  WSB --> WSF : resposta erro
+  WSF --> GameDS : erro
+  GameDS --> GameUI : mostra mensagem
+else jogada valida
+  Game -> Bus : publish CARD_PLAYED/TURN_CHANGED/...
+  Bus -> WSObs : Update(event)
+  WSObs -> WSB : broadcast room event
+
+  Bus -> Persist : Update(event)
+  Persist -> Persist : save quando gameId existe
+
+  Dispatcher --> WSB : ServerMessage{success:true}
+  WSB --> WSF : ack de comando
+  WSB --> WSF : eventos de dominio
+  WSF --> GameDS : ack + eventos
+  GameDS --> GameUI : estado atualizado
+end
+
+@enduml

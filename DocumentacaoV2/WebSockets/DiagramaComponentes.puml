@@ -1,0 +1,53 @@
+﻿@startuml
+title WebSocket por Salas - Componentes (Estado Atual)
+
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+
+package "Frontend" {
+  component "WebSocketService" as FE_WS
+  component "RoomWaitingController" as FE_WAIT
+  component "GameRemoteDataSource" as FE_GAME
+}
+
+package "Backend" {
+  component "WebSocket Handler\n(/ws)" as WSHandler
+  component "Client" as Client
+  component "Hub" as Hub
+  component "RoomHub" as RoomHub
+
+  component "CommandDispatcher" as CmdDispatcher
+  component "PlayCardHandler" as PlayCardHandler
+  component "ChangeBotStrategyHandler" as BotHandler
+
+  component "EventBus" as EventBus
+  component "WebSocketObserver" as WSObserver
+  component "EventPersistenceObserver" as PersistObserver
+}
+
+FE_WS --> WSHandler : HTTP Upgrade
+WSHandler --> Client : NewClient
+WSHandler --> Hub : AddClient(roomId, client)
+Hub --> RoomHub : regista cliente na sala
+
+Client --> CmdDispatcher : mensagens {type,payload}
+CmdDispatcher --> PlayCardHandler : type=play_card
+CmdDispatcher --> BotHandler : type=change_bot_strategy
+
+EventBus --> WSObserver : Update(event)
+WSObserver --> Hub : BroadcastToRoom(roomId,event)
+Hub --> RoomHub : Broadcast(payload)
+RoomHub --> Client : Enqueue
+Client --> FE_WS : frames JSON
+
+EventBus --> PersistObserver : Update(event)
+
+FE_WAIT ..> FE_WS : connect/watch events
+FE_GAME ..> FE_WS : connect/send commands/watch events
+
+note right of Hub
+A sala precisa existir no Hub.
+CreateRoom cria RoomHub explicitamente.
+end note
+
+@enduml

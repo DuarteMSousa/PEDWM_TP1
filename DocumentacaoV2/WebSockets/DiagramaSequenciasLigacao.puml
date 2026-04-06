@@ -1,0 +1,35 @@
+﻿@startuml
+title Sequencia - Ligacao WebSocket e Limpeza de Recursos
+
+actor "Flutter Client" as FE
+participant "WebSocket Handler" as Handler
+participant "Hub" as Hub
+participant "RoomHub" as RoomHub
+participant "Client" as Client
+participant "RoomService" as RoomSvc
+
+FE -> Handler : GET /ws?roomId=...&playerId=...
+Handler -> Handler : validar roomId/playerId
+
+alt parametros invalidos
+  Handler --> FE : rejeitar ligacao
+else upgrade OK
+  Handler -> Client : NewClient(playerId, roomId,...)
+  Handler -> Hub : AddClient(roomId, client)
+  Hub -> RoomHub : AddClient(client)
+  Handler -> Client : go ReadPump()
+  Handler -> Client : go WritePump()
+  Handler --> FE : socket conectado
+end
+
+== Fecho da ligacao ==
+FE -> Client : close socket
+Client -> RoomSvc : LeaveRoom(roomId, playerId)
+Client -> Hub : RemoveClient(roomId, client)
+Hub -> RoomHub : RemoveClient(client)
+
+alt sala ficou vazia
+  Hub -> Hub : delete roomId
+end
+
+@enduml
