@@ -76,23 +76,17 @@ entity "events" as events {
 
 users ||--o{ friendships : requester_id
 users ||--o{ friendships : addressee_id
-users ||--|| user_stats : user_id
+users ||--|| user_stats
 
 users ||--o{ rooms : host_id
-rooms ||--o{ room_players : room_id
-users ||--o{ room_players : user_id
+rooms ||--o{ room_players
+users ||--o{ room_players
 
-rooms ||--o{ games : room_id
+rooms ||--o{ games
 
-games ||--o{ game_players : game_id
-users ||--o{ game_players : user_id
+games ||--o{ game_players
+users ||--o{ game_players
 
-games ||--o{ events : game_id
-
-note right of games
-Indice unico parcial:
-one_active_game_per_room
-(room_id) WHERE status='IN_PROGRESS'
-end note
+games ||--o{ events
 
 @enduml
