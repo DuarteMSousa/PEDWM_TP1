@@ -1,6 +1,13 @@
 package command
 
-import "backend/internal/domain/game"
+import (
+	"backend/internal/domain/room"
+	"errors"
+)
+
+var (
+	ErrNoActiveGame = errors.New("No game found in this room")
+)
 
 // PlayCardCommand encapsulates the action of playing a card.
 type PlayCardCommand struct {
@@ -14,6 +21,11 @@ func NewPlayCardCommand(playerId string, cardId string) PlayCardCommand {
 }
 
 // Execute executes the command to play a card on the game.
-func (c PlayCardCommand) Execute(game *game.Game) error {
-	return game.PlayCard(c.playerId, c.cardId)
+func (c PlayCardCommand) Execute(room *room.Room) error {
+
+	if room.Game == nil {
+		return ErrNoActiveGame
+	}
+
+	return room.Game.PlayCard(c.playerId, c.cardId)
 }

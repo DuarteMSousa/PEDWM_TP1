@@ -42,13 +42,13 @@ func NewPlayCardHandler(hub *Hub) CommandHandler {
 			return ErrMissingCard
 		}
 
-		activeGame, err := findGame(hub, ctx.RoomID)
+		room, err := findRoom(hub, ctx.RoomID)
 		if err != nil {
 			return err
 		}
 
 		cmd := command.NewPlayCardCommand(ctx.PlayerID, p.CardID)
-		if err := cmd.Execute(activeGame); err != nil {
+		if err := cmd.Execute(room); err != nil {
 			return err
 		}
 
