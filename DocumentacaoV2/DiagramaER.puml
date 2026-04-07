@@ -11,15 +11,6 @@ entity "users" as users {
   password : VARCHAR
 }
 
-entity "friendships" as friendships {
-  * requester_id : UUID <<PK,FK>>
-  * addressee_id : UUID <<PK,FK>>
-  --
-  status : friendship_status
-  created_at : TIMESTAMPTZ
-  updated_at : TIMESTAMPTZ
-}
-
 entity "user_stats" as user_stats {
   * user_id : UUID <<PK,FK>>
   --
@@ -74,8 +65,6 @@ entity "events" as events {
   payload : JSONB
 }
 
-users ||--o{ friendships : requester_id
-users ||--o{ friendships : addressee_id
 users ||--|| user_stats
 
 users ||--o{ rooms : host_id
