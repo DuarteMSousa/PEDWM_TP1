@@ -1,0 +1,56 @@
+@startuml
+title 3.2.2 - Jogadores e Equipas
+
+skinparam classAttributeIconSize 0
+
+enum PlayerType {
+  HUMAN
+  BOT
+}
+
+class Player {
+  +ID: string
+  +Name: string
+  +Type: PlayerType
+  +Sequence: int
+  +Hand: Hand
+}
+
+class Team {
+  +ID: string
+  +Players: Player[]
+}
+
+class Hand {
+  +Cards: Card[]
+  +AddCard(card): void
+  +RemoveCard(cardID): Card
+  +HasSuit(suit): bool
+}
+
+class Card {
+  +ID: string
+  +Suit: string
+  +Rank: string
+}
+
+class Room {
+  +ID: string
+  +HostID: string
+  +Players: map<string, Player>
+}
+
+class Game {
+  +Players: map<string, Player>
+  +Teams: map<string, Team>
+  +Score: map<string, int>
+}
+
+Room "1" -- "1..4" Player : participantes
+Game "1" -- "2" Team
+Team "1" -- "2" Player
+Game "1" -- "0..*" Player : indice rapido
+Player "1" -- "1" Hand
+Hand "1" -- "0..*" Card
+
+@enduml

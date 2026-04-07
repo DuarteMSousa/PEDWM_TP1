@@ -1,0 +1,109 @@
+@startuml
+title 3.2.1 - Dominio do Jogo
+
+skinparam classAttributeIconSize 0
+
+enum RoomStatus {
+  OPEN
+  IN_GAME
+  CLOSED
+}
+
+enum GameStatus {
+  PENDING
+  IN_PROGRESS
+  FINISHED
+}
+
+class Room {
+  +ID: string
+  +HostID: string
+  +Status: RoomStatus
+  +Players: map<string, Player>
+  +Game: Game
+  +AddPlayer(userID, username): error
+  +RemovePlayer(playerID): error
+  +CreateGame(): error
+}
+
+class Game {
+  +ID: uuid
+  +RoomID: string
+  +Status: GameStatus
+  +Players: map<string, Player>
+  +Teams: map<string, Team>
+  +Score: map<string, int>
+  +PlayCard(playerID, cardID): error
+  +CurrentRound(): Round
+}
+
+class Round {
+  +TrumpSuit: string
+  +CurrentTrick: Trick
+  +Deck: Deck
+  +PlayCard(playerID, cardID): error
+  +StartNewTrick(leaderID): void
+}
+
+class Trick {
+  +LeaderID: string
+  +LeadSuit: string
+  +TrumpSuit: string
+  +Plays: Play[]
+  +TurnOrder: TurnOrder
+  +AddPlay(play): error
+}
+
+class Deck {
+  +Shuffle(): void
+  +Draw(): Card
+  +First(): Card
+}
+
+class Card {
+  +ID: string
+  +Suit: string
+  +Rank: string
+}
+
+class Hand {
+  +Cards: Card[]
+  +AddCard(card): void
+  +RemoveCard(cardID): Card
+}
+
+class TurnOrder {
+  +Next(): string
+  +Dequeue(): string
+}
+
+class Play {
+  +PlayerID: string
+  +Card: Card
+}
+
+class Team {
+  +ID: string
+}
+
+class Player {
+  +ID: string
+  +Name: string
+  +Sequence: int
+  +Hand: Hand
+}
+
+Room "1" -- "0..1" Game
+Room "1" -- "1..4" Player
+Game "1" -- "2" Team
+Team "1" -- "1..2" Player
+Game "1" -- "1" Round
+Round "1" -- "1" Trick
+Round "1" -- "1" Deck
+Trick "1" -- "0..4" Play
+Play "1" -- "1" Card
+Player "1" -- "1" Hand
+Hand "1" -- "0..*" Card
+Trick "1" -- "1" TurnOrder
+
+@enduml

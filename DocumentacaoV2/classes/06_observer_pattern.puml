@@ -1,0 +1,63 @@
+@startuml
+title 3.2.6 - Padrao Observer
+
+skinparam classAttributeIconSize 0
+
+class Event {
+  +ID: string
+  +Type: string
+  +GameID: string
+  +RoomID: string
+  +Sequence: int
+  +Timestamp: datetime
+  +Payload: any
+}
+
+interface Observer {
+  +Update(event): void
+}
+
+interface Subject {
+  +Subscribe(observer): void
+  +Unsubscribe(observer): void
+  +Publish(event): void
+}
+
+class EventBus {
+  +Subscribe(observer): void
+  +Publish(event): void
+}
+
+class WebSocketObserver {
+  +Update(event): void
+}
+
+class EventPersistenceObserver {
+  +Update(event): void
+}
+
+class EventDispatcher {
+  +Register(type, handler): void
+  +Dispatch(event): error
+}
+
+class EventService {
+  +SaveEvent(event): error
+}
+
+class Hub {
+  +BroadcastToRoom(roomID, payload): void
+}
+
+Subject <|.. EventBus
+Observer <|.. WebSocketObserver
+Observer <|.. EventPersistenceObserver
+
+EventBus o-- Observer
+EventBus --> Event
+
+WebSocketObserver --> Hub : broadcast
+EventPersistenceObserver --> EventService : persist
+EventPersistenceObserver --> EventDispatcher : dispatch
+
+@enduml

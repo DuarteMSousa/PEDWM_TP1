@@ -1,0 +1,83 @@
+@startuml
+title 3.2.4 - Padrao Strategy
+
+skinparam classAttributeIconSize 0
+
+enum BotStrategyType {
+  EASY
+  HARD
+}
+
+interface IGameScoringStrategy {
+  +CalculateCurrentRoundGamePoints(round): map
+  +HasGameEnded(game): bool
+  +Winner(game): string
+}
+
+class SuecaGameScoringStrategy
+IGameScoringStrategy <|.. SuecaGameScoringStrategy
+
+interface IRoundRuleStrategy {
+  +Winner(round): string
+  +HasEnded(round): bool
+  +CalculateCurrentTrickRoundPoints(round): map
+}
+
+class SuecaRoundRuleStrategy
+IRoundRuleStrategy <|.. SuecaRoundRuleStrategy
+
+interface ITrickRuleStrategy {
+  +WinningTeam(trick): string
+  +WinningPlayer(trick): string
+  +HasEnded(trick): bool
+  +ValidatePlay(trick, play): bool
+}
+
+class SuecaTrickRules
+ITrickRuleStrategy <|.. SuecaTrickRules
+
+interface ITrickScoringStrategy {
+  +CardPoints(card): int
+  +TrickPoints(plays): int
+}
+
+class SuecaTrickScoring
+ITrickScoringStrategy <|.. SuecaTrickScoring
+
+interface IBotStrategy {
+  +ChooseCard(hand, leadSuit, trickRules): Card
+  +GetType(): BotStrategyType
+}
+
+class EasyBotStrategy
+class HardBotStrategy
+
+IBotStrategy <|.. EasyBotStrategy
+IBotStrategy <|.. HardBotStrategy
+
+class Game {
+  +scoringStrategy: IGameScoringStrategy
+}
+
+class Round {
+  +RuleStrategy: IRoundRuleStrategy
+  +BotStrategy: IBotStrategy
+}
+
+class Trick {
+  +RuleStrategy: ITrickRuleStrategy
+  +ScoringStrategy: ITrickScoringStrategy
+}
+
+class Room {
+  +BotStrategy: IBotStrategy
+}
+
+Game --> IGameScoringStrategy
+Round --> IRoundRuleStrategy
+Round --> IBotStrategy
+Trick --> ITrickRuleStrategy
+Trick --> ITrickScoringStrategy
+Room --> IBotStrategy
+
+@enduml

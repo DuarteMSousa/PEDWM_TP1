@@ -1,0 +1,59 @@
+@startuml
+title 3.2.5 - Padrao Command
+
+skinparam classAttributeIconSize 0
+
+enum BotStrategyType {
+  EASY
+  HARD
+}
+
+interface ICommand {
+  +Execute(game): error
+}
+
+class EnterGameCommand {
+  -player: Player
+  +Execute(game): error
+}
+
+class PlayCardCommand {
+  -playerId: string
+  -cardId: string
+  +Execute(game): error
+}
+
+class LeaveGameCommand {
+  -playerId: string
+  +Execute(game): error
+}
+
+class ChangeBotStrategyCommand {
+  -option: BotStrategyType
+  +Execute(room): error
+}
+
+class Game
+class Room
+class Player
+
+ICommand <|.. EnterGameCommand
+ICommand <|.. PlayCardCommand
+ICommand <|.. LeaveGameCommand
+
+EnterGameCommand --> Game
+PlayCardCommand --> Game
+LeaveGameCommand --> Game
+ChangeBotStrategyCommand --> Room
+
+note right of EnterGameCommand
+No codigo atual, Execute ainda
+nao esta implementado.
+end note
+
+note right of LeaveGameCommand
+No codigo atual, Execute ainda
+nao esta implementado.
+end note
+
+@enduml

@@ -1,0 +1,53 @@
+@startuml
+title 3.2.3 - Padrao State
+
+skinparam classAttributeIconSize 0
+
+interface IGameState {
+  +Enter(): void
+  +Update(): void
+}
+
+class Game {
+  +State: IGameState
+}
+
+class GameStartingState
+class GamePlayingState
+class GameScoringState <<conceitual>>
+class GameFinishedState
+
+IGameState <|.. GameStartingState
+IGameState <|.. GamePlayingState
+IGameState <|.. GameFinishedState
+IGameState <|.. GameScoringState
+
+Game --> IGameState
+
+interface IRoundState {
+  +Enter(): void
+  +Update(): void
+}
+
+class Round {
+  +State: IRoundState
+}
+
+class RoundSetupState
+class RoundPlayingState
+class RoundFinishedState
+
+IRoundState <|.. RoundSetupState
+IRoundState <|.. RoundPlayingState
+IRoundState <|.. RoundFinishedState
+
+Round --> IRoundState
+
+note right of GameScoringState
+Representa a fase de pontuacao
+descrita no relatorio 3.2.
+No codigo atual, a pontuacao ocorre
+na logica de GamePlayingState.
+end note
+
+@enduml
