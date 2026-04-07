@@ -1,6 +1,6 @@
 // Package interfaces define the contracts (interfaces) used by the application layer
 // to communicate with the infrastructure. Includes interfaces for
-// repositories (UserRepository, RoomRepository, FriendshipRepository, etc.),
+// repositories (UserRepository, RoomRepository, etc.),
 // event publishing (EventPublisher), and shared application errors.
 //
 // These contracts follow the Dependency Inversion Principle (DIP),

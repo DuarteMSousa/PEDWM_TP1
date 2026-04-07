@@ -4,7 +4,6 @@ import (
 	"backend/internal/application/services"
 	"backend/internal/domain/card"
 	domainevents "backend/internal/domain/events"
-	"backend/internal/domain/friendship"
 	"backend/internal/domain/game"
 	"backend/internal/domain/player"
 	"backend/internal/domain/room"
@@ -28,16 +27,6 @@ func mapUserStats(s *user.UserStats) *model.UserStats {
 		Games:  int32(s.Games),
 		Wins:   int32(s.Wins),
 		Elo:    int32(s.Elo),
-	}
-}
-
-func mapFriendship(f *friendship.Friendship) *model.Friendship {
-	return &model.Friendship{
-		RequesterID: f.RequesterID,
-		AddresseeID: f.AddresseeID,
-		Status:      model.FriendshipStatus(f.Status),
-		CreatedAt:   f.CreatedAt,
-		UpdatedAt:   f.UpdatedAt,
 	}
 }
 

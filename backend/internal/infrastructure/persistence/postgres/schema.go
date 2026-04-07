@@ -16,13 +16,6 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 		// =========================
 		`DO $$
 		BEGIN
-			IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'friendship_status') THEN
-				CREATE TYPE friendship_status AS ENUM ('PENDING', 'ACCEPTED', 'REJECTED');
-			END IF;
-		END$$;`,
-
-		`DO $$
-		BEGIN
 			IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'room_status') THEN
 				CREATE TYPE room_status AS ENUM ('OPEN', 'IN_GAME', 'CLOSED');
 			END IF;
@@ -42,18 +35,6 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 			id UUID PRIMARY KEY,
 			username VARCHAR NOT NULL UNIQUE,
 			password VARCHAR NOT NULL
-		)`,
-
-		// =========================
-		// FRIENDSHIPS
-		// =========================
-		`CREATE TABLE IF NOT EXISTS friendships (
-			requester_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-			addressee_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-			status friendship_status NOT NULL,
-			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-			PRIMARY KEY (requester_id, addressee_id)
 		)`,
 
 		// =========================
@@ -130,9 +111,6 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 		// =========================
 		// INDEXES
 		// =========================
-		`CREATE INDEX IF NOT EXISTS idx_friendships_requester ON friendships(requester_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_friendships_addressee ON friendships(addressee_id)`,
-
 		`CREATE INDEX IF NOT EXISTS idx_rooms_host ON rooms(host_id)`,
 
 		`CREATE INDEX IF NOT EXISTS idx_games_room_id ON games(room_id)`,

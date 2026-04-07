@@ -6,7 +6,7 @@ Esta pasta contem os diagramas atualizados para o estado atual do projeto (backe
 
 - Arquitetura real do backend Go com GraphQL + WebSocket + EventBus + PostgreSQL.
 - Arquitetura atual do frontend Flutter (camadas, features e dependencias).
-- Modelo de dados real da base de dados (`users`, `friendships`, `user_stats`, `rooms`, `room_players`, `games`, `game_players`, `events`).
+- Modelo de dados real da base de dados (`users`, `user_stats`, `rooms`, `room_players`, `games`, `game_players`, `events`).
 - Fluxos reais de sala, inicio de jogo, jogada de carta e replay.
 - Fluxos WebSocket atuais (ligacao, comandos, broadcast e ciclo de vida).
 

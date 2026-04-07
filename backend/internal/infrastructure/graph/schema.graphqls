@@ -15,12 +15,6 @@ enum PlayerType {
   BOT
 }
 
-enum FriendshipStatus {
-  PENDING
-  ACCEPTED
-  REJECTED
-}
-
 enum EventType {
   ROUND_STARTED
   TRICK_STARTED
@@ -56,14 +50,6 @@ type UserStats {
   games: Int!
   wins: Int!
   elo: Int!
-}
-
-type Friendship {
-  requesterId: ID!
-  addresseeId: ID!
-  status: FriendshipStatus!
-  createdAt: Time!
-  updatedAt: Time!
 }
 
 type AuthPayload {
@@ -245,21 +231,6 @@ input LoginInput {
   password: String!
 }
 
-input SendFriendRequestInput {
-  requesterId: ID!
-  addresseeId: ID!
-}
-
-input RespondFriendRequestInput {
-  requesterId: ID!
-  addresseeId: ID!
-}
-
-input RemoveFriendInput {
-  userId: ID!
-  friendId: ID!
-}
-
 input CreateRoomInput {
   hostId: ID!
 }
@@ -287,10 +258,6 @@ type Query {
   user(id: ID!): User
   userByUsername(username: String!): User
 
-  # Friendships
-  friends(userId: ID!): [Friendship!]!
-  pendingFriendRequests(userId: ID!): [Friendship!]!
-
   # Rooms
   room(id: ID!): Room
   rooms: [Room!]!
@@ -307,12 +274,6 @@ type Mutation {
   # Auth
   register(input: RegisterInput!): AuthPayload!
   login(input: LoginInput!): AuthPayload!
-
-  # Friendships
-  sendFriendRequest(input: SendFriendRequestInput!): Friendship!
-  acceptFriendRequest(input: RespondFriendRequestInput!): Friendship!
-  rejectFriendRequest(input: RespondFriendRequestInput!): Friendship!
-  removeFriend(input: RemoveFriendInput!): Boolean!
 
   # Rooms
   createRoom(input: CreateRoomInput!): Room!

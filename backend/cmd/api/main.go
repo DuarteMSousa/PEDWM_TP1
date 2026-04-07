@@ -67,7 +67,6 @@ func main() {
 
 	repo := repositories.NewRoomPostgresRepository(pool)
 	userRepo := repositories.NewUserPostgresRepository(pool)
-	friendshipRepo := repositories.NewFriendshipPostgresRepository(pool)
 	userStatsRepo := repositories.NewUserStatsPostgresRepository(pool)
 	gameRepo := repositories.NewGamePostgresRepository(pool)
 	eventRepo := repositories.NewEventPostgresRepository(pool)
@@ -89,7 +88,6 @@ func main() {
 	eventService := services.NewEventService(eventRepo)
 	roomService := services.NewRoomService(repo, gameRepo, userRepo, eventService, hub)
 	userService := services.NewUserService(userRepo, userStatsRepo)
-	friendshipService := services.NewFriendshipService(friendshipRepo, userRepo)
 	userStatsService := services.NewUserStatsService(userStatsRepo, userRepo)
 	gameService := services.NewGameService(gameRepo)
 
@@ -99,7 +97,6 @@ func main() {
 	slog.Info("registering event handlers")
 
 	eventDispatcher := events_infrastructure.GetEventDispatcherInstance()
-	// eventDispatcher.Register(string(events.EventPlayerLeft), events_infrastructure.NewPlayerLeftEventHandler(roomService))
 	eventDispatcher.Register(string(events.EventGameEnded), events_infrastructure.NewGameEndedEventHandler(userStatsService, gameService))
 	eventDispatcher.Register(string(events.EventRoomClosed), events_infrastructure.NewRoomClosedEventHandler(roomService))
 
@@ -109,12 +106,11 @@ func main() {
 	slog.Info("configuring GraphQL server")
 
 	resolver := &graph.Resolver{
-		RoomService:       roomService,
-		UserService:       userService,
-		FriendshipService: friendshipService,
-		UserStatsService:  userStatsService,
-		EventService:      eventService,
-		GameService:       gameService,
+		RoomService:      roomService,
+		UserService:      userService,
+		UserStatsService: userStatsService,
+		EventService:     eventService,
+		GameService:      gameService,
 	}
 
 	srv := handler.New(graph.NewExecutableSchema(

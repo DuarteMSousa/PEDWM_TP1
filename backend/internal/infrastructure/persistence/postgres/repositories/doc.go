@@ -8,6 +8,5 @@
 //   - UserStatsPostgresRepository: statistics persistence.
 //   - RoomPostgresRepository: room and room players persistence.
 //   - GamePostgresRepository: game persistence.
-//   - FriendshipPostgresRepository: friendship persistence.
 //   - EventPostgresRepository: domain event persistence.
 package repositories

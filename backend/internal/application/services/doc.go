@@ -4,7 +4,6 @@
 // Available services:
 //   - UserService: registration, authentication, and user queries.
 //   - RoomService: room management (create, join, leave, start game).
-//   - FriendshipService: management of friend requests and relationships.
 //   - GameService: query and update game state.
 //   - UserStatsService: user statistics (ELO, wins).
 //   - EventService: persistence and query of domain events.
