@@ -1,5 +1,4 @@
 ﻿@startuml
-title Sueca - Diagrama de Classes (Dominio + Aplicacao)
 
 skinparam classAttributeIconSize 0
 
@@ -13,8 +12,8 @@ enum RoomStatus {
 }
 
 enum GameStatus {
-  PENDING
-  IN_PROGRESS
+  STARTING
+  PLAYING
   FINISHED
 }
 
@@ -46,13 +45,6 @@ class UserStats {
   +RecordGame(won): void
 }
 
-class Friendship {
-  +RequesterID: string
-  +AddresseeID: string
-  +Status: string
-  +Accept(): error
-  +Reject(): error
-}
 
 ' ========================
 ' Dominio: Jogo Sueca
@@ -61,9 +53,6 @@ class Room {
   +ID: string
   +HostID: string
   +Status: RoomStatus
-  +Players: map<string, Player>
-  +Game: Game
-  +BotStrategy: IBotStrategy
   +AddPlayer(userID, username): error
   +RemovePlayer(playerID): error
   +CreateGame(): error
@@ -74,11 +63,7 @@ class Game {
   +ID: uuid
   +RoomID: string
   +Status: GameStatus
-  +Players: map<string, Player>
-  +Teams: map<string, Team>
   +Score: map<string, int>
-  +Events: Event[]
-  +State: IGameState
   +PlayCard(playerID, cardID): error
   +RemovePlayer(playerID): error
   +AddEvent(event): void
@@ -87,9 +72,6 @@ class Game {
 
 class Round {
   +TrumpSuit: string
-  +CurrentTrick: Trick
-  +State: IRoundState
-  +RuleStrategy: IRoundRuleStrategy
   +PlayCard(playerID, cardID): error
   +StartNewTrick(leaderID): void
   +CollectEvents(): Event[]
@@ -99,17 +81,12 @@ class Trick {
   +LeaderID: string
   +LeadSuit: string
   +TrumpSuit: string
-  +Plays: Play[]
-  +TurnOrder: TurnOrder
-  +RuleStrategy: ITrickRuleStrategy
-  +ScoringStrategy: ITrickScoringStrategy
   +AddPlay(play): error
   +IsComplete(): bool
 }
 
 class Team {
   +ID: string
-  +Players: Player[]
 }
 
 class Player {
@@ -121,7 +98,6 @@ class Player {
 }
 
 class Hand {
-  +Cards: Card[]
   +AddCard(card): void
   +RemoveCard(cardID): Card
   +HasSuit(suit): bool
@@ -263,58 +239,132 @@ EventBus o-- Observer
 ' ========================
 ' Aplicacao e Comandos
 ' ========================
-class RoomService {
-  +CreateRoom(hostID): Room
-  +JoinRoom(roomID, userID): Room
-  +LeaveRoom(roomID, userID): Room
-  +StartGame(roomID): Room
-  +GetGameSnapshot(roomID, playerID): GameSnapshot
-}
+' class RoomService {
+'   +CreateRoom(hostID): Room
+'   +JoinRoom(roomID, userID): Room
+'   +LeaveRoom(roomID, userID): Room
+'   +StartGame(roomID): Room
+'   +GetGameSnapshot(roomID, playerID): GameSnapshot
+' }
+ 
+' class UserService {
+'   +Register(username, password): User
+'   +Login(username, password): User
+' }
 
-class UserService {
-  +Register(username, password): User
-  +Login(username, password): User
-}
 
-class FriendshipService {
-  +SendRequest(requesterID, addresseeID): Friendship
-  +AcceptRequest(requesterID, addresseeID): Friendship
-  +RejectRequest(requesterID, addresseeID): Friendship
-}
+' class UserStatsService {
+'   +GetByUserID(userID): UserStats
+'   +RecordGame(userID, won): UserStats
+' }
 
-class UserStatsService {
-  +GetByUserID(userID): UserStats
-  +RecordGame(userID, won): UserStats
-}
+' class GameService {
+'   +GetUserGames(userID): Game[]
+'   +SetGameStatus(gameID, status): Game
+' }
 
-class GameService {
-  +GetUserGames(userID): Game[]
-  +SetGameStatus(gameID, status): Game
-}
+' class EventService {
+'   +SaveEvent(event): error
+'   +GetEventsByGameID(gameID): Event[]
+' }
 
-class EventService {
-  +SaveEvent(event): error
-  +GetEventsByGameID(gameID): Event[]
-}
+' interface RoomRepository
+' interface UserRepository
+' interface UserStatsRepository
+' interface GameRepository
+' interface EventRepository
 
-interface RoomRepository
-interface UserRepository
-interface FriendshipRepository
-interface UserStatsRepository
-interface GameRepository
-interface EventRepository
-
-class PlayCardCommand {
-  +Execute(game): error
-}
-
-class ChangeBotStrategyCommand {
+interface ICommand {
   +Execute(room): error
+}
+
+class PlayCardCommand implements ICommand {
+  +Execute(room): error
+}
+
+class ChangeBotStrategyCommand implements ICommand {
+  +Execute(room): error
+}
+
+' ========================
+' Infraestrutura: WebSockets
+' ========================
+class Hub {
+  +CreateRoomHub(room): RoomHub
+  +GetRoomHub(roomID): RoomHub
+  +GetRoom(roomID): Room
+  +DeleteRoom(roomID): void
+  +AddClient(roomID, client): void
+  +RemoveClient(roomID, client): void
+  +BroadcastToRoom(roomID, payload): void
+}
+
+class RoomHub {
+  +GetRoom(): Room
+  +AddClient(client): void
+  +RemoveClient(client): bool
+  +IsEmpty(): bool
+  +Broadcast(payload): void
+}
+
+class Client {
+  +Enqueue(payload): bool
+  +Close(): void
+  +ReadPump(): void
+  +WritePump(): void
+}
+
+class CommandContext {
+  +PlayerID: string
+  +RoomID: string
+  +Client: Client
+}
+
+class CommandDispatcher {
+  +Register(messageType, handler): void
+  +Dispatch(ctx, msg): error
+  +HandleMessage(client, raw): void
+}
+
+class Handler {
+  +Hub: Hub
+  +Dispatcher: CommandDispatcher
+  +ServeHTTP(w, r): void
+}
+
+class WebSocketObserver {
+  +Update(event): void
+}
+
+class ClientMessage {
+  +Type: string
+  +Payload: json
+}
+
+class ServerMessage {
+  +Type: string
+  +Success: bool
+  +Error: string
+}
+
+' ========================
+' Infraestrutura: Eventos
+' ========================
+class EventDispatcher {
+  +Register(messageType, handler): void
+  +Dispatch(event): error
+  +HandleMessage(event): void
+}
+
+class EventPersistanceObserver {
+  +Update(event): void
 }
 
 ' ========================
 ' Relacoes
 ' ========================
+
+' --- Dominio ---
 Room "1" -- "0..1" Game
 Room "1" -- "1..4" Player
 Game "1" -- "2" Team
@@ -327,6 +377,8 @@ Play "1" -- "1" Card
 Trick "1" -- "1" TurnOrder
 Game "1" -- "1" Round
 Game "1" -- "0..*" Event
+Room "1" -- "1" EventBus
+Game "1" -- "1" EventBus
 
 Game --> IGameState
 Round --> IRoundState
@@ -337,20 +389,37 @@ Trick --> ITrickScoringStrategy
 Round --> IBotStrategy
 Room --> IBotStrategy
 
-RoomService --> RoomRepository
-RoomService --> UserRepository
-RoomService --> GameRepository
-RoomService --> EventService
+' RoomService --> RoomRepository
+' RoomService --> UserRepository
+' RoomService --> GameRepository
+' RoomService --> EventService
 
-UserService --> UserRepository
-UserService --> UserStatsRepository
-FriendshipService --> FriendshipRepository
-FriendshipService --> UserRepository
-UserStatsService --> UserStatsRepository
-GameService --> GameRepository
-EventService --> EventRepository
+' UserService --> UserRepository
+' UserService --> UserStatsRepository
+' UserStatsService --> UserStatsRepository
+' GameService --> GameRepository
+' EventService --> EventRepository
 
-PlayCardCommand --> Game
+PlayCardCommand --> Room
 ChangeBotStrategyCommand --> Room
+
+' --- Aplicacao ---
+
+
+' --- Infraestrutura WebSocket ---
+Hub "1" *-- "0..*" RoomHub
+RoomHub "1" *-- "0..*" Client
+Client --> CommandDispatcher
+Handler --> Hub
+Handler --> CommandDispatcher
+
+WebSocketObserver ..|> Observer
+WebSocketObserver --> Hub
+EventBus o-- WebSocketObserver
+
+' --- Infraestrutura Eventos ---
+EventPersistanceObserver ..|> Observer
+EventPersistanceObserver --> EventDispatcher
+EventBus o-- EventPersistanceObserver
 
 @enduml

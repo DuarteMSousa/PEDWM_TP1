@@ -34,14 +34,10 @@ package "Strategy" {
 package "Command" {
   interface ICommand
   class PlayCardCommand
-  class EnterGameCommand
-  class LeaveGameCommand
-  class Room
+  class ChangeBotStrategyCommand
 
   ICommand <|.. PlayCardCommand
-  ICommand <|.. EnterGameCommand
-  ICommand <|.. LeaveGameCommand
-  PlayCardCommand --> Game
+  ICommand <|.. ChangeBotStrategyCommand
 }
 
 package "Observer" {
@@ -57,9 +53,6 @@ package "Observer" {
   EventBus o-- Observer
 }
 
-note bottom
-Este diagrama resume os padroes usados no dominio.
-Para a visao completa das entidades, usar "3_2_classes_geral.puml".
-end note
+
 
 @enduml

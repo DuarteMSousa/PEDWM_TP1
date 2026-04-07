@@ -1,5 +1,4 @@
 @startuml
-title 3.2.3 - Padrao State
 
 skinparam classAttributeIconSize 0
 
@@ -14,13 +13,11 @@ class Game {
 
 class GameStartingState
 class GamePlayingState
-class GameScoringState <<conceitual>>
 class GameFinishedState
 
 IGameState <|.. GameStartingState
 IGameState <|.. GamePlayingState
 IGameState <|.. GameFinishedState
-IGameState <|.. GameScoringState
 
 Game --> IGameState
 
@@ -43,11 +40,5 @@ IRoundState <|.. RoundFinishedState
 
 Round --> IRoundState
 
-note right of GameScoringState
-Representa a fase de pontuacao
-descrita no relatorio 3.2.
-No codigo atual, a pontuacao ocorre
-na logica de GamePlayingState.
-end note
 
 @enduml

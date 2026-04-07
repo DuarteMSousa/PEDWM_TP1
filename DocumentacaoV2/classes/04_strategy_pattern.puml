@@ -1,12 +1,6 @@
 @startuml
-title 3.2.4 - Padrao Strategy
 
 skinparam classAttributeIconSize 0
-
-enum BotStrategyType {
-  EASY
-  HARD
-}
 
 interface IGameScoringStrategy {
   +CalculateCurrentRoundGamePoints(round): map
@@ -69,15 +63,11 @@ class Trick {
   +ScoringStrategy: ITrickScoringStrategy
 }
 
-class Room {
-  +BotStrategy: IBotStrategy
-}
 
 Game --> IGameScoringStrategy
 Round --> IRoundRuleStrategy
 Round --> IBotStrategy
 Trick --> ITrickRuleStrategy
 Trick --> ITrickScoringStrategy
-Room --> IBotStrategy
 
 @enduml
