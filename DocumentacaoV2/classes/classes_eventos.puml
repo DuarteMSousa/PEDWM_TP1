@@ -1,0 +1,153 @@
+@startuml
+title Sueca - Diagrama de Classes: Eventos, Observers e Dispatchers
+
+skinparam classAttributeIconSize 0
+
+' ========================
+' Enums
+' ========================
+enum EventType {
+  PLAYER_JOINED
+  PLAYER_LEFT
+  GAME_STARTED
+  GAME_ENDED
+  ROUND_STARTED
+  ROUND_ENDED
+  TRICK_STARTED
+  TRICK_ENDED
+  CARD_DEALT
+  CARD_PLAYED
+  TURN_CHANGED
+  TRUMP_REVEALED
+  ROOM_CLOSED
+  BOT_STRATEGY_CHANGED
+}
+
+' ========================
+' Dominio: Eventos Base
+' ========================
+class Event {
+  +ID: string
+  +Type: EventType
+  +GameID: string
+  +RoomID: string
+  +Sequence: int
+  +Timestamp: datetime
+  +Payload: any
+  +WithPayload(payload): Event
+}
+
+interface Subject {
+  +Subscribe(observer): void
+  +Unsubscribe(observer): void
+  +Publish(event): void
+}
+
+interface Observer {
+  +Update(event): void
+}
+
+class EventBus {
+  +Subscribe(observer): void
+  +Unsubscribe(observer): void
+  +Publish(event): void
+}
+
+Subject <|.. EventBus
+EventBus -- Observer
+
+' ========================
+' Infraestrutura: WebSockets
+' ========================
+class Hub {
+  +CreateRoomHub(room): RoomHub
+  +GetRoomHub(roomID): RoomHub
+  +GetRoom(roomID): Room
+  +DeleteRoom(roomID): void
+  +AddClient(roomID, client): void
+  +RemoveClient(roomID, client): void
+  +BroadcastToRoom(roomID, payload): void
+}
+
+class RoomHub {
+  +GetRoom(): Room
+  +AddClient(client): void
+  +RemoveClient(client): bool
+  +IsEmpty(): bool
+  +Broadcast(payload): void
+}
+
+class Client {
+  +Enqueue(payload): bool
+  +Close(): void
+  +ReadPump(): void
+  +WritePump(): void
+}
+
+class CommandContext {
+  +PlayerID: string
+  +RoomID: string
+  +Client: Client
+}
+
+class CommandDispatcher {
+  +Register(messageType, handler): void
+  +Dispatch(ctx, msg): error
+  +HandleMessage(client, raw): void
+}
+
+class Handler {
+  +Hub: Hub
+  +Dispatcher: CommandDispatcher
+  +ServeHTTP(w, r): void
+}
+
+class WebSocketObserver {
+  +Update(event): void
+}
+
+class ClientMessage {
+  +Type: string
+  +Payload: json
+}
+
+class ServerMessage {
+  +Type: string
+  +Success: bool
+  +Error: string
+}
+
+' ========================
+' Infraestrutura: Eventos Dispatcher
+' ========================
+class EventDispatcher {
+  +Register(messageType, handler): void
+  +Dispatch(event): error
+  +HandleMessage(event): void
+}
+
+class EventPersistanceObserver {
+  +Update(event): void
+}
+
+' ========================
+' Relacoes
+' ========================
+
+' --- Hub e WebSocket ---
+Hub "1" -- "0..*" RoomHub
+RoomHub "1" -- "0..*" Client
+Client "1" -- "1" CommandDispatcher
+Handler "1" -- "1" Hub
+Handler "1" -- "1" CommandDispatcher
+
+' --- Observers e EventBus ---
+WebSocketObserver ..|> Observer
+WebSocketObserver "1"--"1" Hub
+EventPersistanceObserver ..|> Observer
+EventPersistanceObserver "1"--"1" EventDispatcher
+
+
+
+
+@enduml
