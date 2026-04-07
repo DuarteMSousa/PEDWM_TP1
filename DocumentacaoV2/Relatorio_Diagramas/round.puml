@@ -1,0 +1,21 @@
+﻿@startuml
+title Diagrama de Estados - Round (Estado Atual)
+
+[*] --> Setup
+
+Setup : RoundSetupState
+Setup : cria deck, embaralha,
+Setup : revela trunfo e distribui cartas
+Setup --> Playing : emite ROUND_STARTED
+
+Playing : RoundPlayingState
+Playing : gere trick atual e turnos
+Playing --> Playing : CARD_PLAYED/TURN_CHANGED
+Playing --> Playing : trick termina e inicia nova trick
+Playing --> Finished : todas as mãos vazias
+
+Finished : RoundFinishedState
+Finished : emite ROUND_ENDED
+Finished --> [*]
+
+@enduml
