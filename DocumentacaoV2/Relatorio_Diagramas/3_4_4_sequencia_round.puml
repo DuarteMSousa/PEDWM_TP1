@@ -1,0 +1,68 @@
+﻿@startuml
+title Sequencia - Ronda Completa (Refatorado)
+
+participant "Game" as Game
+participant "RoundSetupState" as Setup
+participant "RoundPlayingState" as Playing
+participant "Trick" as Trick
+participant "BotStrategy" as Bot
+participant "EventBus" as Bus
+participant "WebSocketObserver" as WS
+participant "EventPersistenceObserver" as Persist
+
+== Setup da Ronda ==
+
+Game -> Setup : Enter()
+note over Setup : Criar deck e baralhar (shuffle)
+
+Setup -> Bus : TRUMP_REVEALED
+
+loop 40 vezes (Distribuir cartas)
+    Setup -> Bus : CARD_DEALT
+end
+
+Setup -> Bus : ROUND_STARTED
+Setup -> Playing : Enter()
+
+== Ciclo de Jogada (A Ronda) ==
+
+loop Enquanto houver cartas na mão (10 vezes)
+    Playing -> Trick : NewTrick(leader)
+    Playing -> Bus : TRICK_STARTED
+    Playing -> Bus : TURN_CHANGED(leader)
+
+    loop Até vaza (Trick) estar completa
+        alt Jogador humano envia comando
+            Game -> Trick : AddPlay(play)
+        else Próximo jogador é Bot
+            Playing -> Bot : ChooseCard(hand, leadSuit, rules)
+            Bot --> Playing : card
+            Playing -> Trick : AddPlay(play)
+        end
+
+        Playing -> Bus : CARD_PLAYED
+        
+        opt Trick não terminou
+            Playing -> Bus : TURN_CHANGED(nextPlayer)
+        end
+    end
+
+    == Fecho da Vaza ==
+    Playing -> Trick : WinningPlayer() + TrickPoints()
+    Playing -> Bus : TRICK_ENDED
+    note over Playing : Define vencedor da vaza como próximo "leader"
+end
+
+== Finalização ==
+
+Playing -> Bus : ROUND_ENDED
+
+== Fan-out de Eventos (Assíncrono) ==
+
+loop Para cada evento publicado
+    Bus -> WS : Update(event)
+    note over WS : Broadcast para roomId
+    Bus -> Persist : Update(event)
+end
+
+@enduml
