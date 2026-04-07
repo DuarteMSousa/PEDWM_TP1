@@ -150,3 +150,17 @@ query {
 - `deleteRoom` can only be executed by the room host.
 - Server starts with no pre-created rooms.
 - Private rooms require a password on join.
+
+## Tests
+
+Run all unit tests:
+
+```bash
+go test ./...
+```
+
+Run tests with coverage:
+
+```bash
+go test ./... -cover
+```
