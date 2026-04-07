@@ -1,5 +1,4 @@
 @startuml
-title Sueca - Diagrama de Classes: Eventos, Observers e Dispatchers
 
 skinparam classAttributeIconSize 0
 
