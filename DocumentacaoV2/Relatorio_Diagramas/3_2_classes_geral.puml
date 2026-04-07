@@ -1,0 +1,356 @@
+﻿@startuml
+title Sueca - Diagrama de Classes (Dominio + Aplicacao)
+
+skinparam classAttributeIconSize 0
+
+' ========================
+' Enums
+' ========================
+enum RoomStatus {
+  OPEN
+  IN_GAME
+  CLOSED
+}
+
+enum GameStatus {
+  PENDING
+  IN_PROGRESS
+  FINISHED
+}
+
+enum PlayerType {
+  HUMAN
+  BOT
+}
+
+enum BotStrategyType {
+  EASY
+  HARD
+}
+
+' ========================
+' Dominio: Conta e Social
+' ========================
+class User {
+  +ID: string
+  +Username: string
+  +Password: string
+  +CheckPassword(password): bool
+}
+
+class UserStats {
+  +UserId: string
+  +Games: int
+  +Wins: int
+  +Elo: int
+  +RecordGame(won): void
+}
+
+class Friendship {
+  +RequesterID: string
+  +AddresseeID: string
+  +Status: string
+  +Accept(): error
+  +Reject(): error
+}
+
+' ========================
+' Dominio: Jogo Sueca
+' ========================
+class Room {
+  +ID: string
+  +HostID: string
+  +Status: RoomStatus
+  +Players: map<string, Player>
+  +Game: Game
+  +BotStrategy: IBotStrategy
+  +AddPlayer(userID, username): error
+  +RemovePlayer(playerID): error
+  +CreateGame(): error
+  +SetBotStrategy(strategy): void
+}
+
+class Game {
+  +ID: uuid
+  +RoomID: string
+  +Status: GameStatus
+  +Players: map<string, Player>
+  +Teams: map<string, Team>
+  +Score: map<string, int>
+  +Events: Event[]
+  +State: IGameState
+  +PlayCard(playerID, cardID): error
+  +RemovePlayer(playerID): error
+  +AddEvent(event): void
+  +CurrentRound(): Round
+}
+
+class Round {
+  +TrumpSuit: string
+  +CurrentTrick: Trick
+  +State: IRoundState
+  +RuleStrategy: IRoundRuleStrategy
+  +PlayCard(playerID, cardID): error
+  +StartNewTrick(leaderID): void
+  +CollectEvents(): Event[]
+}
+
+class Trick {
+  +LeaderID: string
+  +LeadSuit: string
+  +TrumpSuit: string
+  +Plays: Play[]
+  +TurnOrder: TurnOrder
+  +RuleStrategy: ITrickRuleStrategy
+  +ScoringStrategy: ITrickScoringStrategy
+  +AddPlay(play): error
+  +IsComplete(): bool
+}
+
+class Team {
+  +ID: string
+  +Players: Player[]
+}
+
+class Player {
+  +ID: string
+  +Name: string
+  +Type: PlayerType
+  +Sequence: int
+  +Hand: Hand
+}
+
+class Hand {
+  +Cards: Card[]
+  +AddCard(card): void
+  +RemoveCard(cardID): Card
+  +HasSuit(suit): bool
+}
+
+class Deck {
+  +Shuffle(): void
+  +Draw(): Card
+  +First(): Card
+}
+
+class Card {
+  +ID: string
+  +Suit: string
+  +Rank: string
+}
+
+class TurnOrder {
+  +Next(): string
+  +Dequeue(): string
+  +AddPlayer(player): void
+  +Remove(playerID): error
+}
+
+class Play {
+  +PlayerID: string
+  +Card: Card
+}
+
+' ========================
+' State Pattern
+' ========================
+interface IGameState {
+  +Enter(): void
+  +Update(): void
+}
+
+class GameStartingState
+class GamePlayingState
+class GameFinishedState
+
+IGameState <|.. GameStartingState
+IGameState <|.. GamePlayingState
+IGameState <|.. GameFinishedState
+
+interface IRoundState {
+  +Enter(): void
+  +Update(): void
+}
+
+class RoundSetupState
+class RoundPlayingState
+class RoundFinishedState
+
+IRoundState <|.. RoundSetupState
+IRoundState <|.. RoundPlayingState
+IRoundState <|.. RoundFinishedState
+
+' ========================
+' Strategies
+' ========================
+interface IGameScoringStrategy {
+  +CalculateCurrentRoundGamePoints(round): map
+  +HasGameEnded(game): bool
+  +Winner(game): string
+}
+
+class SuecaGameScoringStrategy
+IGameScoringStrategy <|.. SuecaGameScoringStrategy
+
+interface IRoundRuleStrategy {
+  +Winner(round): string
+  +HasEnded(round): bool
+  +CalculateCurrentTrickRoundPoints(round): map
+}
+
+class SuecaRoundRuleStrategy
+IRoundRuleStrategy <|.. SuecaRoundRuleStrategy
+
+interface ITrickRuleStrategy {
+  +WinningTeam(trick): string
+  +WinningPlayer(trick): string
+  +HasEnded(trick): bool
+  +ValidatePlay(trick, play): bool
+}
+
+class SuecaTrickRules
+ITrickRuleStrategy <|.. SuecaTrickRules
+
+interface ITrickScoringStrategy {
+  +CardPoints(card): int
+  +TrickPoints(plays): int
+}
+
+class SuecaTrickScoring
+ITrickScoringStrategy <|.. SuecaTrickScoring
+
+interface IBotStrategy {
+  +ChooseCard(hand, leadSuit, cardStrengthProvider): Card
+  +GetType(): BotStrategyType
+}
+
+class EasyBotStrategy
+class HardBotStrategy
+IBotStrategy <|.. EasyBotStrategy
+IBotStrategy <|.. HardBotStrategy
+
+' ========================
+' Eventos
+' ========================
+class Event {
+  +ID: string
+  +Type: string
+  +GameID: string
+  +RoomID: string
+  +Sequence: int
+  +Timestamp: datetime
+  +Payload: any
+}
+
+interface Observer {
+  +Update(event): void
+}
+
+interface Subject {
+  +Subscribe(observer): void
+  +Unsubscribe(observer): void
+  +Publish(event): void
+}
+
+class EventBus {
+  +Subscribe(observer): void
+  +Publish(event): void
+}
+
+Subject <|.. EventBus
+EventBus o-- Observer
+
+' ========================
+' Aplicacao e Comandos
+' ========================
+class RoomService {
+  +CreateRoom(hostID): Room
+  +JoinRoom(roomID, userID): Room
+  +LeaveRoom(roomID, userID): Room
+  +StartGame(roomID): Room
+  +GetGameSnapshot(roomID, playerID): GameSnapshot
+}
+
+class UserService {
+  +Register(username, password): User
+  +Login(username, password): User
+}
+
+class FriendshipService {
+  +SendRequest(requesterID, addresseeID): Friendship
+  +AcceptRequest(requesterID, addresseeID): Friendship
+  +RejectRequest(requesterID, addresseeID): Friendship
+}
+
+class UserStatsService {
+  +GetByUserID(userID): UserStats
+  +RecordGame(userID, won): UserStats
+}
+
+class GameService {
+  +GetUserGames(userID): Game[]
+  +SetGameStatus(gameID, status): Game
+}
+
+class EventService {
+  +SaveEvent(event): error
+  +GetEventsByGameID(gameID): Event[]
+}
+
+interface RoomRepository
+interface UserRepository
+interface FriendshipRepository
+interface UserStatsRepository
+interface GameRepository
+interface EventRepository
+
+class PlayCardCommand {
+  +Execute(game): error
+}
+
+class ChangeBotStrategyCommand {
+  +Execute(room): error
+}
+
+' ========================
+' Relacoes
+' ========================
+Room "1" -- "0..1" Game
+Room "1" -- "1..4" Player
+Game "1" -- "2" Team
+Team "1" -- "1..2" Player
+Player "1" -- "1" Hand
+Hand "1" -- "0..*" Card
+Round "1" -- "1" Trick
+Trick "1" -- "0..4" Play
+Play "1" -- "1" Card
+Trick "1" -- "1" TurnOrder
+Game "1" -- "1" Round
+Game "1" -- "0..*" Event
+
+Game --> IGameState
+Round --> IRoundState
+Game --> IGameScoringStrategy
+Round --> IRoundRuleStrategy
+Trick --> ITrickRuleStrategy
+Trick --> ITrickScoringStrategy
+Round --> IBotStrategy
+Room --> IBotStrategy
+
+RoomService --> RoomRepository
+RoomService --> UserRepository
+RoomService --> GameRepository
+RoomService --> EventService
+
+UserService --> UserRepository
+UserService --> UserStatsRepository
+FriendshipService --> FriendshipRepository
+FriendshipService --> UserRepository
+UserStatsService --> UserStatsRepository
+GameService --> GameRepository
+EventService --> EventRepository
+
+PlayCardCommand --> Game
+ChangeBotStrategyCommand --> Room
+
+@enduml

@@ -1,0 +1,65 @@
+@startuml
+title 3.2 - Resumo dos Padroes de Design
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+
+package "State" {
+  interface IGameState
+  class GameStartingState
+  class GamePlayingState
+  class GameFinishedState
+  class Game
+
+  IGameState <|.. GameStartingState
+  IGameState <|.. GamePlayingState
+  IGameState <|.. GameFinishedState
+  Game --> IGameState : state
+}
+
+package "Strategy" {
+  interface IGameScoringStrategy
+  class SuecaGameScoringStrategy
+  interface IBotStrategy
+  class EasyBotStrategy
+  class HardBotStrategy
+  class Round
+
+  IGameScoringStrategy <|.. SuecaGameScoringStrategy
+  IBotStrategy <|.. EasyBotStrategy
+  IBotStrategy <|.. HardBotStrategy
+  Round --> IBotStrategy : botStrategy
+}
+
+package "Command" {
+  interface ICommand
+  class PlayCardCommand
+  class EnterGameCommand
+  class LeaveGameCommand
+  class Room
+
+  ICommand <|.. PlayCardCommand
+  ICommand <|.. EnterGameCommand
+  ICommand <|.. LeaveGameCommand
+  PlayCardCommand --> Game
+}
+
+package "Observer" {
+  interface Subject
+  interface Observer
+  class EventBus
+  class WebSocketObserver
+  class EventPersistenceObserver
+
+  Subject <|.. EventBus
+  Observer <|.. WebSocketObserver
+  Observer <|.. EventPersistenceObserver
+  EventBus o-- Observer
+}
+
+note bottom
+Este diagrama resume os padroes usados no dominio.
+Para a visao completa das entidades, usar "3_2_classes_geral.puml".
+end note
+
+@enduml

@@ -1,0 +1,30 @@
+@startuml
+title 4.2.4 - Sistema de Eventos (Fluxo Interno)
+
+actor "Jogador" as Player
+participant "Game Aggregate" as Game
+participant "EventBus" as Bus
+participant "WebSocketObserver" as WSObs
+participant "Hub/RoomHub" as Hub
+participant "Clientes da Sala" as Clients
+participant "EventPersistenceObserver" as PersistObs
+participant "EventService" as EventSvc
+participant "EventRepository" as EventRepo
+database "PostgreSQL" as DB
+
+Player -> Game : acao de jogo (ex: play card)
+Game -> Game : atualiza estado e gera evento
+Game -> Bus : Publish(event)
+
+par canal realtime
+  Bus -> WSObs : Update(event)
+  WSObs -> Hub : BroadcastToRoom(roomId, event)
+  Hub -> Clients : push em tempo real
+else canal persistencia
+  Bus -> PersistObs : Update(event)
+  PersistObs -> EventSvc : SaveEvent(event)
+  EventSvc -> EventRepo : Save(event)
+  EventRepo -> DB : INSERT events
+end
+
+@enduml

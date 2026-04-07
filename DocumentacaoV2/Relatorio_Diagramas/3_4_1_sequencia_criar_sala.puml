@@ -1,0 +1,36 @@
+﻿@startuml
+title Sequencia - Criacao de Sala e Entrada na Waiting Room
+
+actor "Jogador Host" as Host
+participant "Flutter LobbyPage" as UI
+participant "GraphQL API" as GQL
+participant "RoomService" as RoomSvc
+participant "Room" as Room
+participant "Hub" as Hub
+participant "RoomRepository" as RoomRepo
+database "PostgreSQL" as PG
+participant "WebSocketService" as WSF
+participant "RoomWaitingController" as WaitCtrl
+
+Host -> UI : clicar "Criar sala"
+UI -> GQL : mutation createRoom(hostId)
+GQL -> RoomSvc : CreateRoom(hostId)
+RoomSvc -> Room : NewRoom(id, hostId, username)
+RoomSvc -> Room : SetEventBus(...)
+RoomSvc -> Hub : CreateRoomHub(room)
+RoomSvc -> RoomRepo : Save(room)
+RoomRepo -> PG : UPSERT rooms + room_players
+GQL --> UI : room{id,status,players}
+
+UI -> WSF : connect(roomId, playerId)
+WSF -> Hub : /ws?roomId&playerId
+Hub --> WSF : socket ativo
+
+UI -> WaitCtrl : initialize()
+WaitCtrl -> GQL : query room(id)
+GQL -> RoomSvc : GetRoom(id)
+RoomSvc --> GQL : room atual
+GQL --> WaitCtrl : RoomDetails
+WaitCtrl --> UI : render waiting room
+
+@enduml

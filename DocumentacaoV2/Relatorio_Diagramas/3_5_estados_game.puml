@@ -1,0 +1,21 @@
+﻿@startuml
+title Diagrama de Estados - Game (Estado Atual)
+
+[*] --> Pending
+
+Pending : status = PENDING
+Pending : State = GameStartingState
+Pending --> InProgress : GameStartingState.Update()
+
+InProgress : status = IN_PROGRESS
+InProgress : State = GamePlayingState
+InProgress --> InProgress : PlayCard() + UpdateRoundState()
+InProgress --> InProgress : Round terminou e score < 4\n(nova Round)
+InProgress --> Finished : score de equipa >= 4
+
+Finished : status = FINISHED
+Finished : State = GameFinishedState
+Finished : emite GAME_ENDED
+Finished --> [*]
+
+@enduml

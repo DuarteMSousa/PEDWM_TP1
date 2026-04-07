@@ -1,0 +1,82 @@
+@startuml
+title 3.3 - Diagrama ER com Legenda e Leitura Guiada
+
+hide methods
+skinparam classAttributeIconSize 0
+
+entity "users" as users {
+  * id : UUID <<PK>>
+  --
+  username : VARCHAR <<UNIQUE>>
+  password : VARCHAR
+}
+
+entity "user_stats" as user_stats {
+  * user_id : UUID <<PK,FK>>
+  --
+  games : INT
+  wins : INT
+  elo : INT
+}
+
+entity "rooms" as rooms {
+  * id : UUID <<PK>>
+  --
+  host_id : UUID <<FK>>
+  status : room_status
+}
+
+entity "room_players" as room_players {
+  * room_id : UUID <<PK,FK>>
+  * user_id : UUID <<PK,FK>>
+  --
+  sequence : INT
+}
+
+entity "games" as games {
+  * id : UUID <<PK>>
+  --
+  room_id : UUID <<FK>>
+  status : game_status
+}
+
+entity "game_players" as game_players {
+  * game_id : UUID <<PK,FK>>
+  * user_id : UUID <<PK,FK>>
+  --
+  sequence : INT
+}
+
+entity "events" as events {
+  * id : UUID <<PK>>
+  --
+  game_id : UUID <<FK>>
+  event_type : TEXT
+  sequence : INT
+  payload : JSONB
+}
+
+users ||--|| user_stats
+users ||--o{ rooms : host
+rooms ||--o{ room_players
+users ||--o{ room_players
+rooms ||--o{ games
+games ||--o{ game_players
+users ||--o{ game_players
+games ||--o{ events
+
+legend right
+  <<=PK>>      Primary Key
+  <<=FK>>      Foreign Key
+  <<=UNIQUE>>  Unique value
+endlegend
+
+note right of events
+Leitura guiada:
+1) User cria/entra em Room (room_players)
+2) Room origina Game
+3) Game associa jogadores (game_players)
+4) Game regista Events ordenados por sequence
+end note
+
+@enduml
