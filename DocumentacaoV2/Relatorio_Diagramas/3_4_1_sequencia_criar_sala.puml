@@ -10,7 +10,6 @@ participant "Hub" as Hub
 participant "RoomRepository" as RoomRepo
 database "PostgreSQL" as PG
 participant "WebSocketService" as WSF
-participant "RoomWaitingController" as WaitCtrl
 
 Host -> UI : clicar "Criar sala"
 UI -> GQL : mutation createRoom(hostId)
@@ -26,11 +25,7 @@ UI -> WSF : connect(roomId, playerId)
 WSF -> Hub : /ws?roomId&playerId
 Hub --> WSF : socket ativo
 
-UI -> WaitCtrl : initialize()
-WaitCtrl -> GQL : query room(id)
-GQL -> RoomSvc : GetRoom(id)
-RoomSvc --> GQL : room atual
-GQL --> WaitCtrl : RoomDetails
-WaitCtrl --> UI : render waiting room
+
+WSF --> UI : render waiting room
 
 @enduml

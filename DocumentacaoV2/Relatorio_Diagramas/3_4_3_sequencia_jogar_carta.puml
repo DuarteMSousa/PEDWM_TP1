@@ -15,7 +15,7 @@ participant "EventBus" as Bus
 participant "WebSocketObserver" as WSObs
 participant "EventPersistenceObserver" as PersistObs
 participant "EventRepository" as EventRepo
-participant "Outros Clientes" as Others
+participant "Other Socket clients" as Others
 
 Player -> UI : selecionar carta
 UI -> WSF : send(type=play_card, cardId)
