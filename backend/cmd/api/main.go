@@ -97,7 +97,7 @@ func main() {
 	slog.Info("registering event handlers")
 
 	eventDispatcher := events_infrastructure.GetEventDispatcherInstance()
-	eventDispatcher.Register(string(events.EventGameEnded), events_infrastructure.NewGameEndedEventHandler(userStatsService, gameService))
+	eventDispatcher.Register(string(events.EventGameEnded), events_infrastructure.NewGameEndedEventHandler(userStatsService, gameService, roomService))
 	eventDispatcher.Register(string(events.EventRoomClosed), events_infrastructure.NewRoomClosedEventHandler(roomService))
 
 	// ========================

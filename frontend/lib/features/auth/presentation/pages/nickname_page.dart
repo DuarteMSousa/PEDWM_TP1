@@ -61,8 +61,8 @@ class _NicknamePageState extends State<NicknamePage> {
     }
     if (_controller.errorMessage != null) {
       ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(_controller.errorMessage!)));
+        context,
+      ).showSnackBar(SnackBar(content: Text(_controller.errorMessage!)));
     }
   }
 
@@ -144,9 +144,7 @@ class _NicknamePageState extends State<NicknamePage> {
           TextButton(
             onPressed: _controller.isLoading ? null : _toggleMode,
             child: Text(
-              _isRegisterMode
-                  ? 'Já tenho conta'
-                  : 'Não tenho conta (registar)',
+              _isRegisterMode ? 'Já tenho conta' : 'Não tenho conta (registar)',
             ),
           ),
         ],
@@ -249,7 +247,7 @@ class _IntroPanel extends StatelessWidget {
               border: Border.all(color: const Color(0x66D7B46A)),
             ),
             child: Text(
-              'TRUQUE, VAZA, VITÓRIA',
+              '♠ ♥ ♦ ♣',
               style: textTheme.labelSmall?.copyWith(
                 color: foreground,
                 letterSpacing: 1.2,
@@ -267,7 +265,7 @@ class _IntroPanel extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Um lobby com cara de mesa real. Junta a equipa, escolhe a sala e joga com estilo tradicional.',
+            'Entra na sala, chama o teu parceiro e joga sueca como manda a tradição.',
             style: textTheme.bodyLarge?.copyWith(
               color: foreground.withAlpha(220),
             ),

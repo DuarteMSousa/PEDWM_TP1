@@ -60,7 +60,6 @@ class ReplayPlayerController extends ChangeNotifier {
 
     try {
       _game = await _replayRepository.fetchGameReplay(
-        userId: userId,
         gameId: _game.id,
       );
       _frames = _buildFrames(_game);

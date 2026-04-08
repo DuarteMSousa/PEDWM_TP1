@@ -3,6 +3,8 @@ package events_infrastructure
 import (
 	"backend/internal/domain/events"
 	"backend/internal/domain/game"
+	"backend/internal/domain/player"
+	"backend/internal/domain/room"
 	"errors"
 	"log/slog"
 )
@@ -32,16 +34,19 @@ func NewPlayerLeftEventHandler(roomService RoomService) EventHandler {
 
 // NewGameEndedEventHandler creates a handler for the GAME_ENDED event.
 // It records the game result for each player and updates the game status.
-func NewGameEndedEventHandler(userStatsService UserStatsService, gameService GameService) EventHandler {
+func NewGameEndedEventHandler(userStatsService UserStatsService, gameService GameService, roomService RoomService) EventHandler {
 	return func(event events.Event) error {
-		p := event.Payload.(events.GameEndedPayload)
+		payload := event.Payload.(events.GameEndedPayload)
 
-		for _, team := range p.Teams {
-			for _, player := range team.Players {
-				won := p.Winner == team.ID
-				_, err := userStatsService.RecordGame(player.ID, won)
+		for _, team := range payload.Teams {
+			for _, p := range team.Players {
+				if p.Type == player.BOT {
+					continue
+				}
+				won := payload.Winner == team.ID
+				_, err := userStatsService.RecordGame(p.ID, won)
 				if err != nil {
-					return err
+					slog.Error("error recording game result for player", "playerID", p.ID, "won", won, "error", err)
 				}
 			}
 		}
@@ -49,6 +54,11 @@ func NewGameEndedEventHandler(userStatsService UserStatsService, gameService Gam
 		_, err := gameService.SetGameStatus(event.GameID, game.FINISHED)
 		if err != nil {
 			return err
+		}
+
+		_, error := roomService.SetRoomStatus(event.RoomID, room.OPEN)
+		if error != nil {
+			return error
 		}
 
 		return nil

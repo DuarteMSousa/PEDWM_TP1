@@ -28,6 +28,11 @@ func (s *GameService) GetUserGames(userID string) ([]*game.Game, error) {
 	return games, nil
 }
 
+// GetGame returns a game by ID.
+func (s *GameService) GetGame(id string) (*game.Game, error) {
+	return s.gameRepo.FindByID(id)
+}
+
 // SetGameStatus updates the status of a game.
 func (s *GameService) SetGameStatus(gameID string, status game.GameStatus) (*game.Game, error) {
 	slog.Info("updating game status", "gameID", gameID, "status", status)

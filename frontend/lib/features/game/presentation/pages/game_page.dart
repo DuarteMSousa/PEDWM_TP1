@@ -177,7 +177,7 @@ class _GamePageState extends State<GamePage> {
                       onPressed: () =>
                           Navigator.of(context).pop(_PostGameAction.rematch),
                       icon: const Icon(Icons.replay_rounded),
-                      label: const Text('Revanche'),
+                      label: const Text('Desforra'),
                     ),
                   ),
                 ],

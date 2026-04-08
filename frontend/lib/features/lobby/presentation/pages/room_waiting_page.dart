@@ -205,8 +205,6 @@ class _RoomWaitingPageState extends State<RoomWaitingPage> {
                             room.name,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          const SizedBox(height: 8),
-                          Text('ID da sala: ${room.id}'),
                           const SizedBox(height: 6),
                           Text(
                             'Jogadores: ${room.playersCount}/${room.maxPlayers}',

@@ -342,9 +342,11 @@ class _RoomCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
+            Text('Estado: ${getStatusLabel(room.status)}'),
+            const SizedBox(height: 6),
             Text('Jogadores: ${room.occupancyLabel}'),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             ClipRRect(
               borderRadius: BorderRadius.circular(999),
               child: LinearProgressIndicator(
@@ -368,5 +370,18 @@ class _RoomCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+String getStatusLabel(String status) {
+  switch (status) {
+    case 'OPEN':
+      return 'Aberta';
+    case 'IN_GAME':
+      return 'Em jogo';
+    case 'CLOSED':
+      return 'Fechada';
+    default:
+      return 'Desconhecido';
   }
 }

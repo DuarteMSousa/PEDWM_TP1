@@ -155,6 +155,15 @@ func (r *queryResolver) UserGames(ctx context.Context, userID string) ([]*model.
 	return result, nil
 }
 
+// Game is the resolver for the game field.
+func (r *queryResolver) Game(ctx context.Context, id string) (*model.Game, error) {
+	game, err := r.GameService.GetGame(id)
+	if err != nil {
+		return nil, err
+	}
+	return mapGame(game), nil
+}
+
 // Game returns GameResolver implementation.
 func (r *Resolver) Game() GameResolver { return &gameResolver{r} }
 

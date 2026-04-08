@@ -250,3 +250,23 @@ func (s *RoomService) GetGameSnapshot(roomID, playerID string) (*GameSnapshot, e
 		Teams:           g.Teams,
 	}, nil
 }
+
+// SetRoomStatus updates the status of a room.
+func (s *RoomService) SetRoomStatus(roomID string, status room.RoomStatus) (*room.Room, error) {
+	slog.Info("updating room status", "roomID", roomID, "status", status)
+
+	r, err := s.repo.FindByID(roomID)
+	if err != nil {
+		slog.Error("error finding room", "roomID", roomID, "error", err)
+		return nil, err
+	}
+
+	r.Status = status
+	if err := s.repo.Save(r); err != nil {
+		slog.Error("error persisting room status", "roomID", roomID, "error", err)
+		return nil, err
+	}
+
+	slog.Info("room status updated", "roomID", roomID, "status", status)
+	return r, nil
+}

@@ -43,13 +43,12 @@ class ReplayRemoteDataSource {
   }
 
   Future<GameSummary> fetchGameReplay({
-    required String userId,
     required String gameId,
   }) async {
     final response = await _graphqlService.query(
       document: '''
-        query ReplayGame(\$userId: ID!) {
-          userGames(userId: \$userId) {
+        query GameReplay(\$id: ID!) {
+          game(id: \$id) {
             id
             roomId
             players {
@@ -59,9 +58,12 @@ class ReplayRemoteDataSource {
             events {
               id
               type
+              gameID
+              roomID
               sequence
               timestamp
               payload {
+                __typename
                 ... on CardPlayedEventPayload {
                   playerId
                   card {
@@ -150,10 +152,11 @@ class ReplayRemoteDataSource {
               }
             }
             createdAt
+            updatedAt
           }
         }
       ''',
-      variables: <String, dynamic>{'userId': userId},
+      variables: <String, dynamic>{'id': gameId},
     );
 
     final data = response['data'];
@@ -161,94 +164,85 @@ class ReplayRemoteDataSource {
       throw AppException('Invalid GraphQL response for replay query.');
     }
 
-    final rawGames = data['userGames'];
-    if (rawGames is! List) {
+    final rawGame = data['game'];
+    if (rawGame is! Map<String, dynamic>) {
       throw AppException('Replay não encontrado.');
     }
 
-    for (final rawGame in rawGames) {
-      if (rawGame is! Map<String, dynamic>) {
-        continue;
-      }
-      if (rawGame['id']?.toString() == gameId) {
-        return _gameSummaryFromJson(rawGame);
+    return _gameSummaryFromJson(rawGame);
+  }
+}
+
+GameSummary _gameSummaryFromJson(Map<String, dynamic> json) {
+  final players = <GameSummaryPlayer>[];
+  final rawPlayers = json['players'];
+  if (rawPlayers is List) {
+    for (final p in rawPlayers) {
+      if (p is Map<String, dynamic>) {
+        players.add(
+          GameSummaryPlayer(
+            id: p['id']?.toString() ?? '',
+            username: p['username']?.toString() ?? 'Jogador',
+          ),
+        );
       }
     }
-
-    throw AppException('Replay não encontrado.');
   }
 
-  GameSummary _gameSummaryFromJson(Map<String, dynamic> json) {
-    final players = <GameSummaryPlayer>[];
-    final rawPlayers = json['players'];
-    if (rawPlayers is List) {
-      for (final p in rawPlayers) {
-        if (p is Map<String, dynamic>) {
-          players.add(
-            GameSummaryPlayer(
-              id: p['id']?.toString() ?? '',
-              username: p['username']?.toString() ?? 'Jogador',
-            ),
-          );
+  final events = <GameEvent>[];
+  final rawEvents = json['events'];
+  if (rawEvents is List) {
+    for (final e in rawEvents) {
+      if (e is Map<String, dynamic>) {
+        events.add(_gameEventFromJson(e));
+      }
+    }
+  }
+
+  DateTime createdAt;
+  try {
+    createdAt = DateTime.parse(json['createdAt']?.toString() ?? '');
+  } catch (_) {
+    createdAt = DateTime.now();
+  }
+
+  return GameSummary(
+    id: json['id']?.toString() ?? '',
+    roomId: json['roomId']?.toString(),
+    players: players,
+    createdAt: createdAt,
+    events: events
+      ..sort((a, b) {
+        final sequenceCompare = a.sequence.compareTo(b.sequence);
+        if (sequenceCompare != 0) {
+          return sequenceCompare;
         }
-      }
-    }
+        return a.timestamp.compareTo(b.timestamp);
+      }),
+  );
+}
 
-    final events = <GameEvent>[];
-    final rawEvents = json['events'];
-    if (rawEvents is List) {
-      for (final e in rawEvents) {
-        if (e is Map<String, dynamic>) {
-          events.add(_gameEventFromJson(e));
-        }
-      }
-    }
-
-    DateTime createdAt;
-    try {
-      createdAt = DateTime.parse(json['createdAt']?.toString() ?? '');
-    } catch (_) {
-      createdAt = DateTime.now();
-    }
-
-    return GameSummary(
-      id: json['id']?.toString() ?? '',
-      roomId: json['roomId']?.toString(),
-      players: players,
-      createdAt: createdAt,
-      events: events
-        ..sort((a, b) {
-          final sequenceCompare = a.sequence.compareTo(b.sequence);
-          if (sequenceCompare != 0) {
-            return sequenceCompare;
-          }
-          return a.timestamp.compareTo(b.timestamp);
-        }),
-    );
+GameEvent _gameEventFromJson(Map<String, dynamic> json) {
+  DateTime timestamp;
+  try {
+    timestamp = DateTime.parse(json['timestamp']?.toString() ?? '');
+  } catch (_) {
+    timestamp = DateTime.now();
   }
 
-  GameEvent _gameEventFromJson(Map<String, dynamic> json) {
-    DateTime timestamp;
-    try {
-      timestamp = DateTime.parse(json['timestamp']?.toString() ?? '');
-    } catch (_) {
-      timestamp = DateTime.now();
-    }
-
-    final rawPayload = json['payload'];
-    Map<String, dynamic>? payload;
-    if (rawPayload is Map<String, dynamic>) {
-      payload = rawPayload;
-    } else if (rawPayload is Map) {
-      payload = Map<String, dynamic>.from(rawPayload);
-    }
-
-    return GameEvent(
-      id: json['id']?.toString() ?? '',
-      type: json['type']?.toString() ?? '',
-      sequence: (json['sequence'] as num?)?.toInt() ?? 0,
-      timestamp: timestamp,
-      payload: payload,
-    );
+  final rawPayload = json['payload'];
+  Map<String, dynamic>? payload;
+  if (rawPayload is Map<String, dynamic>) {
+    payload = rawPayload;
+  } else if (rawPayload is Map) {
+    payload = Map<String, dynamic>.from(rawPayload);
   }
+
+  return GameEvent(
+    id: json['id']?.toString() ?? '',
+    type: json['type']?.toString() ?? '',
+    sequence: (json['sequence'] as num?)?.toInt() ?? 0,
+    timestamp: timestamp,
+    payload: payload,
+  );
 }
