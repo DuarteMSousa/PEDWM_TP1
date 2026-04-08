@@ -25,3 +25,10 @@ Postgres connection in pgAdmin:
 - Database: `sueca`
 - User: `sueca`
 - Password: `sueca123`
+
+## Frontend 
+```bash
+    cd frontend
+    flutter run
+```
+

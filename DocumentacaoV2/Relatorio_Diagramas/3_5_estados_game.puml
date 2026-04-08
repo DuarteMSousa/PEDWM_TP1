@@ -1,5 +1,5 @@
 ﻿@startuml
-title Diagrama de Estados - Game (Estado Atual)
+' title Diagrama de Estados - Game (Estado Atual)
 
 [*] --> Pending
 

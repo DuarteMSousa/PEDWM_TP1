@@ -12,7 +12,7 @@ enum RoomStatus {
 }
 
 enum GameStatus {
-  STARTING
+  PENDING
   PLAYING
   FINISHED
 }
