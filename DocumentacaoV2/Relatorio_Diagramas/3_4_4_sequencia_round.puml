@@ -4,6 +4,7 @@ title Sequencia - Ronda Completa (Refatorado)
 participant "Game" as Game
 participant "RoundSetupState" as Setup
 participant "RoundPlayingState" as Playing
+participant "RoundFinishedState" as Finished
 participant "Trick" as Trick
 participant "BotStrategy" as Bot
 participant "EventBus" as Bus
@@ -55,7 +56,8 @@ end
 
 == Finalização ==
 
-Playing -> Bus : ROUND_ENDED
+Playing -> Finished : Enter()
+Finished -> Bus : ROUND_ENDED
 
 == Fan-out de Eventos (Assíncrono) ==
 

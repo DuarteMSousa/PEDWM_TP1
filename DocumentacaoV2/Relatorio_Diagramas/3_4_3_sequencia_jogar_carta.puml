@@ -23,7 +23,7 @@ WSF -> WSClient : frame JSON
 WSClient -> Dispatcher : HandleMessage(client, raw)
 Dispatcher -> PlayHandler : Dispatch(play_card)
 PlayHandler -> Cmd : NewPlayCardCommand(playerId, cardId)
-PlayHandler -> Cmd : Execute(game)
+PlayHandler -> Cmd : Execute(room)
 Cmd -> Game : PlayCard(playerId, cardId)
 Game -> Round : PlayCard(playerId, cardId)
 Round -> Rule : ValidatePlay(trick, play)
@@ -36,9 +36,9 @@ alt jogada invalida
   WSClient -> UI : comando falhou
 else jogada valida
   Rule --> Round : true
-  Round -> Round : remove carta da hand + add play
+  note over Round : remove carta da mão + adiciona jogada
   Round -> Game : evento CARD_PLAYED/TURN_CHANGED...
-  Game -> Game : UpdateRoundState()
+  note over Game : UpdateRoundState()
 
   loop para cada evento gerado
     Game -> Bus : Publish(event)
@@ -49,7 +49,7 @@ else jogada valida
     alt event.gameId preenchido
       PersistObs -> EventRepo : Save(event)
     else sem gameId
-      PersistObs -> PersistObs : ignora persistencia
+      note over PersistObs : ignora persistência
     end
   end
 
