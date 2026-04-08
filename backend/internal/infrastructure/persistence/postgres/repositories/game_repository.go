@@ -122,8 +122,13 @@ func (r *GamePostgresRepository) FindByID(id string) (*game.Game, error) {
 		ID:        parsedID,
 		RoomID:    roomID,
 		Status:    game.GameStatus(status),
+		Players:   make(map[string]*player.Player),
 		CreatedAt: createdAt,
 		UpdatedAt: updatedAt,
+	}
+
+	if err := r.loadPlayers(ctx, g); err != nil {
+		return nil, err
 	}
 
 	return g, nil
@@ -167,8 +172,13 @@ func (r *GamePostgresRepository) FindByRoomID(roomID string) ([]*game.Game, erro
 			ID:        parsedID,
 			RoomID:    rID,
 			Status:    game.GameStatus(status),
+			Players:   make(map[string]*player.Player),
 			CreatedAt: createdAt,
 			UpdatedAt: updatedAt,
+		}
+
+		if err := r.loadPlayers(ctx, g); err != nil {
+			return nil, err
 		}
 
 		result = append(result, g)
@@ -217,12 +227,43 @@ func (r *GamePostgresRepository) GetByUserID(userID string) ([]*game.Game, error
 			ID:        parsedID,
 			RoomID:    rID,
 			Status:    game.GameStatus(status),
+			Players:   make(map[string]*player.Player),
 			CreatedAt: createdAt,
 			UpdatedAt: updatedAt,
+		}
+
+		if err := r.loadPlayers(ctx, g); err != nil {
+			return nil, err
 		}
 
 		result = append(result, g)
 	}
 
 	return result, nil
+}
+
+// loadPlayers loads the players of a game from the database.
+func (r *GamePostgresRepository) loadPlayers(ctx context.Context, g *game.Game) error {
+	rows, err := r.pool.Query(ctx, `
+		SELECT gp.user_id, u.username, gp.sequence
+		FROM game_players gp
+		JOIN users u ON u.id = gp.user_id
+		WHERE gp.game_id = $1
+		ORDER BY gp.sequence
+	`, g.ID.String())
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var userID, username string
+		var sequence int
+		if err := rows.Scan(&userID, &username, &sequence); err != nil {
+			return err
+		}
+		g.Players[userID] = player.NewPlayer(userID, username, sequence)
+	}
+
+	return nil
 }

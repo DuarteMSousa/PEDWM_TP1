@@ -266,15 +266,11 @@ func mapGameSnapshot(snapshot *services.GameSnapshot) *model.GameSnapshot {
 func mapGame(g *game.Game) *model.Game {
 
 	var players []*model.GamePlayer
-	for _, team := range g.Teams {
-		for _, player := range team.Players {
-
-			players = append(players, &model.GamePlayer{
-				ID:       player.ID,
-				Username: player.Name,
-			})
-
-		}
+	for _, p := range g.Players {
+		players = append(players, &model.GamePlayer{
+			ID:       p.ID,
+			Username: p.Name,
+		})
 	}
 
 	var resultEvents []*model.Event
