@@ -20,15 +20,15 @@ package "Servidor" {
 
 database "PostgreSQL" as DB
 
-Player --> FE : Interacao UI
+Player --> FE : Interação UI
 
-FE --> GQL : HTTP\nOperacoes estruturadas
+FE --> GQL : HTTP\nOperações estruturadas
 FE <--> WS : WebSocket\nEventos em tempo real
 
 GQL --> Domain : Comandos e consultas
 WS --> Domain : Comandos realtime
-Domain --> WS : Publicacao de eventos
+Domain --> WS : Publicação de eventos
 
-Domain <--> DB : Persistencia\n(users, rooms, games, events)
+Domain <--> DB : Persistência\n(users, rooms, games, events)
 
 @enduml
