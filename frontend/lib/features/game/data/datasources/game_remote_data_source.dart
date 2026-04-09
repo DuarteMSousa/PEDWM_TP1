@@ -152,20 +152,16 @@ class GameRemoteDataSource {
       final type = rawEvent['type']?.toString() ?? '';
       final payload = rawEvent['payload'] ?? {};
 
-      // 2. Determinar o tempo de espera para este evento
+   
       if (type == 'CARD_PLAYED') {
         final playerId = payload['playerId']?.toString();
-        // Se não fui eu que joguei (foi um bot ou adversário), espera para eu ver a carta
         if (playerId != current.myPlayerId) {
           await Future.delayed(const Duration(milliseconds: 1000));
         }
       } else if (type == 'TRICK_ENDED') {
-        // Quando a vaza acaba, espera 2 segundos com as cartas na mesa
-        // antes de limpar (emitir o novo estado)
         await Future.delayed(const Duration(seconds: 2));
       }
 
-      // 3. Aplica o evento e emite o novo estado
       final next = _applyEvent(current, rawEvent);
       _cachedGames[roomId] = next;
       _emit(roomId, next);
@@ -365,12 +361,9 @@ class GameRemoteDataSource {
     final fallbackName = playerId.startsWith('b')
         ? 'Bot ${playerId.substring(1)}'
         : 'Jogador';
-    final hasInvalidBotName =
-      playerId.startsWith('b') &&
-      playerName != null &&
-      _looksLikeUuid(playerName);
+
     final nickname =
-      (playerName == null || playerName.isEmpty || hasInvalidBotName)
+      (playerName == null || playerName.isEmpty)
       ? fallbackName
       : playerName;
 
@@ -425,12 +418,6 @@ class GameRemoteDataSource {
     withoutPlayer[targetIndex] = team.copyWith(players: players);
 
     return withoutPlayer;
-  }
-
-  bool _looksLikeUuid(String value) {
-    return RegExp(
-      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
-    ).hasMatch(value);
   }
 
   Future<Map<String, dynamic>> _fetchRoom({required String roomId}) async {
@@ -624,89 +611,6 @@ class GameRemoteDataSource {
       return hasCards ? GamePhase.playingTrick : GamePhase.dealingCards;
     }
     return _phaseFromRoomStatus(roomStatus);
-  }
-
-  (int, int) _parseScoreTuple(dynamic rawScore) {
-    if (rawScore is! Map) {
-      return (0, 0);
-    }
-
-    final mapped = Map<String, dynamic>.from(rawScore);
-    int? teamA = _toInt(mapped['team1']);
-    int? teamB = _toInt(mapped['team2']);
-
-    if (teamA == null || teamB == null) {
-      for (final entry in mapped.entries) {
-        final key = entry.key.toString().toLowerCase();
-        final value = _toInt(entry.value);
-        if (value == null) {
-          continue;
-        }
-        if (key.contains('1') && teamA == null) {
-          teamA = value;
-          continue;
-        }
-        if (key.contains('2') && teamB == null) {
-          teamB = value;
-        }
-      }
-    }
-
-    if (teamA != null || teamB != null) {
-      return (teamA ?? 0, teamB ?? 0);
-    }
-
-    final numericScores = mapped.values
-        .map(_toInt)
-        .whereType<int>()
-        .toList(growable: false);
-    if (numericScores.length >= 2) {
-      return (numericScores[0], numericScores[1]);
-    }
-    if (numericScores.length == 1) {
-      return (numericScores[0], 0);
-    }
-    return (0, 0);
-  }
-
-  (int, int) _parseSnapshotScores(dynamic rawScores) {
-    if (rawScores is! List) {
-      return (0, 0);
-    }
-
-    int? team1;
-    int? team2;
-    final collected = <int>[];
-
-    for (final item in rawScores) {
-      if (item is! Map) {
-        continue;
-      }
-      final mapped = Map<String, dynamic>.from(item);
-      final points = _toInt(mapped['points']);
-      if (points == null) {
-        continue;
-      }
-      collected.add(points);
-
-      final teamId = mapped['teamId']?.toString().toLowerCase() ?? '';
-      if (teamId.contains('1') && team1 == null) {
-        team1 = points;
-      } else if (teamId.contains('2') && team2 == null) {
-        team2 = points;
-      }
-    }
-
-    if (team1 != null || team2 != null) {
-      return (team1 ?? 0, team2 ?? 0);
-    }
-    if (collected.length >= 2) {
-      return (collected[0], collected[1]);
-    }
-    if (collected.length == 1) {
-      return (collected[0], 0);
-    }
-    return (0, 0);
   }
 
   Future<void> _awaitCommandResult(String commandType) async {

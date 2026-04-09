@@ -649,12 +649,8 @@ String _normalizeJoinedPlayerName({
   required String existingName,
 }) {
   final candidate = incomingName?.trim() ?? '';
-  final isBot = playerId.startsWith('b');
   if (candidate.isEmpty) {
     return existingName;
-  }
-  if (isBot && _looksLikeUuid(candidate)) {
-    return _fallbackNameForPlayer(playerId);
   }
   return candidate;
 }
@@ -668,12 +664,6 @@ String _fallbackNameForPlayer(String playerId) {
     return 'Bot';
   }
   return 'Bot $suffix';
-}
-
-bool _looksLikeUuid(String value) {
-  return RegExp(
-    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
-  ).hasMatch(value);
 }
 
 Suit? _parseSuit(String? rawSuit) {

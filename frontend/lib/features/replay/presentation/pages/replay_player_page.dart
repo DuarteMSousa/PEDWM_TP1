@@ -99,7 +99,6 @@ class _ReplayPlayerPageState extends State<ReplayPlayerPage> {
             child: SafeArea(
               child: Column(
                 children: [
-                  // Cabeçalho de Informação
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                     child: SectionCard(
@@ -142,38 +141,18 @@ class _ReplayPlayerPageState extends State<ReplayPlayerPage> {
                       ),
                     ),
                   ),
-                  // Tabuleiro Central
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
                       child: _ReplayBoard(frame: frame),
                     ),
                   ),
-                  // Controlos da Timeline
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                     child: SectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Row(
-                          //   children: [
-                          //     const Icon(Icons.timeline_rounded),
-                          //     const SizedBox(width: 8),
-                          //     Expanded(
-                          //       child: Text(
-                          //         'Timeline do replay',
-                          //         style: Theme.of(context).textTheme.titleSmall,
-                          //       ),
-                          //     ),
-                          //     Text(
-                          //       _controller.isPlaying
-                          //           ? '${_controller.playbackSpeed.toStringAsFixed(_controller.playbackSpeed.truncateToDouble() == _controller.playbackSpeed ? 0 : 1)}x'
-                          //           : 'Pausado',
-                          //       style: Theme.of(context).textTheme.labelMedium,
-                          //     ),
-                          //   ],
-                          // ),
                           SliderTheme(
                             data: SliderTheme.of(context).copyWith(
                               activeTrackColor: const Color(0xFF155B42),
@@ -325,7 +304,6 @@ class _ReplayBoard extends StatelessWidget {
                 ),
                 child: Stack(
                   children: [
-                    // Top
                     Align(
                       alignment: Alignment.topCenter,
                       child: Padding(
@@ -342,7 +320,6 @@ class _ReplayBoard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // Left
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Padding(
@@ -359,7 +336,6 @@ class _ReplayBoard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // Right
                     Align(
                       alignment: Alignment.centerRight,
                       child: Padding(
@@ -377,7 +353,6 @@ class _ReplayBoard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // Bottom
                     Align(
                       alignment: Alignment.bottomCenter,
                       child: Padding(
@@ -553,7 +528,7 @@ class _TrickCenter extends StatelessWidget {
   }
 }
 
-// Widgets de suporte e Helpers (Pills, Badges, Chips)
+
 class _TeamScorePill extends StatelessWidget {
   const _TeamScorePill({required this.team});
   final ReplayTeamSnapshot team;
@@ -766,7 +741,7 @@ class _EventTile extends StatelessWidget {
   }
 }
 
-// Modelos de dados para organização do Trick (Vaza)
+
 class _PileCard {
   const _PileCard({
     required this.seatTag,
@@ -780,7 +755,7 @@ class _PileCard {
   final double angle;
 }
 
-// --- Métodos de Mapeamento e Labels ---
+
 
 String _cardFrontAssetPath(SuecaCard card) {
   final rankToken = switch (card.rank) {
@@ -809,7 +784,7 @@ Map<String, String> _buildPlayerNames(GameSummary game, ReplayFrame frame) {
     addName(p.id, p.username);
   }
 
-  // Seats podem conter nomes mais completos mesmo quando game.players vem parcial.
+
   for (final seat in frame.seats) {
     addName(seat?.id, seat?.name);
   }

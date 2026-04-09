@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sueca_pedwm/features/game/domain/entities/team.dart';
+import 'package:sueca_pedwm/features/lobby/presentation/pages/room_waiting_page.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/shared_widgets/motion.dart';
@@ -40,14 +41,7 @@ class GamePage extends StatefulWidget {
 }
 
 class _GamePageState extends State<GamePage> {
-  static const List<String> _cardBackCandidates = <String>[
-    'assets/cards/back/back.svg',
-    'assets/cards/back/back_blue.svg',
-    'assets/cards/back/back_red.svg',
-    'assets/cards/back/back.png',
-    'assets/cards/back/back_blue.png',
-    'assets/cards/back/back_red.png',
-  ];
+  static const String _cardBackPath = 'assets/cards/back/back.png';
 
   late final GameController _controller;
   String? _cardBackAssetPath;
@@ -66,18 +60,17 @@ class _GamePageState extends State<GamePage> {
   }
 
   Future<void> _resolveCardBackAsset() async {
-    for (final candidate in _cardBackCandidates) {
+
       try {
-        await rootBundle.load(candidate);
+        await rootBundle.load(_cardBackPath);
         if (!mounted) {
           return;
         }
-        setState(() => _cardBackAssetPath = candidate);
+        setState(() => _cardBackAssetPath = _cardBackPath);
         return;
       } catch (_) {
-        // Continue searching for an existing back asset.
       }
-    }
+    
   }
 
   @override
@@ -106,9 +99,9 @@ class _GamePageState extends State<GamePage> {
       switch (action ?? _PostGameAction.lobby) {
         case _PostGameAction.rematch:
           Navigator.of(context).pushNamedAndRemoveUntil(
-            AppRoutes.lobby,
+            AppRoutes.roomWaiting,
             (_) => false,
-            arguments: LobbyPageArgs(currentUser: user, autoCreateRoom: true),
+            arguments: RoomWaitingArgs(currentUser: user,roomId: _controller.roomId),
           );
           break;
         case _PostGameAction.lobby:
@@ -164,22 +157,13 @@ class _GamePageState extends State<GamePage> {
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton.icon(
+                    child: ElevatedButton.icon(
                       onPressed: () =>
                           Navigator.of(context).pop(_PostGameAction.lobby),
                       icon: const Icon(Icons.home_outlined),
                       label: const Text('Lobby'),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () =>
-                          Navigator.of(context).pop(_PostGameAction.rematch),
-                      icon: const Icon(Icons.replay_rounded),
-                      label: const Text('Desforra'),
-                    ),
-                  ),
+                  ),          
                 ],
               ),
             ],

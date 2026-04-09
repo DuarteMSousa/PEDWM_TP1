@@ -41,14 +41,20 @@ func (s SuecaGameScoringStrategy) CalculateCurrentRoundGamePoints(round *round.R
 	return points
 }
 
-// HasGameEnded checks if any team has reached 4 game points.
+// HasGameEnded checks if a single team leads with at least 4 game points (no tie at the top).
 func (s SuecaGameScoringStrategy) HasGameEnded(game *Game) bool {
+	var maxScore int
+	leaderCount := 0
 	for _, team := range game.Teams {
-		if game.Score[team.ID] >= 4 {
-			return true
+		score := game.Score[team.ID]
+		if score > maxScore {
+			maxScore = score
+			leaderCount = 1
+		} else if score == maxScore {
+			leaderCount++
 		}
 	}
-	return false
+	return maxScore >= 4 && leaderCount == 1
 }
 
 // Winner returns the ID of the team with the most game points.

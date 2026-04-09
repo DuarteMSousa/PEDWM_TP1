@@ -262,6 +262,11 @@ func (s *RoomService) SetRoomStatus(roomID string, status room.RoomStatus) (*roo
 	}
 
 	r.Status = status
+
+	if status == room.OPEN {
+		r.Game = nil
+	}
+
 	if err := s.repo.Save(r); err != nil {
 		slog.Error("error persisting room status", "roomID", roomID, "error", err)
 		return nil, err

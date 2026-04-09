@@ -1,5 +1,5 @@
 ﻿@startuml
-title Sueca - Sequencia: Jogar Carta por WebSocket (Estado Atual)
+' title Sueca - Sequencia: Jogar Carta por WebSocket (Estado Atual)
 
 actor "Jogador" as Player
 participant "Flutter GamePage" as UI
